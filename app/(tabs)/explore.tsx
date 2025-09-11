@@ -1,110 +1,131 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+// Arquivo: app/(tabs)/explore.tsx
 
-import { Collapsible } from '@/components/Collapsible';
-import { ExternalLink } from '@/components/ExternalLink';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
-import { IconSymbol } from '@/components/ui/IconSymbol';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Link, useFocusEffect } from 'expo-router';
+import React, { useCallback, useState } from 'react';
+import { Alert, FlatList, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Pet } from '../types/pet';
+export default function PetDashboard() {
+  // Estado para guardar a lista de pets
+  const [pets, setPets] = useState<Pet[]>([]);
 
-export default function TabTwoScreen() {
+  // Função para carregar os pets do armazenamento local
+  const loadPets = async () => {
+    try {
+      const petsJSON = await AsyncStorage.getItem('pets');
+      if (petsJSON) {
+        setPets(JSON.parse(petsJSON));
+      } else {
+        setPets([]); // Se não houver nada salvo, define a lista como vazia
+      }
+    } catch (error) {
+      console.error("Erro ao carregar os pets", error);
+    }
+  };
+
+  // Hook que executa a função loadPets toda vez que a tela entra em foco
+  useFocusEffect(
+    useCallback(() => {
+      loadPets();
+    }, [])
+  );
+
+  // Função que remove um pet da lista e do armazenamento
+  const handleDeletePet = async (petIdToDelete: string) => {
+    try {
+      // Cria uma nova lista com todos os pets, exceto o que será excluído
+      const updatedPets = pets.filter(pet => pet.id !== petIdToDelete);
+
+      // Salva a nova lista no AsyncStorage
+      await AsyncStorage.setItem('pets', JSON.stringify(updatedPets));
+
+      // Atualiza o estado para redesenhar a tela
+      setPets(updatedPets);
+
+      Alert.alert("Sucesso", "O pet foi removido.");
+    } catch (error) {
+      console.error("Erro ao excluir o pet", error);
+      Alert.alert("Erro", "Não foi possível remover o pet.");
+    }
+  };
+
+  // Função que mostra a caixa de diálogo para confirmar a exclusão
+  const confirmDelete = (pet: Pet) => {
+    Alert.alert(
+      "Confirmar Exclusão",
+      `Você tem certeza que deseja excluir ${pet.name}?`,
+      [
+        { text: "Cancelar", style: "cancel" },
+        { text: "Excluir", onPress: () => handleDeletePet(pet.id), style: "destructive" }
+      ]
+    );
+  };
+
+  // Componente para renderizar cada item da lista
+  type PetItemProps = {
+    pet: Pet;
+    onDelete: () => void;
+  };
+
+  const PetItem = ({ pet, onDelete }: PetItemProps) => (
+    // Componente Link para criar a navegação para a tela de detalhes
+    <Link href={{ pathname: "/pet/[id]", params: { id: pet.id } }} asChild>
+      <TouchableOpacity style={styles.petItem}>
+        <View style={styles.petAvatar}>
+          <Text style={styles.petAvatarEmoji}>🐾</Text>
+        </View>
+        <View style={styles.petInfo}>
+          <Text style={styles.petName}>{pet.name}</Text>
+          <Text style={styles.petSpecies}>{pet.species}</Text>
+        </View>
+        {/* Envolvemos o botão de excluir em uma View para evitar que o clique se propague para o Link */}
+        <TouchableOpacity onPress={onDelete} style={styles.deleteButton}>
+          <Text style={styles.deleteButtonText}>🗑️</Text>
+        </TouchableOpacity>
+      </TouchableOpacity>
+    </Link>
+  );
+
+  // Se a lista de pets estiver vazia, mostra uma mensagem amigável
+  if (pets.length === 0) {
+    return (
+      <SafeAreaView style={styles.containerEmpty}>
+        <Text style={styles.emptyText}>Você ainda não cadastrou nenhum pet.</Text>
+        <Text style={styles.emptySubtext}>Vá para a aba de cadastro para adicionar seu primeiro amigo!</Text>
+      </SafeAreaView>
+    );
+  }
+
+  // Se houver pets, renderiza a lista
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }}
-      headerImage={
-        <IconSymbol
-          size={310}
-          color="#808080"
-          name="chevron.left.forwardslash.chevron.right"
-          style={styles.headerImage}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Explore</ThemedText>
-      </ThemedView>
-      <ThemedText>This app includes example code to help you get started.</ThemedText>
-      <Collapsible title="File-based routing">
-        <ThemedText>
-          This app has two screens:{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/explore.tsx</ThemedText>
-        </ThemedText>
-        <ThemedText>
-          The layout file in <ThemedText type="defaultSemiBold">app/(tabs)/_layout.tsx</ThemedText>{' '}
-          sets up the tab navigator.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/router/introduction">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Android, iOS, and web support">
-        <ThemedText>
-          You can open this project on Android, iOS, and the web. To open the web version, press{' '}
-          <ThemedText type="defaultSemiBold">w</ThemedText> in the terminal running this project.
-        </ThemedText>
-      </Collapsible>
-      <Collapsible title="Images">
-        <ThemedText>
-          For static images, you can use the <ThemedText type="defaultSemiBold">@2x</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">@3x</ThemedText> suffixes to provide files for
-          different screen densities
-        </ThemedText>
-        <Image source={require('@/assets/images/react-logo.png')} style={{ alignSelf: 'center' }} />
-        <ExternalLink href="https://reactnative.dev/docs/images">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Custom fonts">
-        <ThemedText>
-          Open <ThemedText type="defaultSemiBold">app/_layout.tsx</ThemedText> to see how to load{' '}
-          <ThemedText style={{ fontFamily: 'SpaceMono' }}>
-            custom fonts such as this one.
-          </ThemedText>
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/versions/latest/sdk/font">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Light and dark mode components">
-        <ThemedText>
-          This template has light and dark mode support. The{' '}
-          <ThemedText type="defaultSemiBold">useColorScheme()</ThemedText> hook lets you inspect
-          what the user&apos;s current color scheme is, and so you can adjust UI colors accordingly.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/develop/user-interface/color-themes/">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Animations">
-        <ThemedText>
-          This template includes an example of an animated component. The{' '}
-          <ThemedText type="defaultSemiBold">components/HelloWave.tsx</ThemedText> component uses
-          the powerful <ThemedText type="defaultSemiBold">react-native-reanimated</ThemedText>{' '}
-          library to create a waving hand animation.
-        </ThemedText>
-        {Platform.select({
-          ios: (
-            <ThemedText>
-              The <ThemedText type="defaultSemiBold">components/ParallaxScrollView.tsx</ThemedText>{' '}
-              component provides a parallax effect for the header image.
-            </ThemedText>
-          ),
-        })}
-      </Collapsible>
-    </ParallaxScrollView>
+    <SafeAreaView style={styles.container}>
+      <FlatList
+        data={pets}
+        renderItem={({ item }) => (
+          <PetItem
+            pet={item}
+            onDelete={() => confirmDelete(item)}
+          />
+        )}
+        keyExtractor={item => item.id}
+        contentContainerStyle={{ padding: 20 }}
+      />
+    </SafeAreaView>
   );
 }
 
+// Folha de estilos do componente
 const styles = StyleSheet.create({
-  headerImage: {
-    color: '#808080',
-    bottom: -90,
-    left: -35,
-    position: 'absolute',
-  },
-  titleContainer: {
-    flexDirection: 'row',
-    gap: 8,
-  },
+  container: { flex: 1, backgroundColor: '#fff' },
+  petItem: { backgroundColor: '#F8F8F8', padding: 15, borderRadius: 12, flexDirection: 'row', alignItems: 'center', marginBottom: 15 },
+  petAvatar: { width: 60, height: 60, borderRadius: 30, backgroundColor: '#E8E8E8', justifyContent: 'center', alignItems: 'center', marginRight: 15 },
+  petAvatarEmoji: { fontSize: 30 },
+  petInfo: { flex: 1 },
+  petName: { fontSize: 18, fontWeight: 'bold' },
+  petSpecies: { fontSize: 14, color: 'gray' },
+  deleteButton: { padding: 10 },
+  deleteButtonText: { fontSize: 24 },
+  containerEmpty: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
+  emptyText: { fontSize: 18, fontWeight: 'bold', textAlign: 'center' },
+  emptySubtext: { fontSize: 16, color: 'gray', textAlign: 'center', marginTop: 8 },
 });
