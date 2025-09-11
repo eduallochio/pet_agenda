@@ -3,16 +3,7 @@ import { Link, Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import React, { useCallback, useState } from 'react';
 import { ActivityIndicator, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Pet } from '../types/pet';
-
-// Definição do tipo Reminder
-type Reminder = {
-	id: string;
-	petId: string;
-	category: string;
-	description: string;
-	date: string;
-};
+import { Pet, Reminder } from '../types/pet';
 
 export default function PetDetailScreen() {
 	const { id } = useLocalSearchParams();
@@ -78,9 +69,9 @@ export default function PetDetailScreen() {
 				<Text style={styles.petInfo}>Nascimento: {pet.dob}</Text>
 			</View>
 
-			{/* NOVO BOTÃO ADICIONADO AQUI */}
 			<View style={styles.menuContainer}>
-				<Link href={{ pathname: "/vaccines/[petId]", params: { petId: pet.id } }} asChild>
+				{/* LINK CORRIGIDO AQUI - agora é uma string simples */}
+				<Link href={`/vaccines/${pet.id}`} asChild>
 					<TouchableOpacity style={styles.menuButton}>
 						<Text style={styles.menuButtonText}>Ver Carteirinha de Vacinação</Text>
 					</TouchableOpacity>
@@ -105,7 +96,6 @@ export default function PetDetailScreen() {
 	);
 }
 
-// ESTILOS ATUALIZADOS
 const styles = StyleSheet.create({
 	container: { flex: 1, backgroundColor: '#F8F9FA' },
 	header: { backgroundColor: '#fff', padding: 20, alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#E0E0E0' },
@@ -113,25 +103,9 @@ const styles = StyleSheet.create({
 	avatarEmoji: { fontSize: 50 },
 	petName: { fontSize: 28, fontWeight: 'bold' },
 	petInfo: { fontSize: 16, color: 'gray', marginTop: 4 },
-	// Estilos do novo botão de menu
-	menuContainer: {
-		padding: 20,
-		backgroundColor: '#fff',
-		borderBottomWidth: 1,
-		borderBottomColor: '#E0E0E0',
-	},
-	menuButton: {
-		backgroundColor: '#40E0D0',
-		paddingVertical: 15,
-		borderRadius: 12,
-		alignItems: 'center',
-	},
-	menuButtonText: {
-		color: '#fff',
-		fontSize: 16,
-		fontWeight: 'bold',
-	},
-	// Fim dos novos estilos
+	menuContainer: { padding: 20, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#E0E0E0' },
+	menuButton: { backgroundColor: '#40E0D0', paddingVertical: 15, borderRadius: 12, alignItems: 'center' },
+	menuButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
 	upcomingEvents: { padding: 20, flex: 1 },
 	sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 },
 	sectionTitle: { fontSize: 22, fontWeight: 'bold' },
