@@ -25,3 +25,9 @@ export type UserProfile = {
   bio: string
   avatarUrl?: string // URL da foto (opcional por agora)
 }
+
+export type Friend = {
+  id: string
+  name: string
+  avatarUrl?: string
+}

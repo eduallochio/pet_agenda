@@ -3,7 +3,15 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, FlatList } from '
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, Link } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Pet, UserProfile } from '../types/pet';
+import { Pet, UserProfile, Friend } from '../types/pet'; // Importa todos os tipos necessários
+
+// Dados falsos para a lista de amigos (para fins de UI)
+const mockFriends: Friend[] = [
+	{ id: '201', name: 'Mariana' },
+	{ id: '202', name: 'João' },
+	{ id: '203', name: 'Sofia' },
+	{ id: '204', name: 'Lucas' },
+];
 
 export default function ProfileScreen() {
 	const [pets, setPets] = useState<Pet[]>([]);
@@ -12,13 +20,15 @@ export default function ProfileScreen() {
 	useFocusEffect(
 		useCallback(() => {
 			const loadData = async () => {
-				// Carrega os pets (lógica existente)
-				const petsJSON = await AsyncStorage.getItem('pets');
-				setPets(petsJSON ? JSON.parse(petsJSON) : []);
+				try {
+					const petsJSON = await AsyncStorage.getItem('pets');
+					setPets(petsJSON ? JSON.parse(petsJSON) : []);
 
-				// Carrega os dados do perfil do utilizador
-				const profileJSON = await AsyncStorage.getItem('userProfile');
-				setProfile(profileJSON ? JSON.parse(profileJSON) : null);
+					const profileJSON = await AsyncStorage.getItem('userProfile');
+					setProfile(profileJSON ? JSON.parse(profileJSON) : null);
+				} catch (error) {
+					console.error("Erro ao carregar dados no perfil:", error);
+				}
 			};
 			loadData();
 		}, [])
@@ -33,12 +43,19 @@ export default function ProfileScreen() {
 		</Link>
 	);
 
+	// Componente para renderizar o avatar de cada amigo
+	const FriendAvatar = ({ friend }: { friend: Friend }) => (
+		<TouchableOpacity style={styles.friendAvatarContainer}>
+			<View style={styles.friendAvatar} />
+			<Text style={styles.friendName}>{friend.name}</Text>
+		</TouchableOpacity>
+	);
+
 	return (
 		<SafeAreaView style={styles.container}>
 			<ScrollView contentContainerStyle={styles.scrollContainer}>
 				<View style={styles.profileSection}>
 					<View style={styles.userAvatar} />
-					{/* Exibe o nome do perfil salvo, ou um placeholder se não houver */}
 					<Text style={styles.userName}>{profile?.name || 'Seu Nome'}</Text>
 					<Text style={styles.userBio}>{profile?.bio || 'Pet Lover'}</Text>
 				</View>
@@ -63,21 +80,27 @@ export default function ProfileScreen() {
 
 				<View style={styles.section}>
 					<Text style={styles.sectionTitle}>Amigos</Text>
-					<View style={styles.friendsContainer}>
-						<View style={styles.friendAvatar} /><View style={styles.friendAvatar} /><View style={styles.friendAvatar} /><View style={styles.friendAvatar} />
-					</View>
+					<FlatList
+						data={mockFriends}
+						renderItem={({ item }) => <FriendAvatar friend={item} />}
+						keyExtractor={item => item.id}
+						horizontal
+						showsHorizontalScrollIndicator={false}
+					/>
 				</View>
 
 				<View style={styles.actionsContainer}>
-					{/* BOTÃO "EDITAR PERFIL" AGORA É UM LINK FUNCIONAL */}
 					<Link href="/profile/edit" asChild>
 						<TouchableOpacity style={styles.buttonSecondary}>
 							<Text style={styles.buttonSecondaryText}>Editar Perfil</Text>
 						</TouchableOpacity>
 					</Link>
-					<TouchableOpacity style={styles.buttonPrimary}>
-						<Text style={styles.buttonPrimaryText}>Adicionar Amigos</Text>
-					</TouchableOpacity>
+					{/* BOTÃO "ADICIONAR AMIGOS" CORRIGIDO E FUNCIONAL */}
+					<Link href="/friends/add" asChild>
+						<TouchableOpacity style={styles.buttonPrimary}>
+							<Text style={styles.buttonPrimaryText}>Adicionar Amigos</Text>
+						</TouchableOpacity>
+					</Link>
 				</View>
 			</ScrollView>
 		</SafeAreaView>
@@ -100,8 +123,9 @@ const styles = StyleSheet.create({
 	petAvatar: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#eee' },
 	petName: { marginTop: 8, fontSize: 14, fontWeight: '500' },
 	emptyText: { color: 'gray' },
-	friendsContainer: { flexDirection: 'row', gap: 10 },
+	friendAvatarContainer: { alignItems: 'center', marginRight: 15 },
 	friendAvatar: { width: 50, height: 50, borderRadius: 25, backgroundColor: '#E8E8E8' },
+	friendName: { fontSize: 12, marginTop: 5, color: 'gray' },
 	actionsContainer: { paddingHorizontal: 20, marginTop: 10 },
 	buttonPrimary: { backgroundColor: '#40E0D0', paddingVertical: 15, borderRadius: 12, alignItems: 'center' },
 	buttonPrimaryText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
