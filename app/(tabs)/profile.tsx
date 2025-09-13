@@ -1,39 +1,33 @@
-// Arquivo: app/(tabs)/profile.tsx
-
 import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, FlatList } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, Link } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Pet } from '../types/pet'; // Ajuste o caminho se necessário
+import { Pet, UserProfile } from '../types/pet';
 
 export default function ProfileScreen() {
-	// Estado para guardar a lista de pets do usuário
 	const [pets, setPets] = useState<Pet[]>([]);
+	const [profile, setProfile] = useState<UserProfile | null>(null);
 
-	// Reutilizamos a mesma lógica do Dashboard para carregar os pets
-	// sempre que a tela de perfil entrar em foco.
 	useFocusEffect(
 		useCallback(() => {
-			const loadPets = async () => {
-				try {
-					const petsJSON = await AsyncStorage.getItem('pets');
-					setPets(petsJSON ? JSON.parse(petsJSON) : []);
-				} catch (error) {
-					console.error("Erro ao carregar os pets no perfil", error);
-				}
+			const loadData = async () => {
+				// Carrega os pets (lógica existente)
+				const petsJSON = await AsyncStorage.getItem('pets');
+				setPets(petsJSON ? JSON.parse(petsJSON) : []);
+
+				// Carrega os dados do perfil do utilizador
+				const profileJSON = await AsyncStorage.getItem('userProfile');
+				setProfile(profileJSON ? JSON.parse(profileJSON) : null);
 			};
-			loadPets();
+			loadData();
 		}, [])
 	);
 
-	// Componente para renderizar cada pet na seção "Meus Pets"
 	const PetAvatar = ({ pet }: { pet: Pet }) => (
 		<Link href={`/pet/${pet.id}`} asChild>
 			<TouchableOpacity style={styles.petAvatarContainer}>
-				<View style={styles.petAvatar}>
-					<Text>🐾</Text>
-				</View>
+				<View style={styles.petAvatar}><Text>🐾</Text></View>
 				<Text style={styles.petName}>{pet.name}</Text>
 			</TouchableOpacity>
 		</Link>
@@ -42,46 +36,45 @@ export default function ProfileScreen() {
 	return (
 		<SafeAreaView style={styles.container}>
 			<ScrollView contentContainerStyle={styles.scrollContainer}>
-				{/* Seção do Perfil do Usuário */}
 				<View style={styles.profileSection}>
-					<View style={styles.userAvatar}>
-						{/* Placeholder para a foto do usuário */}
-					</View>
-					<Text style={styles.userName}>Sophia</Text>
-					<Text style={styles.userBio}>Pet Lover</Text>
+					<View style={styles.userAvatar} />
+					{/* Exibe o nome do perfil salvo, ou um placeholder se não houver */}
+					<Text style={styles.userName}>{profile?.name || 'Seu Nome'}</Text>
+					<Text style={styles.userBio}>{profile?.bio || 'Pet Lover'}</Text>
 				</View>
 
-				{/* Seção Meus Pets */}
 				<View style={styles.section}>
-					<Text style={styles.sectionTitle}>Meus Pets</Text>
+					<View style={styles.sectionHeader}>
+						<Text style={styles.sectionTitle}>Meus Pets</Text>
+						<Link href="/add-pet" asChild>
+							<TouchableOpacity style={styles.addButton}><Text style={styles.addButtonText}>+</Text></TouchableOpacity>
+						</Link>
+					</View>
 					<FlatList
 						data={pets}
 						renderItem={({ item }) => <PetAvatar pet={item} />}
 						keyExtractor={item => item.id}
-						horizontal // Deixa a lista na horizontal
+						horizontal
 						showsHorizontalScrollIndicator={false}
-						contentContainerStyle={{ gap: 15 }}
+						contentContainerStyle={{ paddingVertical: 10 }}
 						ListEmptyComponent={<Text style={styles.emptyText}>Nenhum pet cadastrado.</Text>}
 					/>
 				</View>
 
-				{/* Seção Amigos (Placeholder) */}
 				<View style={styles.section}>
 					<Text style={styles.sectionTitle}>Amigos</Text>
 					<View style={styles.friendsContainer}>
-						{/* Placeholder para avatares de amigos */}
-						<View style={styles.friendAvatar} />
-						<View style={styles.friendAvatar} />
-						<View style={styles.friendAvatar} />
-						<View style={styles.friendAvatar} />
+						<View style={styles.friendAvatar} /><View style={styles.friendAvatar} /><View style={styles.friendAvatar} /><View style={styles.friendAvatar} />
 					</View>
 				</View>
 
-				{/* Botões de Ação */}
 				<View style={styles.actionsContainer}>
-					<TouchableOpacity style={styles.buttonSecondary}>
-						<Text style={styles.buttonSecondaryText}>Editar Perfil</Text>
-					</TouchableOpacity>
+					{/* BOTÃO "EDITAR PERFIL" AGORA É UM LINK FUNCIONAL */}
+					<Link href="/profile/edit" asChild>
+						<TouchableOpacity style={styles.buttonSecondary}>
+							<Text style={styles.buttonSecondaryText}>Editar Perfil</Text>
+						</TouchableOpacity>
+					</Link>
 					<TouchableOpacity style={styles.buttonPrimary}>
 						<Text style={styles.buttonPrimaryText}>Adicionar Amigos</Text>
 					</TouchableOpacity>
@@ -93,14 +86,17 @@ export default function ProfileScreen() {
 
 const styles = StyleSheet.create({
 	container: { flex: 1, backgroundColor: '#F8F9FA' },
-	scrollContainer: { paddingVertical: 20 },
+	scrollContainer: { paddingVertical: 20, paddingBottom: 50 },
 	profileSection: { alignItems: 'center', marginBottom: 30 },
 	userAvatar: { width: 100, height: 100, borderRadius: 50, backgroundColor: '#E8E8E8', marginBottom: 15 },
 	userName: { fontSize: 24, fontWeight: 'bold' },
 	userBio: { fontSize: 16, color: 'gray' },
 	section: { marginBottom: 30, paddingHorizontal: 20 },
-	sectionTitle: { fontSize: 20, fontWeight: 'bold', marginBottom: 15 },
-	petAvatarContainer: { alignItems: 'center' },
+	sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 },
+	sectionTitle: { fontSize: 20, fontWeight: 'bold' },
+	addButton: { backgroundColor: '#40E0D0', width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center' },
+	addButtonText: { color: '#fff', fontSize: 22, lineHeight: 26 },
+	petAvatarContainer: { alignItems: 'center', marginRight: 15 },
 	petAvatar: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#eee' },
 	petName: { marginTop: 8, fontSize: 14, fontWeight: '500' },
 	emptyText: { color: 'gray' },

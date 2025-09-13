@@ -20,3 +20,8 @@ export type VaccineRecord = {
   dateAdministered: string // Data da aplicação
   nextDueDate?: string // Data do próximo reforço (opcional)
 }
+export type UserProfile = {
+  name: string
+  bio: string
+  avatarUrl?: string // URL da foto (opcional por agora)
+}

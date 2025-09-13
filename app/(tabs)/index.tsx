@@ -1,167 +1,129 @@
-// Arquivo: app/(tabs)/index.tsx
-
-import React, { useState } from 'react';
-import {
-  Alert // Importamos o componente de Alerta para dar feedback ao usuário
-  ,
-
-
-
-
-
-  SafeAreaView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View
-} from 'react-native';
-
-// PASSO 1: Importar a biblioteca que acabamos de instalar
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Link, useFocusEffect } from 'expo-router';
+import React, { useCallback, useState } from 'react';
+import { Alert, FlatList, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Pet } from '../types/pet';
+export default function PetDashboard() {
+  // Estado para guardar a lista de pets
+  const [pets, setPets] = useState<Pet[]>([]);
 
-export default function AddPetScreen() {
-  const [name, setName] = useState('');
-  const [species, setSpecies] = useState('');
-  const [breed, setBreed] = useState('');
-  const [dob, setDob] = useState('');
-
-  // PASSO 2: Transformamos a função em 'async'
-  // Operações de salvar/ler dados demoram um pouco, então elas precisam ser assíncronas.
-  const handleSavePet = async () => {
-    // Validação simples para não salvar pets sem nome
-    if (name.trim() === '') {
-      Alert.alert('Atenção', 'O nome do pet é obrigatório.');
-      return;
-    }
-
-    // Criamos um objeto com os dados do novo pet
-    const newPet = {
-      id: Date.now().toString(), // Um ID único baseado na data/hora atual
-      name: name,
-      species: species,
-      breed: breed,
-      dob: dob,
-    };
-
+  // Função para carregar os pets do armazenamento local
+  const loadPets = async () => {
     try {
-      // Tentamos buscar a lista de pets que já existe
-      const existingPetsJSON = await AsyncStorage.getItem('pets');
-
-      // Se a lista existir, a transformamos de texto para objeto. Se não, criamos uma lista vazia.
-      let existingPets = existingPetsJSON ? JSON.parse(existingPetsJSON) : [];
-
-      // Adicionamos o novo pet à lista
-      existingPets.push(newPet);
-
-      // Salvamos a lista COMPLETA de volta no AsyncStorage, convertendo-a para texto (JSON)
-      await AsyncStorage.setItem('pets', JSON.stringify(existingPets));
-
-      // Damos um feedback visual para o usuário
-      Alert.alert('Sucesso!', 'Seu pet foi salvo.');
-
-      // Limpamos os campos do formulário para o próximo cadastro
-      setName('');
-      setSpecies('');
-      setBreed('');
-      setDob('');
-
+      const petsJSON = await AsyncStorage.getItem('pets');
+      if (petsJSON) {
+        setPets(JSON.parse(petsJSON));
+      } else {
+        setPets([]); // Se não houver nada salvo, define a lista como vazia
+      }
     } catch (error) {
-      console.error('Erro ao salvar o pet:', error);
-      Alert.alert('Erro', 'Não foi possível salvar o pet.');
+      console.error("Erro ao carregar os pets", error);
     }
   };
 
+  // Hook que executa a função loadPets toda vez que a tela entra em foco
+  useFocusEffect(
+    useCallback(() => {
+      loadPets();
+    }, [])
+  );
+
+  // Função que remove um pet da lista e do armazenamento
+  const handleDeletePet = async (petIdToDelete: string) => {
+    try {
+      // Cria uma nova lista com todos os pets, exceto o que será excluído
+      const updatedPets = pets.filter(pet => pet.id !== petIdToDelete);
+
+      // Salva a nova lista no AsyncStorage
+      await AsyncStorage.setItem('pets', JSON.stringify(updatedPets));
+
+      // Atualiza o estado para redesenhar a tela
+      setPets(updatedPets);
+
+      Alert.alert("Sucesso", "O pet foi removido.");
+    } catch (error) {
+      console.error("Erro ao excluir o pet", error);
+      Alert.alert("Erro", "Não foi possível remover o pet.");
+    }
+  };
+
+  // Função que mostra a caixa de diálogo para confirmar a exclusão
+  const confirmDelete = (pet: Pet) => {
+    Alert.alert(
+      "Confirmar Exclusão",
+      `Você tem certeza que deseja excluir ${pet.name}?`,
+      [
+        { text: "Cancelar", style: "cancel" },
+        { text: "Excluir", onPress: () => handleDeletePet(pet.id), style: "destructive" }
+      ]
+    );
+  };
+
+  // Componente para renderizar cada item da lista
+  type PetItemProps = {
+    pet: Pet;
+    onDelete: () => void;
+  };
+
+  const PetItem = ({ pet, onDelete }: PetItemProps) => (
+    // Componente Link para criar a navegação para a tela de detalhes
+    <Link href={{ pathname: "/pet/[id]", params: { id: pet.id } }} asChild>
+      <TouchableOpacity style={styles.petItem}>
+        <View style={styles.petAvatar}>
+          <Text style={styles.petAvatarEmoji}>🐾</Text>
+        </View>
+        <View style={styles.petInfo}>
+          <Text style={styles.petName}>{pet.name}</Text>
+          <Text style={styles.petSpecies}>{pet.species}</Text>
+        </View>
+        {/* Envolvemos o botão de excluir em uma View para evitar que o clique se propague para o Link */}
+        <TouchableOpacity onPress={onDelete} style={styles.deleteButton}>
+          <Text style={styles.deleteButtonText}>🗑️</Text>
+        </TouchableOpacity>
+      </TouchableOpacity>
+    </Link>
+  );
+
+  // Se a lista de pets estiver vazia, mostra uma mensagem amigável
+  if (pets.length === 0) {
+    return (
+      <SafeAreaView style={styles.containerEmpty}>
+        <Text style={styles.emptyText}>Você ainda não cadastrou nenhum pet.</Text>
+        <Text style={styles.emptySubtext}>Vá para a aba de cadastro para adicionar seu primeiro amigo!</Text>
+      </SafeAreaView>
+    );
+  }
+
+  // Se houver pets, renderiza a lista
   return (
     <SafeAreaView style={styles.container}>
-      {/* O resto do código da interface continua igual */}
-      <View style={styles.form}>
-        <View style={styles.photoContainer}>
-          <View style={styles.photoCircle}>
-            <Text style={{ fontSize: 40 }}>🐶</Text>
-          </View>
-          <Text style={styles.photoText}>Add Foto do Pet</Text>
-        </View>
-
-        <TextInput
-          style={styles.input}
-          placeholder="name"
-          value={name}
-          onChangeText={setName}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="Species"
-          value={species}
-          onChangeText={setSpecies}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="Breed"
-          value={breed}
-          onChangeText={setBreed}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="Date of Birth"
-          value={dob}
-          onChangeText={setDob}
-        />
-
-        <TouchableOpacity style={styles.button} onPress={handleSavePet}>
-          <Text style={styles.buttonText}>Save Pet</Text>
-        </TouchableOpacity>
-      </View>
+      <FlatList
+        data={pets}
+        renderItem={({ item }) => (
+          <PetItem
+            pet={item}
+            onDelete={() => confirmDelete(item)}
+          />
+        )}
+        keyExtractor={item => item.id}
+        contentContainerStyle={{ padding: 20 }}
+      />
     </SafeAreaView>
   );
 }
 
-// A folha de estilos não muda
+// Folha de estilos do componente
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-  form: {
-    flex: 1,
-    paddingHorizontal: 20,
-    justifyContent: 'center',
-  },
-  photoContainer: {
-    alignItems: 'center',
-    marginBottom: 30,
-  },
-  photoCircle: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: '#F0F0F0',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  photoText: {
-    fontSize: 16,
-    color: 'grey',
-  },
-  input: {
-    backgroundColor: '#F0F8F7',
-    paddingVertical: 15,
-    paddingHorizontal: 15,
-    borderRadius: 12,
-    fontSize: 16,
-    marginBottom: 15,
-  },
-  button: {
-    backgroundColor: '#40E0D0',
-    padding: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-    marginTop: 20,
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
+  container: { flex: 1, backgroundColor: '#fff' },
+  petItem: { backgroundColor: '#F8F8F8', padding: 15, borderRadius: 12, flexDirection: 'row', alignItems: 'center', marginBottom: 15 },
+  petAvatar: { width: 60, height: 60, borderRadius: 30, backgroundColor: '#E8E8E8', justifyContent: 'center', alignItems: 'center', marginRight: 15 },
+  petAvatarEmoji: { fontSize: 30 },
+  petInfo: { flex: 1 },
+  petName: { fontSize: 18, fontWeight: 'bold' },
+  petSpecies: { fontSize: 14, color: 'gray' },
+  deleteButton: { padding: 10 },
+  deleteButtonText: { fontSize: 24 },
+  containerEmpty: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
+  emptyText: { fontSize: 18, fontWeight: 'bold', textAlign: 'center' },
+  emptySubtext: { fontSize: 16, color: 'gray', textAlign: 'center', marginTop: 8 },
 });
