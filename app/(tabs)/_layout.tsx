@@ -40,7 +40,6 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
         }}
       />
-      {/* PASSO 1: Adicionar a nova aba de Perfil */}
       <Tabs.Screen
         name="profile"
         options={{
