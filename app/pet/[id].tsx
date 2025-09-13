@@ -1,9 +1,11 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Link, Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import React, { useCallback, useState } from 'react';
-import { ActivityIndicator, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, FlatList } from 'react-native';
+import { useLocalSearchParams, Stack, Link, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Ionicons } from '@expo/vector-icons'; // Importar ícones
 import { Pet, Reminder } from '../types/pet';
+
 
 export default function PetDetailScreen() {
 	const { id } = useLocalSearchParams();
@@ -11,6 +13,15 @@ export default function PetDetailScreen() {
 	const [reminders, setReminders] = useState<Reminder[]>([]);
 	const [loading, setLoading] = useState(true);
 
+	const formatDate = (dateString: string) => {
+		if (!dateString || dateString.length !== 8) {
+			return dateString; // Retorna a string original se não estiver no formato esperado (DDMMAAAA)
+		}
+		const day = dateString.substring(0, 2);
+		const month = dateString.substring(2, 4);
+		const year = dateString.substring(4, 8);
+		return `${day}/${month}/${year}`;
+	};
 	useFocusEffect(
 		useCallback(() => {
 			const loadData = async () => {
@@ -49,13 +60,16 @@ export default function PetDetailScreen() {
 	}
 
 	const ReminderItem = ({ item }: { item: Reminder }) => (
-		<View style={styles.reminderItem}>
-			<View style={styles.reminderCategory}><Text style={styles.reminderCategoryText}>{item.category.charAt(0)}</Text></View>
-			<View style={{ flex: 1 }}>
-				<Text style={styles.reminderDescription}>{item.description}</Text>
-				<Text style={styles.reminderDate}>{item.date}</Text>
-			</View>
-		</View>
+		<Link href={{ pathname: '/reminder/new', params: { petId: pet.id, reminderId: item.id } }} asChild>
+			<TouchableOpacity style={styles.reminderItem}>
+				<View style={styles.reminderCategory}><Text style={styles.reminderCategoryText}>{item.category.charAt(0)}</Text></View>
+				<View style={{ flex: 1 }}>
+					<Text style={styles.reminderDescription}>{item.description}</Text>
+					<Text style={styles.reminderDate}>{formatDate(item.date)}</Text>
+				</View>
+				<Ionicons name="pencil" size={20} color="#BDBDBD" />
+			</TouchableOpacity>
+		</Link>
 	);
 
 	return (

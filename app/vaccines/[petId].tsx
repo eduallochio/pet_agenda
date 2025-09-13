@@ -5,12 +5,23 @@ import { Link, Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import React, { useCallback, useState } from 'react';
 import { ActivityIndicator, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { VaccineRecord } from '../types/pet'; // O caminho pode ser '../types' dependendo de onde o arquivo está
+import { VaccineRecord } from '../types/pet';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function VaccinationCardScreen() {
 	const { petId } = useLocalSearchParams();
 	const [vaccinations, setVaccinations] = useState<VaccineRecord[]>([]);
 	const [loading, setLoading] = useState(true);
+
+	const formatDate = (dateString: string) => {
+		if (!dateString || dateString.length !== 8) {
+			return dateString;
+		}
+		const day = dateString.substring(0, 2);
+		const month = dateString.substring(2, 4);
+		const year = dateString.substring(4, 8);
+		return `${day}/${month}/${year}`;
+	};
 
 	// useFocusEffect garante que a lista seja recarregada sempre que o usuário
 	// voltar para esta tela (ex: depois de adicionar uma nova vacina).
@@ -39,13 +50,16 @@ export default function VaccinationCardScreen() {
 
 	// Componente para renderizar cada item da lista de vacinas
 	const VaccineItem = ({ item }: { item: VaccineRecord }) => (
-		<View style={styles.vaccineItem}>
-			<Text style={styles.vaccineName}>{item.vaccineName}</Text>
-			<Text style={styles.vaccineDate}>Aplicada em: {item.dateAdministered}</Text>
-			{item.nextDueDate ? (
-				<Text style={styles.vaccineNextDate}>Próximo reforço: {item.nextDueDate}</Text>
-			) : null}
-		</View>
+		<Link href={{ pathname: '/vaccines/new', params: { petId: petId, vaccineId: item.id } }} asChild>
+			<TouchableOpacity style={styles.vaccineItem}>
+				<View style={{ flex: 1 }}>
+					<Text style={styles.vaccineName}>{item.vaccineName}</Text>
+					<Text style={styles.vaccineDate}>Aplicada em: {formatDate(item.dateAdministered)}</Text>
+					{item.nextDueDate ? <Text style={styles.vaccineNextDate}>Próximo reforço: {formatDate(item.nextDueDate)}</Text> : null}
+				</View>
+				<Ionicons name="pencil" size={20} color="#BDBDBD" />
+			</TouchableOpacity>
+		</Link>
 	);
 
 	return (
@@ -94,6 +108,8 @@ const styles = StyleSheet.create({
 		marginBottom: 10,
 		borderWidth: 1,
 		borderColor: '#eee',
+		flexDirection: 'row',
+		alignItems: 'center',
 	},
 	vaccineName: {
 		fontSize: 16,

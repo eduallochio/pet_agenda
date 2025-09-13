@@ -58,6 +58,7 @@ export default function NewVaccineScreen() {
 				placeholder="DD/MM/AAAA"
 				value={dateAdministered}
 				onChangeText={setDateAdministered}
+				keyboardType='numeric'
 			/>
 			<Text style={styles.label}>Próximo Reforço (Opcional)</Text>
 			<TextInput
@@ -65,6 +66,7 @@ export default function NewVaccineScreen() {
 				placeholder="DD/MM/AAAA"
 				value={nextDueDate}
 				onChangeText={setNextDueDate}
+				keyboardType='numeric'
 			/>
 			<TouchableOpacity style={styles.saveButton} onPress={handleSaveVaccine}>
 				<Text style={styles.saveButtonText}>Salvar Registro</Text>
