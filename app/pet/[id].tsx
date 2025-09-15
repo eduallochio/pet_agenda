@@ -1,11 +1,18 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, FlatList } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, FlatList, Image } from 'react-native'; // 1. Adicione 'Image' aos imports
 import { useLocalSearchParams, Stack, Link, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Ionicons } from '@expo/vector-icons'; // Importar ícones
-import { Pet, Reminder } from '../types/pet';
+import { Ionicons } from '@expo/vector-icons';
+import { Pet, Reminder, UserProfile } from '../types/pet';
 
+// 2. Crie um mapa para associar as categorias às imagens que você adicionou
+const reminderImages = {
+	'Saúde': require('../../assets/images/saude.png'),
+	'Higiene': require('../../assets/images/higiene.png'),
+	'Consulta': require('../../assets/images/consulta.png'),
+	// 'Outro': require('../../assets/images/outro.png'),
+};
 
 export default function PetDetailScreen() {
 	const { id } = useLocalSearchParams();
@@ -13,15 +20,6 @@ export default function PetDetailScreen() {
 	const [reminders, setReminders] = useState<Reminder[]>([]);
 	const [loading, setLoading] = useState(true);
 
-	const formatDate = (dateString: string) => {
-		if (!dateString || dateString.length !== 8) {
-			return dateString; // Retorna a string original se não estiver no formato esperado (DDMMAAAA)
-		}
-		const day = dateString.substring(0, 2);
-		const month = dateString.substring(2, 4);
-		const year = dateString.substring(4, 8);
-		return `${day}/${month}/${year}`;
-	};
 	useFocusEffect(
 		useCallback(() => {
 			const loadData = async () => {
@@ -62,12 +60,16 @@ export default function PetDetailScreen() {
 	const ReminderItem = ({ item }: { item: Reminder }) => (
 		<Link href={{ pathname: '/reminder/new', params: { petId: pet.id, reminderId: item.id } }} asChild>
 			<TouchableOpacity style={styles.reminderItem}>
-				<View style={styles.reminderCategory}><Text style={styles.reminderCategoryText}>{item.category.charAt(0)}</Text></View>
-				<View style={{ flex: 1 }}>
+				{/* 3. Adicione o componente Image */}
+				<Image
+					source={reminderImages[item.category] || reminderImages['Outro']}
+					style={styles.reminderImage}
+				/>
+				<View style={styles.reminderTextContainer}>
 					<Text style={styles.reminderDescription}>{item.description}</Text>
-					<Text style={styles.reminderDate}>{formatDate(item.date)}</Text>
+					<Text style={styles.reminderDate}>{item.date}</Text>
 				</View>
-				<Ionicons name="pencil" size={20} color="#BDBDBD" />
+				<Ionicons name="pencil-outline" size={20} color="#A9A9A9" />
 			</TouchableOpacity>
 		</Link>
 	);
@@ -84,7 +86,6 @@ export default function PetDetailScreen() {
 			</View>
 
 			<View style={styles.menuContainer}>
-				{/* LINK CORRIGIDO AQUI - agora é uma string simples */}
 				<Link href={`/vaccines/${pet.id}`} asChild>
 					<TouchableOpacity style={styles.menuButton}>
 						<Text style={styles.menuButtonText}>Ver Carteirinha de Vacinação</Text>
@@ -101,7 +102,11 @@ export default function PetDetailScreen() {
 				</View>
 
 				{reminders.length > 0 ? (
-					<FlatList data={reminders} renderItem={ReminderItem} keyExtractor={item => item.id} />
+					<FlatList
+						data={reminders}
+						renderItem={ReminderItem}
+						keyExtractor={item => item.id}
+					/>
 				) : (
 					<Text style={styles.placeholderText}>Nenhum evento agendado.</Text>
 				)}
@@ -127,9 +132,33 @@ const styles = StyleSheet.create({
 	addButtonText: { color: '#fff', fontSize: 24, lineHeight: 30 },
 	placeholderText: { fontSize: 16, color: '#888', textAlign: 'center', marginTop: 20 },
 	errorText: { fontSize: 18, textAlign: 'center', marginTop: 50 },
-	reminderItem: { backgroundColor: '#fff', padding: 15, borderRadius: 12, flexDirection: 'row', alignItems: 'center', marginBottom: 10, borderWidth: 1, borderColor: '#eee' },
-	reminderCategory: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#40E0D0', justifyContent: 'center', alignItems: 'center', marginRight: 15 },
-	reminderCategoryText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
-	reminderDescription: { fontSize: 16, fontWeight: '500' },
-	reminderDate: { fontSize: 14, color: 'gray', marginTop: 2 },
+	reminderItem: {
+		backgroundColor: '#fff',
+		padding: 15,
+		borderRadius: 12,
+		flexDirection: 'row',
+		alignItems: 'center',
+		marginBottom: 10,
+		borderWidth: 1,
+		borderColor: '#eee',
+	},
+	// 4. Estilos para a imagem e o texto do lembrete
+	reminderImage: {
+		width: 50,
+		height: 50,
+		borderRadius: 8,
+		marginRight: 15,
+	},
+	reminderTextContainer: {
+		flex: 1,
+	},
+	reminderDescription: {
+		fontSize: 16,
+		fontWeight: '500',
+	},
+	reminderDate: {
+		fontSize: 14,
+		color: 'gray',
+		marginTop: 2,
+	},
 });
