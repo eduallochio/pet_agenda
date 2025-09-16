@@ -4,14 +4,14 @@ import { useLocalSearchParams, Stack, Link, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
-import { Pet, Reminder, UserProfile } from '../types/pet';
+import { Pet, Reminder } from '../types/pet';
 
 // 2. Crie um mapa para associar as categorias às imagens que você adicionou
 const reminderImages = {
 	'Saúde': require('../../assets/images/saude.png'),
 	'Higiene': require('../../assets/images/higiene.png'),
 	'Consulta': require('../../assets/images/consulta.png'),
-	// 'Outro': require('../../assets/images/outro.png'),
+	'Outro': require('../../assets/images/outro.png'), // Adicione a imagem para 'Outro'
 };
 
 export default function PetDetailScreen() {
