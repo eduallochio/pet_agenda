@@ -8,6 +8,7 @@ import { Shadows } from '../../constants/Shadows';
 import { Theme } from '../../constants/Colors';
 import { Ionicons } from '@expo/vector-icons';
 import StatCard from '../../components/StatCard';
+import PetAvatar from '../../components/PetAvatar';
 
 // Dados falsos para a lista de amigos (para fins de UI)
 const mockFriends: Friend[] = [
@@ -49,10 +50,10 @@ export default function ProfileScreen() {
 		return reminderDate >= today;
 	}).length;
 
-	const PetAvatar = ({ pet }: { pet: Pet }) => (
+	const PetAvatarItem = ({ pet }: { pet: Pet }) => (
 		<Link href={`/pet/${pet.id}`} asChild>
 			<TouchableOpacity style={styles.petAvatarContainer}>
-				<View style={styles.petAvatar}><Text>🐾</Text></View>
+				<PetAvatar species={pet.species} size="large" style={Shadows.small} />
 				<Text style={styles.petName}>{pet.name}</Text>
 			</TouchableOpacity>
 		</Link>
@@ -105,7 +106,7 @@ export default function ProfileScreen() {
 					</View>
 					<FlatList
 						data={pets}
-						renderItem={({ item }) => <PetAvatar pet={item} />}
+					renderItem={({ item }) => <PetAvatarItem pet={item} />}
 						keyExtractor={item => item.id}
 						horizontal
 						showsHorizontalScrollIndicator={false}
@@ -158,7 +159,6 @@ const styles = StyleSheet.create({
 	addButton: { backgroundColor: Theme.primary, width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center' },
 	addButtonText: { color: '#fff', fontSize: 22, lineHeight: 26 },
 	petAvatarContainer: { alignItems: 'center', marginRight: 15 },
-	petAvatar: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center', ...Shadows.small },
 	petName: { marginTop: 8, fontSize: 14, fontWeight: '500' },
 	emptyText: { color: 'gray' },
 	friendAvatarContainer: { alignItems: 'center', marginRight: 15 },

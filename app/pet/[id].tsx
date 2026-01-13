@@ -8,6 +8,7 @@ import { Pet, Reminder } from '../../types/pet';
 import { Shadows } from '../../constants/Shadows';
 import { Theme, getCategoryColor } from '../../constants/Colors';
 import Badge from '../../components/Badge';
+import PetAvatar from '../../components/PetAvatar';
 
 // 2. Crie um mapa para associar as categorias às imagens que você adicionou
 const reminderImages = {
@@ -108,7 +109,7 @@ export default function PetDetailScreen() {
 			<Stack.Screen options={{ title: pet.name }} />
 
 			<View style={styles.header}>
-				<View style={styles.avatar}><Text style={styles.avatarEmoji}>🐾</Text></View>
+					<PetAvatar species={pet.species} size="xlarge" style={Shadows.medium} />
 				<Text style={styles.petName}>{pet.name}</Text>
 				<Text style={styles.petInfo}>{pet.species} - {pet.breed}</Text>
 				<Text style={styles.petInfo}>Nascimento: {pet.dob}</Text>
@@ -150,9 +151,7 @@ export default function PetDetailScreen() {
 const styles = StyleSheet.create({
 	container: { flex: 1, backgroundColor: '#F8F9FA' },
 	header: { backgroundColor: '#fff', padding: 20, alignItems: 'center', ...Shadows.small },
-	avatar: { width: 100, height: 100, borderRadius: 50, backgroundColor: '#E8E8E8', justifyContent: 'center', alignItems: 'center', marginBottom: 15 },
-	avatarEmoji: { fontSize: 50 },
-	petName: { fontSize: 28, fontWeight: 'bold' },
+	petName: { fontSize: 28, fontWeight: 'bold', marginTop: 15 },
 	petInfo: { fontSize: 16, color: 'gray', marginTop: 4 },
 	menuContainer: { padding: 20, backgroundColor: '#fff', marginTop: 1 },
 	menuButton: { backgroundColor: Theme.primary, paddingVertical: 15, borderRadius: 12, alignItems: 'center', ...Shadows.primary, flexDirection: 'row', justifyContent: 'center' },

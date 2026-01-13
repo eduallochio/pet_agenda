@@ -6,6 +6,7 @@ import { Pet, Reminder } from '../../types/pet';
 import { Shadows } from '../../constants/Shadows';
 import { Theme } from '../../constants/Colors';
 import Badge from '../../components/Badge';
+import PetAvatar from '../../components/PetAvatar';
 export default function PetDashboard() {
   // Estado para guardar a lista de pets
   const [pets, setPets] = useState<Pet[]>([]);
@@ -93,9 +94,7 @@ export default function PetDashboard() {
       // Componente Link para criar a navegação para a tela de detalhes
       <Link href={{ pathname: "/pet/[id]", params: { id: pet.id } }} asChild>
         <TouchableOpacity style={styles.petItem}>
-          <View style={styles.petAvatar}>
-            <Text style={styles.petAvatarEmoji}>🐾</Text>
-          </View>
+          <PetAvatar species={pet.species} size="medium" style={Shadows.small} />
           <View style={styles.petInfo}>
             <Text style={styles.petName}>{pet.name}</Text>
             <Text style={styles.petSpecies}>{pet.species}</Text>
@@ -154,9 +153,7 @@ const styles = StyleSheet.create({
   counterBadge: { backgroundColor: Theme.primary, width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center' },
   counterText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
   petItem: { backgroundColor: '#FFFFFF', padding: 15, borderRadius: 12, flexDirection: 'row', alignItems: 'center', marginBottom: 15, ...Shadows.medium },
-  petAvatar: { width: 60, height: 60, borderRadius: 30, backgroundColor: '#E8E8E8', justifyContent: 'center', alignItems: 'center', marginRight: 15 },
-  petAvatarEmoji: { fontSize: 30 },
-  petInfo: { flex: 1 },
+  petInfo: { flex: 1, marginLeft: 15 },
   petName: { fontSize: 18, fontWeight: 'bold' },
   petSpecies: { fontSize: 14, color: 'gray' },
   deleteButton: { padding: 10 },
