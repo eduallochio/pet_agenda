@@ -206,7 +206,7 @@ export default function EditPetScreen() {
         <IconInput iconName="paw" placeholder="Ex: Rex" value={name} onChangeText={setName} />
 
         <Text style={styles.label}>Espécie *</Text>
-        <IconInput iconName="animals" placeholder="Ex: Cachorro" value={species} onChangeText={setSpecies} />
+        <IconInput iconName="fish" placeholder="Ex: Cachorro" value={species} onChangeText={setSpecies} />
 
         <Text style={styles.label}>Raça</Text>
         <IconInput iconName="ribbon" placeholder="Ex: Labrador" value={breed} onChangeText={setBreed} />
