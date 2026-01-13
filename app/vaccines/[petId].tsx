@@ -5,7 +5,7 @@ import { Link, Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import React, { useCallback, useState } from 'react';
 import { ActivityIndicator, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { VaccineRecord } from '../types/pet';
+import { VaccineRecord } from '../../types/pet';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function VaccinationCardScreen() {

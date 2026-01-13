@@ -3,7 +3,11 @@ import { Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-nati
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
-import { Pet } from '../types/pet';
+import { Pet } from '../../types/pet';
+import { Shadows } from '../../constants/Shadows';
+import { Theme } from '../../constants/Colors';
+import IconInput from '../../components/IconInput';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function AddPetScreen() {
   const router = useRouter();
@@ -54,13 +58,13 @@ export default function AddPetScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* ... o resto do seu JSX para o formulário continua o mesmo ... */}
       <Text style={styles.title}>Adicionar Novo Pet</Text>
-      <TextInput style={styles.input} placeholder="Nome" value={name} onChangeText={setName} />
-      <TextInput style={styles.input} placeholder="Espécie" value={species} onChangeText={setSpecies} />
-      <TextInput style={styles.input} placeholder="Raça" value={breed} onChangeText={setBreed} />
-      <TextInput style={styles.input} placeholder="Data de Nascimento" value={dob} onChangeText={setDob} />
+      <IconInput iconName="paw" placeholder="Nome *" value={name} onChangeText={setName} />
+      <IconInput iconName="fish" placeholder="Espécie (ex: Cachorro, Gato)" value={species} onChangeText={setSpecies} />
+      <IconInput iconName="heart" placeholder="Raça" value={breed} onChangeText={setBreed} />
+      <IconInput iconName="calendar" placeholder="Data de Nascimento (DD/MM/AAAA)" value={dob} onChangeText={setDob} keyboardType="numeric" />
       <TouchableOpacity style={styles.button} onPress={handleSavePet}>
+        <Ionicons name="checkmark-circle" size={24} color="#fff" style={styles.buttonIcon} />
         <Text style={styles.buttonText}>Salvar Pet</Text>
       </TouchableOpacity>
     </SafeAreaView>
@@ -68,9 +72,9 @@ export default function AddPetScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, backgroundColor: '#fff', justifyContent: 'center' },
-  title: { fontSize: 24, fontWeight: 'bold', textAlign: 'center', marginBottom: 30 },
-  input: { backgroundColor: '#F0F8F7', padding: 15, borderRadius: 12, fontSize: 16, marginBottom: 20 },
-  button: { backgroundColor: '#40E0D0', padding: 16, borderRadius: 12, alignItems: 'center', marginTop: 30 },
+  container: { flex: 1, padding: 20, backgroundColor: '#F8F9FA', justifyContent: 'center' },
+  title: { fontSize: 24, fontWeight: 'bold', textAlign: 'center', marginBottom: 30, color: Theme.text.primary },
+  button: { backgroundColor: Theme.primary, padding: 16, borderRadius: 12, alignItems: 'center', marginTop: 30, ...Shadows.primary, flexDirection: 'row', justifyContent: 'center' },
+  buttonIcon: { marginRight: 8 },
   buttonText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
 });

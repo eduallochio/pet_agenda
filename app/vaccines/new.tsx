@@ -3,7 +3,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { Alert, StyleSheet, Text, TextInput, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { VaccineRecord } from '../types/pet';
+import { VaccineRecord } from '../../types/pet';
 
 export default function NewVaccineScreen() {
 	const router = useRouter();

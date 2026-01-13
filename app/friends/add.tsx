@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, TextInput, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack } from 'expo-router';
-import { Friend } from '../types/pet'; // Ajuste o caminho se necessário
+import { Friend } from '../../types/pet';
 
 // Dados falsos de utilizadores que podem ser encontrados
 const mockUsers: Friend[] = [

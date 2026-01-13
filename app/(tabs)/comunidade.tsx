@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack } from 'expo-router';
+import { Shadows } from '../../constants/Shadows';
 
 // PASSO 1: Definir o que é um "Post" para o TypeScript.
 type Post = {
@@ -81,11 +82,7 @@ const styles = StyleSheet.create({
 		borderRadius: 15,
 		marginBottom: 20,
 		overflow: 'hidden',
-		shadowColor: '#000',
-		shadowOffset: { width: 0, height: 2 },
-		shadowOpacity: 0.1,
-		shadowRadius: 5,
-		elevation: 3,
+		...Shadows.medium,
 	},
 	petImage: {
 		width: '100%',

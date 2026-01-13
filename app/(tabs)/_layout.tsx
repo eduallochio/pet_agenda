@@ -1,14 +1,19 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
 import { Ionicons } from '@expo/vector-icons';
+import { Theme } from '../../constants/Colors';
 
 export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        headerShown: false, // Esconde o título no topo de cada aba
-        tabBarActiveTintColor: '#40E0D0', // Cor do ícone ativo
-        tabBarInactiveTintColor: 'gray', // Cor do ícone inativo
+        headerShown: false,
+        tabBarActiveTintColor: Theme.primary,
+        tabBarInactiveTintColor: Theme.text.light,
+        tabBarStyle: {
+          backgroundColor: Theme.card,
+          borderTopColor: Theme.border,
+        },
       }}>
       <Tabs.Screen
         name="index"

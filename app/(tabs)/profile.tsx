@@ -3,7 +3,10 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, FlatList } from '
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, Link } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Pet, UserProfile, Friend } from '../types/pet'; // Importa todos os tipos necessários
+import { Pet, UserProfile, Friend } from '../../types/pet';
+import { Shadows } from '../../constants/Shadows';
+import { Theme } from '../../constants/Colors';
+import { Ionicons } from '@expo/vector-icons';
 
 // Dados falsos para a lista de amigos (para fins de UI)
 const mockFriends: Friend[] = [
@@ -92,12 +95,13 @@ export default function ProfileScreen() {
 				<View style={styles.actionsContainer}>
 					<Link href="/profile/edit" asChild>
 						<TouchableOpacity style={styles.buttonSecondary}>
+							<Ionicons name="create-outline" size={20} color={Theme.text.primary} style={styles.buttonIcon} />
 							<Text style={styles.buttonSecondaryText}>Editar Perfil</Text>
 						</TouchableOpacity>
 					</Link>
-					{/* BOTÃO "ADICIONAR AMIGOS" CORRIGIDO E FUNCIONAL */}
 					<Link href="/friends/add" asChild>
 						<TouchableOpacity style={styles.buttonPrimary}>
+							<Ionicons name="person-add" size={20} color="#fff" style={styles.buttonIcon} />
 							<Text style={styles.buttonPrimaryText}>Adicionar Amigos</Text>
 						</TouchableOpacity>
 					</Link>
@@ -117,18 +121,19 @@ const styles = StyleSheet.create({
 	section: { marginBottom: 30, paddingHorizontal: 20 },
 	sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 },
 	sectionTitle: { fontSize: 20, fontWeight: 'bold' },
-	addButton: { backgroundColor: '#40E0D0', width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center' },
+	addButton: { backgroundColor: Theme.primary, width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center' },
 	addButtonText: { color: '#fff', fontSize: 22, lineHeight: 26 },
 	petAvatarContainer: { alignItems: 'center', marginRight: 15 },
-	petAvatar: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#eee' },
+	petAvatar: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center', ...Shadows.small },
 	petName: { marginTop: 8, fontSize: 14, fontWeight: '500' },
 	emptyText: { color: 'gray' },
 	friendAvatarContainer: { alignItems: 'center', marginRight: 15 },
-	friendAvatar: { width: 50, height: 50, borderRadius: 25, backgroundColor: '#E8E8E8' },
+	friendAvatar: { width: 50, height: 50, borderRadius: 25, backgroundColor: '#E8E8E8', ...Shadows.small },
 	friendName: { fontSize: 12, marginTop: 5, color: 'gray' },
 	actionsContainer: { paddingHorizontal: 20, marginTop: 10 },
-	buttonPrimary: { backgroundColor: '#40E0D0', paddingVertical: 15, borderRadius: 12, alignItems: 'center' },
+	buttonIcon: { marginRight: 8 },
+	buttonPrimary: { backgroundColor: Theme.primary, paddingVertical: 15, borderRadius: 12, alignItems: 'center', ...Shadows.primary, flexDirection: 'row', justifyContent: 'center' },
 	buttonPrimaryText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
-	buttonSecondary: { backgroundColor: '#fff', paddingVertical: 15, borderRadius: 12, alignItems: 'center', borderWidth: 1, borderColor: '#E0E0E0', marginBottom: 10 },
+	buttonSecondary: { backgroundColor: '#fff', paddingVertical: 15, borderRadius: 12, alignItems: 'center', ...Shadows.small, marginBottom: 10, flexDirection: 'row', justifyContent: 'center' },
 	buttonSecondaryText: { color: '#333', fontSize: 16, fontWeight: 'bold' },
 });

@@ -3,7 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'reac
 import { useRouter, Stack } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { UserProfile } from '../types/pet';
+import { UserProfile } from '../../types/pet';
 
 export default function EditProfileScreen() {
 	const router = useRouter();

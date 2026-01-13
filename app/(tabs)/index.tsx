@@ -2,7 +2,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Link, useFocusEffect } from 'expo-router';
 import React, { useCallback, useState } from 'react';
 import { Alert, FlatList, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { Pet } from '../types/pet';
+import { Pet } from '../../types/pet';
+import { Shadows } from '../../constants/Shadows';
+import { Theme } from '../../constants/Colors';
 export default function PetDashboard() {
   // Estado para guardar a lista de pets
   const [pets, setPets] = useState<Pet[]>([]);
@@ -114,8 +116,8 @@ export default function PetDashboard() {
 
 // Folha de estilos do componente
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
-  petItem: { backgroundColor: '#F8F8F8', padding: 15, borderRadius: 12, flexDirection: 'row', alignItems: 'center', marginBottom: 15 },
+  container: { flex: 1, backgroundColor: '#F8F9FA' },
+  petItem: { backgroundColor: '#FFFFFF', padding: 15, borderRadius: 12, flexDirection: 'row', alignItems: 'center', marginBottom: 15, ...Shadows.medium },
   petAvatar: { width: 60, height: 60, borderRadius: 30, backgroundColor: '#E8E8E8', justifyContent: 'center', alignItems: 'center', marginRight: 15 },
   petAvatarEmoji: { fontSize: 30 },
   petInfo: { flex: 1 },
