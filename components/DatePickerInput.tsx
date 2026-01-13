@@ -185,8 +185,6 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     color: Theme.text.primary,
-    outline: 'none',
-    border: 'none',
     backgroundColor: 'transparent',
   },
   // iOS Picker Styles
