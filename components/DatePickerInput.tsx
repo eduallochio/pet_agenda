@@ -82,10 +82,11 @@ const DatePickerInput = ({
           <Ionicons name="calendar-outline" size={20} color={Theme.text.secondary} style={styles.icon} />
           <TextInput
             style={styles.webDateInput}
-            type="date"
             value={formatDateForWeb(value)}
             onChange={(e: any) => handleWebDateChange(e.target.value)}
             placeholder={placeholder}
+            // @ts-ignore - Web-specific props
+            type="date"
             min={formatDateLimitForWeb(minimumDate)}
             max={formatDateLimitForWeb(maximumDate)}
           />

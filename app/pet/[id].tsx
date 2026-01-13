@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, FlatList, Image } from 'react-native'; // 1. Adicione 'Image' aos imports
 import { useLocalSearchParams, Stack, Link, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -10,6 +10,8 @@ import { Theme, getCategoryColor } from '../../constants/Colors';
 import Badge from '../../components/Badge';
 import PetAvatar from '../../components/PetAvatar';
 import EmptyState from '../../components/EmptyState';
+import SearchBar from '../../components/SearchBar';
+import FilterChips from '../../components/FilterChips';
 
 // 2. Crie um mapa para associar as categorias às imagens que você adicionou
 const reminderImages = {
@@ -24,6 +26,10 @@ export default function PetDetailScreen() {
 	const [pet, setPet] = useState<Pet | null>(null);
 	const [reminders, setReminders] = useState<Reminder[]>([]);
 	const [loading, setLoading] = useState(true);
+	
+	// Estados de busca e filtros
+	const [searchQuery, setSearchQuery] = useState('');
+	const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
 
 	useFocusEffect(
 		useCallback(() => {
@@ -64,6 +70,54 @@ export default function PetDetailScreen() {
 		if (diffDays === 0) return { variant: 'warning', label: 'Hoje' };
 		if (diffDays <= 7) return { variant: 'info', label: `${diffDays}d` };
 		return { variant: 'info', label: `${diffDays}d` };
+	};
+
+	// Filtrar lembretes
+	const filteredReminders = useMemo(() => {
+		let filtered = [...reminders];
+
+		// Busca por descrição
+		if (searchQuery.trim()) {
+			const query = searchQuery.toLowerCase();
+			filtered = filtered.filter(r => 
+				r.description.toLowerCase().includes(query) ||
+				r.category.toLowerCase().includes(query)
+			);
+		}
+
+		// Filtrar por categoria
+		if (selectedCategories.length > 0) {
+			filtered = filtered.filter(r => selectedCategories.includes(r.category));
+		}
+
+		// Ordenar por data (próximos primeiro)
+		filtered.sort((a, b) => {
+			const dateA = new Date(a.date);
+			const dateB = new Date(b.date);
+			return dateA.getTime() - dateB.getTime();
+		});
+
+		return filtered;
+	}, [reminders, searchQuery, selectedCategories]);
+
+	// Categorias disponíveis
+	const categoryChips = useMemo(() => [
+		{ id: 'Saúde', label: 'Saúde', icon: 'medical' as keyof typeof Ionicons.glyphMap, color: getCategoryColor('Saúde').main },
+		{ id: 'Higiene', label: 'Higiene', icon: 'water' as keyof typeof Ionicons.glyphMap, color: getCategoryColor('Higiene').main },
+		{ id: 'Consulta', label: 'Consulta', icon: 'calendar' as keyof typeof Ionicons.glyphMap, color: getCategoryColor('Consulta').main },
+	], []);
+
+	const toggleCategoryFilter = (category: string) => {
+		setSelectedCategories(prev => 
+			prev.includes(category) 
+				? prev.filter(c => c !== category)
+				: [...prev, category]
+		);
+	};
+
+	const clearFilters = () => {
+		setSearchQuery('');
+		setSelectedCategories([]);
 	};
 
 	if (loading) {
@@ -135,11 +189,36 @@ export default function PetDetailScreen() {
 					</Link>
 				</View>
 
-				{reminders.length > 0 ? (
+				{reminders.length > 0 && (
+					<View style={styles.searchFilterContainer}>
+						<SearchBar 
+							value={searchQuery}
+							onChangeText={setSearchQuery}
+							placeholder="Buscar lembretes..."
+						/>
+						<FilterChips 
+							chips={categoryChips}
+							selectedIds={selectedCategories}
+							onToggle={toggleCategoryFilter}
+							onClearAll={clearFilters}
+						/>
+					</View>
+				)}
+
+				{filteredReminders.length > 0 ? (
 					<FlatList
-						data={reminders}
+						data={filteredReminders}
 						renderItem={ReminderItem}
 						keyExtractor={item => item.id}
+					/>
+				) : reminders.length > 0 ? (
+					<EmptyState 
+						icon="search"
+						title="Nenhum resultado"
+						message="Nenhum lembrete encontrado com os filtros aplicados."
+						actionLabel="Limpar Filtros"
+						onAction={clearFilters}
+						style={{ paddingVertical: 40 }}
 					/>
 				) : (
 					<EmptyState 
@@ -165,6 +244,7 @@ const styles = StyleSheet.create({
 	upcomingEvents: { padding: 20, flex: 1 },
 	sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 },
 	sectionTitle: { fontSize: 22, fontWeight: 'bold' },
+	searchFilterContainer: { marginBottom: 15 },
 	addButton: { backgroundColor: Theme.primary, width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center', ...Shadows.primary },
 	placeholderText: { fontSize: 16, color: '#888', textAlign: 'center', marginTop: 20 },
 	errorText: { fontSize: 18, textAlign: 'center', marginTop: 50 },

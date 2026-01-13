@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Link, useFocusEffect } from 'expo-router';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState, useMemo } from 'react';
 import { Alert, FlatList, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Pet, Reminder } from '../../types/pet';
 import { Shadows } from '../../constants/Shadows';
@@ -12,6 +12,8 @@ import AnimatedButton from '../../components/animations/AnimatedButton';
 import EmptyState from '../../components/EmptyState';
 import { useRouter } from 'expo-router';
 import { SkeletonCard } from '../../components/Skeleton';
+import SearchBar from '../../components/SearchBar';
+import FilterChips from '../../components/FilterChips';
 
 export default function PetDashboard() {
   const router = useRouter();
@@ -19,6 +21,11 @@ export default function PetDashboard() {
   const [pets, setPets] = useState<Pet[]>([]);
   const [reminders, setReminders] = useState<Reminder[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // Estados de busca e filtros
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedSpecies, setSelectedSpecies] = useState<string[]>([]);
+  const [sortBy, setSortBy] = useState<'name' | 'species' | 'events'>('name');
 
   // Função para carregar os pets do armazenamento local
   const loadPets = async () => {
@@ -93,6 +100,64 @@ export default function PetDashboard() {
     }).length;
   };
 
+  // Filtrar e ordenar pets
+  const filteredAndSortedPets = useMemo(() => {
+    let filtered = [...pets];
+
+    // Filtrar por busca
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(pet => 
+        pet.name.toLowerCase().includes(query) ||
+        pet.species.toLowerCase().includes(query) ||
+        pet.breed?.toLowerCase().includes(query)
+      );
+    }
+
+    // Filtrar por espécie
+    if (selectedSpecies.length > 0) {
+      filtered = filtered.filter(pet => selectedSpecies.includes(pet.species));
+    }
+
+    // Ordenar
+    filtered.sort((a, b) => {
+      switch (sortBy) {
+        case 'name':
+          return a.name.localeCompare(b.name);
+        case 'species':
+          return a.species.localeCompare(b.species);
+        case 'events':
+          const eventsA = getUpcomingRemindersCount(a.id);
+          const eventsB = getUpcomingRemindersCount(b.id);
+          return eventsB - eventsA; // Decrescente
+        default:
+          return 0;
+      }
+    });
+
+    return filtered;
+  }, [pets, searchQuery, selectedSpecies, sortBy, reminders]);
+
+  // Obter espécies únicas dos pets
+  const availableSpecies = useMemo(() => {
+    const species = [...new Set(pets.map(p => p.species))];
+    return species.map(s => ({ id: s, label: s }));
+  }, [pets]);
+
+  // Funções de filtro
+  const toggleSpeciesFilter = (species: string) => {
+    setSelectedSpecies(prev => 
+      prev.includes(species) 
+        ? prev.filter(s => s !== species)
+        : [...prev, species]
+    );
+  };
+
+  const clearFilters = () => {
+    setSearchQuery('');
+    setSelectedSpecies([]);
+  };
+
   // Loading state
   if (loading) {
     return (
@@ -160,21 +225,73 @@ export default function PetDashboard() {
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Meus Pets</Text>
         <View style={styles.counterBadge}>
-          <Text style={styles.counterText}>{pets.length}</Text>
+          <Text style={styles.counterText}>{filteredAndSortedPets.length}</Text>
         </View>
       </View>
-      <FlatList
-        data={pets}
-        renderItem={({ item, index }) => (
-          <PetItem
-            pet={item}
-            index={index}
-            onDelete={() => confirmDelete(item)}
+      
+      <View style={styles.searchAndFilterContainer}>
+        <SearchBar 
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          placeholder="Buscar por nome, espécie ou raça..."
+        />
+        
+        {availableSpecies.length > 0 && (
+          <FilterChips 
+            chips={availableSpecies}
+            selectedIds={selectedSpecies}
+            onToggle={toggleSpeciesFilter}
+            onClearAll={clearFilters}
           />
         )}
-        keyExtractor={item => item.id}
-        contentContainerStyle={{ padding: 20 }}
-      />
+
+        <View style={styles.sortContainer}>
+          <Text style={styles.sortLabel}>Ordenar:</Text>
+          <TouchableOpacity 
+            style={[styles.sortButton, sortBy === 'name' && styles.sortButtonActive]}
+            onPress={() => setSortBy('name')}
+          >
+            <Text style={[styles.sortButtonText, sortBy === 'name' && styles.sortButtonTextActive]}>Nome</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.sortButton, sortBy === 'species' && styles.sortButtonActive]}
+            onPress={() => setSortBy('species')}
+          >
+            <Text style={[styles.sortButtonText, sortBy === 'species' && styles.sortButtonTextActive]}>Espécie</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.sortButton, sortBy === 'events' && styles.sortButtonActive]}
+            onPress={() => setSortBy('events')}
+          >
+            <Text style={[styles.sortButtonText, sortBy === 'events' && styles.sortButtonTextActive]}>Eventos</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {filteredAndSortedPets.length === 0 ? (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+          <EmptyState 
+            icon="search"
+            title="Nenhum resultado"
+            message="Nenhum pet encontrado com os filtros aplicados. Tente ajustar sua busca."
+            actionLabel="Limpar Filtros"
+            onAction={clearFilters}
+          />
+        </View>
+      ) : (
+        <FlatList
+          data={filteredAndSortedPets}
+          renderItem={({ item, index }) => (
+            <PetItem
+              pet={item}
+              index={index}
+              onDelete={() => confirmDelete(item)}
+            />
+          )}
+          keyExtractor={item => item.id}
+          contentContainerStyle={{ padding: 20 }}
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -186,6 +303,13 @@ const styles = StyleSheet.create({
   headerTitle: { fontSize: 28, fontWeight: 'bold', color: '#333' },
   counterBadge: { backgroundColor: Theme.primary, width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center' },
   counterText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+  searchAndFilterContainer: { paddingHorizontal: 20, paddingBottom: 10 },
+  sortContainer: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 },
+  sortLabel: { fontSize: 14, fontWeight: '600', color: Theme.text.secondary, marginRight: 4 },
+  sortButton: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, backgroundColor: Theme.card, borderWidth: 1, borderColor: Theme.border },
+  sortButtonActive: { backgroundColor: Theme.primary, borderColor: Theme.primary },
+  sortButtonText: { fontSize: 13, fontWeight: '600', color: Theme.text.secondary },
+  sortButtonTextActive: { color: '#fff' },
   petItem: { backgroundColor: '#FFFFFF', padding: 15, borderRadius: 12, flexDirection: 'row', alignItems: 'center', marginBottom: 15, ...Shadows.medium },
   petInfo: { flex: 1, marginLeft: 15 },
   petName: { fontSize: 18, fontWeight: 'bold' },

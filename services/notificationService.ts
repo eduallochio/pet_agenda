@@ -7,6 +7,8 @@ Notifications.setNotificationHandler({
     shouldShowAlert: true,
     shouldPlaySound: true,
     shouldSetBadge: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
   }),
 });
 
@@ -79,7 +81,7 @@ export async function scheduleReminderNotification(
           sound: true,
           priority: Notifications.AndroidNotificationPriority.HIGH,
         },
-        trigger: oneDayBefore,
+        trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: oneDayBefore },
       });
       notificationIds.push(id1);
     }
@@ -97,7 +99,7 @@ export async function scheduleReminderNotification(
           sound: true,
           priority: Notifications.AndroidNotificationPriority.MAX,
         },
-        trigger: onTheDay,
+        trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: onTheDay },
       });
       notificationIds.push(id2);
     }
@@ -143,7 +145,7 @@ export async function scheduleVaccineNotification(
           sound: true,
           priority: Notifications.AndroidNotificationPriority.HIGH,
         },
-        trigger: sevenDaysBefore,
+        trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: sevenDaysBefore },
       });
       notificationIds.push(id1);
     }
@@ -162,7 +164,7 @@ export async function scheduleVaccineNotification(
           sound: true,
           priority: Notifications.AndroidNotificationPriority.HIGH,
         },
-        trigger: oneDayBefore,
+        trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: oneDayBefore },
       });
       notificationIds.push(id2);
     }
@@ -180,7 +182,7 @@ export async function scheduleVaccineNotification(
           sound: true,
           priority: Notifications.AndroidNotificationPriority.MAX,
         },
-        trigger: onTheDay,
+        trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: onTheDay },
       });
       notificationIds.push(id3);
     }
