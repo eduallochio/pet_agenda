@@ -80,13 +80,20 @@ const DatePickerInput = ({
         
         <View style={styles.input}>
           <Ionicons name="calendar-outline" size={20} color={Theme.text.secondary} style={styles.icon} />
-          <TextInput
-            style={styles.webDateInput}
-            value={formatDateForWeb(value)}
-            onChange={(e: any) => handleWebDateChange(e.target.value)}
-            placeholder={placeholder}
-            // @ts-ignore - Web-specific props
+          <input
             type="date"
+            style={{
+              flex: 1,
+              fontSize: 16,
+              color: Theme.text.primary,
+              backgroundColor: 'transparent',
+              border: 'none',
+              outline: 'none',
+              fontFamily: 'System',
+            }}
+            value={formatDateForWeb(value)}
+            onChange={(e) => handleWebDateChange(e.target.value)}
+            placeholder={placeholder}
             min={formatDateLimitForWeb(minimumDate)}
             max={formatDateLimitForWeb(maximumDate)}
           />
@@ -181,12 +188,6 @@ const styles = StyleSheet.create({
   },
   placeholderText: {
     color: Theme.text.light,
-  },
-  webDateInput: {
-    flex: 1,
-    fontSize: 16,
-    color: Theme.text.primary,
-    backgroundColor: 'transparent',
   },
   // iOS Picker Styles
   iosPickerContainer: {
