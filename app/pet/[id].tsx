@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Pet, Reminder } from '../../types/pet';
 import { Shadows } from '../../constants/Shadows';
 import { Theme, getCategoryColor } from '../../constants/Colors';
+import Badge from '../../components/Badge';
 
 // 2. Crie um mapa para associar as categorias às imagens que você adicionou
 const reminderImages = {
@@ -47,6 +48,22 @@ export default function PetDetailScreen() {
 		}, [id])
 	);
 
+	// Função para calcular urgência do lembrete
+	const getReminderUrgency = (dateStr: string): { variant: 'danger' | 'warning' | 'info'; label: string } => {
+		const today = new Date();
+		today.setHours(0, 0, 0, 0);
+		const reminderDate = new Date(dateStr);
+		reminderDate.setHours(0, 0, 0, 0);
+		
+		const diffTime = reminderDate.getTime() - today.getTime();
+		const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+		if (diffDays < 0) return { variant: 'danger', label: 'Atrasado' };
+		if (diffDays === 0) return { variant: 'warning', label: 'Hoje' };
+		if (diffDays <= 7) return { variant: 'info', label: `${diffDays}d` };
+		return { variant: 'info', label: `${diffDays}d` };
+	};
+
 	if (loading) {
 		return <ActivityIndicator size="large" style={{ flex: 1 }} />;
 	}
@@ -61,6 +78,7 @@ export default function PetDetailScreen() {
 
 	const ReminderItem = ({ item }: { item: Reminder }) => {
 		const categoryColor = getCategoryColor(item.category);
+		const urgency = getReminderUrgency(item.date);
 		return (
 			<Link href={{ pathname: '/reminder/new', params: { petId: pet.id, reminderId: item.id } }} asChild>
 				<TouchableOpacity style={[styles.reminderItem, { borderLeftWidth: 4, borderLeftColor: categoryColor.main }]}>
@@ -72,11 +90,12 @@ export default function PetDetailScreen() {
 				<View style={styles.reminderTextContainer}>
 					<View style={styles.reminderHeader}>
 						<Text style={styles.reminderDescription}>{item.description}</Text>
-						<View style={[styles.categoryBadge, { backgroundColor: categoryColor.light }]}>
-							<Text style={[styles.categoryBadgeText, { color: categoryColor.dark }]}>{item.category}</Text>
-						</View>
+						<Badge variant={urgency.variant} label={urgency.label} small />
 					</View>
-					<Text style={styles.reminderDate}>{item.date}</Text>
+					<View style={styles.categoryBadge}>
+						<Text style={[styles.categoryBadgeText, { color: categoryColor.dark }]}>{item.category}</Text>
+					</View>
+					<Text style={styles.reminderDate}>📅 {item.date}</Text>
 				</View>
 					<Ionicons name="pencil-outline" size={20} color="#A9A9A9" />
 				</TouchableOpacity>

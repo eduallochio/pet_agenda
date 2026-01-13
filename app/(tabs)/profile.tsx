@@ -3,10 +3,11 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, FlatList } from '
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, Link } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Pet, UserProfile, Friend } from '../../types/pet';
+import { Pet, UserProfile, Friend, Reminder } from '../../types/pet';
 import { Shadows } from '../../constants/Shadows';
 import { Theme } from '../../constants/Colors';
 import { Ionicons } from '@expo/vector-icons';
+import StatCard from '../../components/StatCard';
 
 // Dados falsos para a lista de amigos (para fins de UI)
 const mockFriends: Friend[] = [
@@ -19,6 +20,7 @@ const mockFriends: Friend[] = [
 export default function ProfileScreen() {
 	const [pets, setPets] = useState<Pet[]>([]);
 	const [profile, setProfile] = useState<UserProfile | null>(null);
+	const [reminders, setReminders] = useState<Reminder[]>([]);
 
 	useFocusEffect(
 		useCallback(() => {
@@ -29,6 +31,9 @@ export default function ProfileScreen() {
 
 					const profileJSON = await AsyncStorage.getItem('userProfile');
 					setProfile(profileJSON ? JSON.parse(profileJSON) : null);
+
+					const remindersJSON = await AsyncStorage.getItem('reminders');
+					setReminders(remindersJSON ? JSON.parse(remindersJSON) : []);
 				} catch (error) {
 					console.error("Erro ao carregar dados no perfil:", error);
 				}
@@ -36,6 +41,13 @@ export default function ProfileScreen() {
 			loadData();
 		}, [])
 	);
+
+	// Calcular estatísticas
+	const today = new Date();
+	const upcomingReminders = reminders.filter(r => {
+		const reminderDate = new Date(r.date);
+		return reminderDate >= today;
+	}).length;
 
 	const PetAvatar = ({ pet }: { pet: Pet }) => (
 		<Link href={`/pet/${pet.id}`} asChild>
@@ -61,6 +73,27 @@ export default function ProfileScreen() {
 					<View style={styles.userAvatar} />
 					<Text style={styles.userName}>{profile?.name || 'Seu Nome'}</Text>
 					<Text style={styles.userBio}>{profile?.bio || 'Pet Lover'}</Text>
+				</View>
+
+				<View style={styles.statsContainer}>
+					<StatCard 
+						icon="paw" 
+						value={pets.length} 
+						label="Pets" 
+						color={Theme.primary}
+					/>
+					<StatCard 
+						icon="calendar" 
+						value={upcomingReminders} 
+						label="Eventos" 
+						color={Theme.categories.Consulta.main}
+					/>
+					<StatCard 
+						icon="people" 
+						value={mockFriends.length} 
+						label="Amigos" 
+						color={Theme.categories.Higiene.main}
+					/>
 				</View>
 
 				<View style={styles.section}>
@@ -114,7 +147,8 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
 	container: { flex: 1, backgroundColor: '#F8F9FA' },
 	scrollContainer: { paddingVertical: 20, paddingBottom: 50 },
-	profileSection: { alignItems: 'center', marginBottom: 30 },
+	profileSection: { alignItems: 'center', marginBottom: 20 },
+	statsContainer: { flexDirection: 'row', paddingHorizontal: 16, marginBottom: 30 },
 	userAvatar: { width: 100, height: 100, borderRadius: 50, backgroundColor: '#E8E8E8', marginBottom: 15 },
 	userName: { fontSize: 24, fontWeight: 'bold' },
 	userBio: { fontSize: 16, color: 'gray' },
