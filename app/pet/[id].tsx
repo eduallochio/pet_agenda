@@ -161,7 +161,16 @@ export default function PetDetailScreen() {
 
 	return (
 		<SafeAreaView style={styles.container}>
-			<Stack.Screen options={{ title: pet.name }} />
+			<Stack.Screen options={{ 
+				title: pet.name,
+				headerRight: () => (
+					<Link href={{ pathname: '/pet/edit', params: { id: pet.id } }} asChild>
+						<TouchableOpacity style={{ marginRight: 10 }}>
+							<Ionicons name="create-outline" size={24} color={Theme.primary} />
+						</TouchableOpacity>
+					</Link>
+				),
+			}} />
 
 			<View style={styles.header}>
 					<PetAvatar species={pet.species} photoUri={pet.photoUri} size="xlarge" style={Shadows.medium} />
