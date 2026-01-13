@@ -38,6 +38,9 @@ yarn-error.*
 
 app-example
 
+# documentation
+doc/
+
 .vscode/settings.json
 .vscode/tasks.json
 .vscode/launch.json
