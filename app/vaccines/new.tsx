@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState, useEffect } from 'react';
-import { Alert, StyleSheet, Text, TextInput, TouchableOpacity } from 'react-native';
+import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { VaccineRecord, Pet } from '../../types/pet';
 import { Theme } from '../../constants/Colors';
@@ -10,7 +10,6 @@ import IconInput from '../../components/IconInput';
 import DatePickerInput from '../../components/DatePickerInput';
 import AnimatedButton from '../../components/animations/AnimatedButton';
 import { Ionicons } from '@expo/vector-icons';
-import * as NotificationService from '../../services/notificationService';
 
 export default function NewVaccineScreen() {
 	const router = useRouter();
@@ -69,10 +68,15 @@ export default function NewVaccineScreen() {
 							const vaccinationsJSON = await AsyncStorage.getItem('vaccinations');
 							let existingRecords: VaccineRecord[] = vaccinationsJSON ? JSON.parse(vaccinationsJSON) : [];
 							
-							// Cancelar notificações da vacina
+							// Cancelar notificações da vacina (apenas mobile)
 							const vaccineToDelete = existingRecords.find(v => v.id === vaccineId);
-							if (vaccineToDelete?.notificationIds) {
-								await NotificationService.cancelNotifications(vaccineToDelete.notificationIds);
+							if (vaccineToDelete?.notificationIds && Platform.OS !== 'web') {
+								try {
+									const NotificationService = await import('../../services/notificationService');
+									await NotificationService.cancelNotifications(vaccineToDelete.notificationIds);
+								} catch (notifError) {
+									console.warn('Erro ao cancelar notificações:', notifError);
+								}
 							}
 							
 							// Remover registro
@@ -115,21 +119,31 @@ export default function NewVaccineScreen() {
 
 			let notificationIds: string[] = [];
 
-			// Agendar notificações APENAS se houver data de reforço e for futura
-			if (nextDueDate && nextDueDate > new Date()) {
-				notificationIds = await NotificationService.scheduleVaccineNotification(
-					vaccineId || Date.now().toString(),
-					petName,
-					vaccineName,
-					nextDueDate
-				);
+			// Agendar notificações APENAS se houver data de reforço, for futura e não for web
+			if (Platform.OS !== 'web' && nextDueDate && nextDueDate > new Date()) {
+				try {
+					const NotificationService = await import('../../services/notificationService');
+					notificationIds = await NotificationService.scheduleVaccineNotification(
+						vaccineId || Date.now().toString(),
+						petName,
+						vaccineName,
+						nextDueDate
+					);
+				} catch (notifError) {
+					console.warn('Erro ao agendar notificações:', notifError);
+				}
 			}
 
 			if (isEditing) {
 				// MODO EDIÇÃO: Cancela notificações antigas e atualiza
 				const oldRecord = existingRecords.find(v => v.id === vaccineId);
-				if (oldRecord?.notificationIds) {
-					await NotificationService.cancelNotifications(oldRecord.notificationIds);
+				if (oldRecord?.notificationIds && Platform.OS !== 'web') {
+					try {
+						const NotificationService = await import('../../services/notificationService');
+						await NotificationService.cancelNotifications(oldRecord.notificationIds);
+					} catch (notifError) {
+						console.warn('Erro ao cancelar notificações:', notifError);
+					}
 				}
 				existingRecords = existingRecords.map(v =>
 					v.id === vaccineId

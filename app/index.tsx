@@ -1,8 +1,7 @@
 import React, { useEffect } from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import { ActivityIndicator, View, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as NotificationService from '../services/notificationService';
 
 export default function EntryPoint() {
 	const router = useRouter();
@@ -10,8 +9,15 @@ export default function EntryPoint() {
 	useEffect(() => {
 		const checkUserStatus = async () => {
 			try {
-				// Solicitar permissões de notificação no primeiro uso
-				await NotificationService.requestNotificationPermissions();
+				// Solicitar permissões de notificação no primeiro uso (apenas mobile)
+				if (Platform.OS !== 'web') {
+					try {
+						const NotificationService = await import('../services/notificationService');
+						await NotificationService.requestNotificationPermissions();
+					} catch (notifError) {
+						console.warn('Erro ao configurar notificações:', notifError);
+					}
+				}
 
 				const petsJSON = await AsyncStorage.getItem('pets');
 				const pets = petsJSON ? JSON.parse(petsJSON) : [];
