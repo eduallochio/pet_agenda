@@ -3,7 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'reac
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Reminder } from '../../types/pet';
+import { Reminder, Pet } from '../../types/pet';
 import { Shadows } from '../../constants/Shadows';
 import { Theme, getCategoryColor } from '../../constants/Colors';
 import { Ionicons } from '@expo/vector-icons';
@@ -11,6 +11,7 @@ import IconInput from '../../components/IconInput';
 import AnimatedButton from '../../components/animations/AnimatedButton';
 import SuccessAnimation from '../../components/animations/SuccessAnimation';
 import DatePickerInput from '../../components/DatePickerInput';
+import * as NotificationService from '../../services/notificationService';
 
 export default function ReminderFormScreen() {
 	const router = useRouter();
@@ -51,6 +52,42 @@ export default function ReminderFormScreen() {
 		}
 	}, [reminderId, isEditing]);
 
+	const handleDelete = async () => {
+		Alert.alert(
+			"Confirmar exclusão",
+			"Tem certeza que deseja excluir este lembrete?",
+			[
+				{ text: "Cancelar", style: "cancel" },
+				{ 
+					text: "Excluir", 
+					style: "destructive",
+					onPress: async () => {
+						try {
+							const remindersJSON = await AsyncStorage.getItem('reminders');
+							let allReminders: Reminder[] = remindersJSON ? JSON.parse(remindersJSON) : [];
+							
+							// Cancelar notificações do lembrete
+							const reminderToDelete = allReminders.find(r => r.id === reminderId);
+							if (reminderToDelete?.notificationIds) {
+								await NotificationService.cancelNotifications(reminderToDelete.notificationIds);
+							}
+							
+							// Remover lembrete
+							allReminders = allReminders.filter(r => r.id !== reminderId);
+							await AsyncStorage.setItem('reminders', JSON.stringify(allReminders));
+							
+							Alert.alert("Sucesso", "Lembrete excluído!");
+							router.back();
+						} catch (error) {
+							console.error('Erro ao excluir lembrete:', error);
+							Alert.alert("Erro", "Não foi possível excluir.");
+						}
+					}
+				}
+			]
+		);
+	};
+
 	const handleSave = async () => {
 		if (!description || !date) {
 			Alert.alert("Atenção", "Descrição e data são obrigatórios.");
@@ -64,21 +101,59 @@ export default function ReminderFormScreen() {
 			const remindersJSON = await AsyncStorage.getItem('reminders');
 			let allReminders: Reminder[] = remindersJSON ? JSON.parse(remindersJSON) : [];
 
+			// Buscar nome do pet para notificação
+			const petsJSON = await AsyncStorage.getItem('pets');
+			const allPets: Pet[] = petsJSON ? JSON.parse(petsJSON) : [];
+			const pet = allPets.find(p => p.id === petId);
+			const petName = pet?.name || 'Seu pet';
+
+			let notificationIds: string[] = [];
+
+			// Agendar notificações (apenas se data é futura)
+			if (date > new Date()) {
+				notificationIds = await NotificationService.scheduleReminderNotification(
+					reminderId || Date.now().toString(),
+					petName,
+					description,
+					date,
+					category
+				);
+			}
+
 			if (isEditing) {
-				// MODO EDIÇÃO: Atualiza o item na lista
+				// MODO EDIÇÃO: Cancela notificações antigas e atualiza
+				const oldReminder = allReminders.find(r => r.id === reminderId);
+				if (oldReminder?.notificationIds) {
+					await NotificationService.cancelNotifications(oldReminder.notificationIds);
+				}
 				allReminders = allReminders.map(r =>
-					r.id === reminderId ? { ...r, category, description, date: formattedDate } : r
+					r.id === reminderId 
+						? { ...r, category, description, date: formattedDate, notificationIds } 
+						: r
 				);
 			} else {
 				// MODO CRIAÇÃO: Adiciona novo item
-				const newReminder: Reminder = { id: Date.now().toString(), petId, category, description, date: formattedDate };
+				const newReminder: Reminder = { 
+					id: Date.now().toString(), 
+					petId, 
+					category, 
+					description, 
+					date: formattedDate,
+					notificationIds
+				};
 				allReminders.push(newReminder);
 			}
 
 			await AsyncStorage.setItem('reminders', JSON.stringify(allReminders));
-			Alert.alert("Sucesso", `Lembrete ${isEditing ? 'atualizado' : 'salvo'}!`);
+			
+			const successMessage = isEditing ? 'atualizado' : 'salvo';
+			const notifMessage = notificationIds.length > 0 
+				? ` e ${notificationIds.length} notificação(ões) agendada(s)` 
+				: '';
+			Alert.alert("Sucesso", `Lembrete ${successMessage}${notifMessage}!`);
 			router.back();
-		} catch {
+		} catch (error) {
+			console.error('Erro ao salvar lembrete:', error);
 			Alert.alert("Erro", "Não foi possível salvar.");
 		}
 	};
@@ -133,6 +208,12 @@ export default function ReminderFormScreen() {
 				<Ionicons name="checkmark-circle" size={24} color="#fff" style={{ marginRight: 8 }} />
 				<Text style={styles.saveButtonText}>Salvar</Text>
 			</TouchableOpacity>
+			{isEditing && (
+				<TouchableOpacity style={styles.deleteButton} onPress={handleDelete}>
+					<Ionicons name="trash-outline" size={24} color="#fff" style={{ marginRight: 8 }} />
+					<Text style={styles.deleteButtonText}>Excluir Lembrete</Text>
+				</TouchableOpacity>
+			)}
 		</SafeAreaView>
 	);
 }
@@ -166,4 +247,15 @@ const styles = StyleSheet.create({
 		justifyContent: 'center',
 	},
 	saveButtonText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
+	deleteButton: {
+		backgroundColor: '#DC3545',
+		padding: 16,
+		borderRadius: 12,
+		alignItems: 'center',
+		marginTop: 10,
+		...Shadows.small,
+		flexDirection: 'row',
+		justifyContent: 'center',
+	},
+	deleteButtonText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
 });

@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as NotificationService from '../services/notificationService';
 
 export default function EntryPoint() {
 	const router = useRouter();
@@ -9,6 +10,9 @@ export default function EntryPoint() {
 	useEffect(() => {
 		const checkUserStatus = async () => {
 			try {
+				// Solicitar permissões de notificação no primeiro uso
+				await NotificationService.requestNotificationPermissions();
+
 				const petsJSON = await AsyncStorage.getItem('pets');
 				const pets = petsJSON ? JSON.parse(petsJSON) : [];
 

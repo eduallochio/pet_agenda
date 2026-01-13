@@ -13,6 +13,7 @@ export type Reminder = {
   category: "Saúde" | "Higiene" | "Consulta" | "Outro"
   description: string
   date: string // Vamos guardar a data como texto por enquanto
+  notificationIds?: string[] // IDs das notificações agendadas
 }
 export type VaccineRecord = {
   id: string
@@ -20,6 +21,7 @@ export type VaccineRecord = {
   vaccineName: string // Ex: "Raiva", "V10", "Quíntupla Felina"
   dateAdministered: string // Data da aplicação
   nextDueDate?: string // Data do próximo reforço (opcional)
+  notificationIds?: string[] // IDs das notificações agendadas
 }
 export type UserProfile = {
   name: string
