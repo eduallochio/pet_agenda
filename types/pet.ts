@@ -4,6 +4,7 @@ export type Pet = {
   species: string
   breed: string
   dob: string
+  photoUri?: string // URI da foto do pet
 }
 
 export type Reminder = {

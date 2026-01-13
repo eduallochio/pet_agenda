@@ -121,7 +121,7 @@ export default function PetDashboard() {
       <FadeIn delay={index * 100}>
         <Link href={{ pathname: "/pet/[id]", params: { id: pet.id } }} asChild>
           <TouchableOpacity style={styles.petItem}>
-          <PetAvatar species={pet.species} size="medium" style={Shadows.small} />
+          <PetAvatar species={pet.species} photoUri={pet.photoUri} size="medium" style={Shadows.small} />
           <View style={styles.petInfo}>
             <Text style={styles.petName}>{pet.name}</Text>
             <Text style={styles.petSpecies}>{pet.species}</Text>

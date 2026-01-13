@@ -8,6 +8,9 @@ import { Shadows } from '../../constants/Shadows';
 import { Theme, getCategoryColor } from '../../constants/Colors';
 import { Ionicons } from '@expo/vector-icons';
 import IconInput from '../../components/IconInput';
+import AnimatedButton from '../../components/animations/AnimatedButton';
+import SuccessAnimation from '../../components/animations/SuccessAnimation';
+import DatePickerInput from '../../components/DatePickerInput';
 
 export default function ReminderFormScreen() {
 	const router = useRouter();
@@ -18,7 +21,8 @@ export default function ReminderFormScreen() {
 
 	const [category, setCategory] = useState<'Saúde' | 'Higiene' | 'Consulta' | 'Outro'>('Saúde');
 	const [description, setDescription] = useState('');
-	const [date, setDate] = useState('');
+	const [date, setDate] = useState<Date | null>(null);
+	const [showSuccess, setShowSuccess] = useState(false);
 
 	// EFEITO PARA CARREGAR OS DADOS QUANDO A TELA ABRE EM MODO DE EDIÇÃO
 	useEffect(() => {
@@ -32,7 +36,12 @@ export default function ReminderFormScreen() {
 					if (reminderToEdit) {
 						setCategory(reminderToEdit.category);
 						setDescription(reminderToEdit.description);
-						setDate(reminderToEdit.date);
+						// Converter string DD/MM/YYYY para Date
+						const dateParts = reminderToEdit.date.split('/');
+						if (dateParts.length === 3) {
+							const [day, month, year] = dateParts;
+							setDate(new Date(parseInt(year), parseInt(month) - 1, parseInt(day)));
+						}
 					}
 				} catch (e) {
 					console.error("Erro ao carregar lembrete para edição", e);
@@ -48,6 +57,9 @@ export default function ReminderFormScreen() {
 			return;
 		}
 
+		// Formata a data para DD/MM/YYYY
+		const formattedDate = `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear()}`;
+
 		try {
 			const remindersJSON = await AsyncStorage.getItem('reminders');
 			let allReminders: Reminder[] = remindersJSON ? JSON.parse(remindersJSON) : [];
@@ -55,11 +67,11 @@ export default function ReminderFormScreen() {
 			if (isEditing) {
 				// MODO EDIÇÃO: Atualiza o item na lista
 				allReminders = allReminders.map(r =>
-					r.id === reminderId ? { ...r, category, description, date } : r
+					r.id === reminderId ? { ...r, category, description, date: formattedDate } : r
 				);
 			} else {
 				// MODO CRIAÇÃO: Adiciona novo item
-				const newReminder: Reminder = { id: Date.now().toString(), petId, category, description, date };
+				const newReminder: Reminder = { id: Date.now().toString(), petId, category, description, date: formattedDate };
 				allReminders.push(newReminder);
 			}
 
@@ -110,8 +122,13 @@ export default function ReminderFormScreen() {
 			</View>
 			<Text style={styles.label}>Descrição *</Text>
 			<IconInput iconName="text" placeholder="Ex: Vacina V10" value={description} onChangeText={setDescription} />
-			<Text style={styles.label}>Data *</Text>
-			<IconInput iconName="calendar-outline" placeholder="DD/MM/AAAA" value={date} onChangeText={setDate} keyboardType="numeric" />
+			<DatePickerInput 
+				label="Data *"
+				value={date} 
+				onChange={setDate} 
+				placeholder="Selecione a data do lembrete"
+				minimumDate={new Date()}
+			/>
 			<TouchableOpacity style={styles.saveButton} onPress={handleSave}>
 				<Ionicons name="checkmark-circle" size={24} color="#fff" style={{ marginRight: 8 }} />
 				<Text style={styles.saveButtonText}>Salvar</Text>

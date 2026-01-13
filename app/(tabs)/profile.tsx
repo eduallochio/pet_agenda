@@ -55,7 +55,7 @@ export default function ProfileScreen() {
 	const PetAvatarItem = ({ pet }: { pet: Pet }) => (
 		<Link href={`/pet/${pet.id}`} asChild>
 			<TouchableOpacity style={styles.petAvatarContainer}>
-				<PetAvatar species={pet.species} size="large" style={Shadows.small} />
+				<PetAvatar species={pet.species} photoUri={pet.photoUri} size="large" style={Shadows.small} />
 				<Text style={styles.petName}>{pet.name}</Text>
 			</TouchableOpacity>
 		</Link>

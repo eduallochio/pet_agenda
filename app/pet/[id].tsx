@@ -110,7 +110,7 @@ export default function PetDetailScreen() {
 			<Stack.Screen options={{ title: pet.name }} />
 
 			<View style={styles.header}>
-					<PetAvatar species={pet.species} size="xlarge" style={Shadows.medium} />
+					<PetAvatar species={pet.species} photoUri={pet.photoUri} size="xlarge" style={Shadows.medium} />
 				<Text style={styles.petName}>{pet.name}</Text>
 				<Text style={styles.petInfo}>{pet.species} - {pet.breed}</Text>
 				<Text style={styles.petInfo}>Nascimento: {pet.dob}</Text>

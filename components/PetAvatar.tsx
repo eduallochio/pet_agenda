@@ -1,13 +1,14 @@
-import { View, Text, StyleSheet, ViewStyle } from 'react-native';
+import { View, Text, StyleSheet, ViewStyle, Image } from 'react-native';
 import { getSpeciesColor } from '../constants/Colors';
 
 interface PetAvatarProps {
   species: string;
+  photoUri?: string; // URI da foto real do pet
   size?: 'small' | 'medium' | 'large' | 'xlarge';
   style?: ViewStyle;
 }
 
-const PetAvatar = ({ species, size = 'medium', style }: PetAvatarProps) => {
+const PetAvatar = ({ species, photoUri, size = 'medium', style }: PetAvatarProps) => {
   const getSpeciesEmoji = (species: string): string => {
     const lowerSpecies = species.toLowerCase();
     if (lowerSpecies.includes('cachorro') || lowerSpecies.includes('dog') || lowerSpecies.includes('cão')) {
@@ -75,12 +76,16 @@ const PetAvatar = ({ species, size = 'medium', style }: PetAvatarProps) => {
     <View style={[
       styles.avatar,
       sizeStyles,
-      { backgroundColor: color },
+      { backgroundColor: photoUri ? 'transparent' : color },
       style
     ]}>
-      <Text style={[styles.emoji, { fontSize: getEmojiSize() }]}>
-        {emoji}
-      </Text>
+      {photoUri ? (
+        <Image source={{ uri: photoUri }} style={[styles.petPhoto, sizeStyles]} />
+      ) : (
+        <Text style={[styles.emoji, { fontSize: getEmojiSize() }]}>
+          {emoji}
+        </Text>
+      )}
     </View>
   );
 };
@@ -89,6 +94,11 @@ const styles = StyleSheet.create({
   avatar: {
     justifyContent: 'center',
     alignItems: 'center',
+    overflow: 'hidden',
+  },
+  petPhoto: {
+    width: '100%',
+    height: '100%',
   },
   emoji: {
     textAlign: 'center',
