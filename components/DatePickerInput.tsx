@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Platform, TextInput } from 'react-native';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import { Theme } from '../constants/Colors';
@@ -35,6 +35,13 @@ const DatePickerInput = ({
     }
   };
 
+  const handleWebDateChange = (dateString: string) => {
+    if (dateString) {
+      const selectedDate = new Date(dateString);
+      onChange(selectedDate);
+    }
+  };
+
   const formatDate = (date: Date | null): string => {
     if (!date) return placeholder;
     
@@ -45,6 +52,49 @@ const DatePickerInput = ({
     return `${day}/${month}/${year}`;
   };
 
+  const formatDateForWeb = (date: Date | null): string => {
+    if (!date) return '';
+    
+    const year = date.getFullYear();
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    
+    return `${year}-${month}-${day}`;
+  };
+
+  const formatDateLimitForWeb = (date?: Date): string | undefined => {
+    if (!date) return undefined;
+    
+    const year = date.getFullYear();
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    
+    return `${year}-${month}-${day}`;
+  };
+
+  // Versão Web com input type="date"
+  if (Platform.OS === 'web') {
+    return (
+      <View style={styles.container}>
+        {label && <Text style={styles.label}>{label}</Text>}
+        
+        <View style={styles.input}>
+          <Ionicons name="calendar-outline" size={20} color={Theme.text.secondary} style={styles.icon} />
+          <TextInput
+            style={styles.webDateInput}
+            type="date"
+            value={formatDateForWeb(value)}
+            onChange={(e: any) => handleWebDateChange(e.target.value)}
+            placeholder={placeholder}
+            min={formatDateLimitForWeb(minimumDate)}
+            max={formatDateLimitForWeb(maximumDate)}
+          />
+        </View>
+      </View>
+    );
+  }
+
+  // Versão Mobile (iOS/Android)
   return (
     <View style={styles.container}>
       {label && <Text style={styles.label}>{label}</Text>}
@@ -130,6 +180,14 @@ const styles = StyleSheet.create({
   },
   placeholderText: {
     color: Theme.text.light,
+  },
+  webDateInput: {
+    flex: 1,
+    fontSize: 16,
+    color: Theme.text.primary,
+    outline: 'none',
+    border: 'none',
+    backgroundColor: 'transparent',
   },
   // iOS Picker Styles
   iosPickerContainer: {
