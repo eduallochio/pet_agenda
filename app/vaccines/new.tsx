@@ -10,6 +10,8 @@ import IconInput from '../../components/IconInput';
 import DatePickerInput from '../../components/DatePickerInput';
 import AnimatedButton from '../../components/animations/AnimatedButton';
 import { Ionicons } from '@expo/vector-icons';
+import ValidatedInput from '../../components/ValidatedInput';
+import { useFormValidation } from '../../hooks/useFormValidation';
 
 export default function NewVaccineScreen() {
 	const router = useRouter();
@@ -21,6 +23,10 @@ export default function NewVaccineScreen() {
 	const [vaccineName, setVaccineName] = useState('');
 	const [dateAdministered, setDateAdministered] = useState<Date | null>(null);
 	const [nextDueDate, setNextDueDate] = useState<Date | null>(null);
+
+	const { validateAll, getFieldError, hasError, touchField } = useFormValidation({
+		vaccineName: { required: true, minLength: 2, maxLength: 100 },
+	});
 
 	// Carregar dados ao editar
 	useEffect(() => {
@@ -95,8 +101,15 @@ export default function NewVaccineScreen() {
 		);
 	};
 	const handleSaveVaccine = async () => {
-		if (!vaccineName || !dateAdministered) {
-			Alert.alert("Atenção", "O nome da vacina e a data de aplicação são obrigatórios.");
+		// Valida campos
+		const isValid = validateAll({ vaccineName });
+		if (!isValid) {
+			Alert.alert("Atenção", "Por favor, corrija os erros antes de continuar.");
+			return;
+		}
+
+		if (!dateAdministered) {
+			Alert.alert("Atenção", "A data de aplicação é obrigatória.");
 			return;
 		}
 
@@ -181,11 +194,14 @@ export default function NewVaccineScreen() {
 		<SafeAreaView style={styles.container}>
 			<Text style={styles.title}>{isEditing ? 'Editar Vacina' : 'Adicionar Vacina'}</Text>
 			
-			<IconInput 
+			<ValidatedInput 
 				iconName="medical" 
 				placeholder="Ex: V10 Canina, Antirrábica" 
 				value={vaccineName} 
-				onChangeText={setVaccineName} 
+				onChangeText={setVaccineName}
+				onBlur={() => touchField('vaccineName')}
+				error={getFieldError('vaccineName')}
+				required={true}
 			/>
 			
 			<DatePickerInput 

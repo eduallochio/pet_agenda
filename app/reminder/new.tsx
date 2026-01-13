@@ -11,6 +11,8 @@ import IconInput from '../../components/IconInput';
 import AnimatedButton from '../../components/animations/AnimatedButton';
 import SuccessAnimation from '../../components/animations/SuccessAnimation';
 import DatePickerInput from '../../components/DatePickerInput';
+import ValidatedInput from '../../components/ValidatedInput';
+import { useFormValidation } from '../../hooks/useFormValidation';
 
 export default function ReminderFormScreen() {
 	const router = useRouter();
@@ -23,6 +25,10 @@ export default function ReminderFormScreen() {
 	const [description, setDescription] = useState('');
 	const [date, setDate] = useState<Date | null>(null);
 	const [showSuccess, setShowSuccess] = useState(false);
+
+	const { validateAll, getFieldError, hasError, touchField } = useFormValidation({
+		description: { required: true, minLength: 3, maxLength: 200 },
+	});
 
 	// EFEITO PARA CARREGAR OS DADOS QUANDO A TELA ABRE EM MODO DE EDIÇÃO
 	useEffect(() => {
@@ -93,8 +99,15 @@ export default function ReminderFormScreen() {
 	};
 
 	const handleSave = async () => {
-		if (!description || !date) {
-			Alert.alert("Atenção", "Descrição e data são obrigatórios.");
+		// Valida campos
+		const isValid = validateAll({ description });
+		if (!isValid) {
+			Alert.alert("Atenção", "Por favor, corrija os erros antes de continuar.");
+			return;
+		}
+
+		if (!date) {
+			Alert.alert("Atenção", "A data é obrigatória.");
 			return;
 		}
 
@@ -210,7 +223,15 @@ export default function ReminderFormScreen() {
 				})}
 			</View>
 			<Text style={styles.label}>Descrição *</Text>
-			<IconInput iconName="text" placeholder="Ex: Vacina V10" value={description} onChangeText={setDescription} />
+			<ValidatedInput 
+				iconName="text" 
+				placeholder="Ex: Vacina V10" 
+				value={description} 
+				onChangeText={setDescription}
+				onBlur={() => touchField('description')}
+				error={getFieldError('description')}
+				required={true}
+			/>
 			<DatePickerInput 
 				label="Data *"
 				value={date} 

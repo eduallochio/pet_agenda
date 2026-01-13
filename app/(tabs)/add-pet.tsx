@@ -12,6 +12,8 @@ import { Ionicons } from '@expo/vector-icons';
 import AnimatedButton from '../../components/animations/AnimatedButton';
 import SuccessAnimation from '../../components/animations/SuccessAnimation';
 import DatePickerInput from '../../components/DatePickerInput';
+import ValidatedInput from '../../components/ValidatedInput';
+import { useFormValidation } from '../../hooks/useFormValidation';
 
 export default function AddPetScreen() {
   const router = useRouter();
@@ -21,6 +23,12 @@ export default function AddPetScreen() {
   const [dob, setDob] = useState<Date | null>(null);
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
+
+  const { validateAll, getFieldError, hasError, touchField } = useFormValidation({
+    name: { required: true, minLength: 2, maxLength: 50 },
+    species: { required: true, minLength: 2, maxLength: 30 },
+    breed: { maxLength: 50 },
+  });
 
   const pickImage = async (useCamera: boolean) => {
     try {
@@ -73,8 +81,10 @@ export default function AddPetScreen() {
   };
 
   const handleSavePet = async () => {
-    if (name.trim() === '') {
-      Alert.alert('Atenção', 'O nome do pet é obrigatório.');
+    // Valida todos os campos
+    const isValid = validateAll({ name, species, breed });
+    if (!isValid) {
+      Alert.alert('Atenção', 'Por favor, corrija os erros antes de continuar.');
       return;
     }
 
@@ -148,9 +158,32 @@ export default function AddPetScreen() {
         )}
       </View>
 
-      <IconInput iconName="paw" placeholder="Nome *" value={name} onChangeText={setName} />
-      <IconInput iconName="fish" placeholder="Espécie (ex: Cachorro, Gato)" value={species} onChangeText={setSpecies} />
-      <IconInput iconName="heart" placeholder="Raça" value={breed} onChangeText={setBreed} />
+      <ValidatedInput 
+        iconName="paw" 
+        placeholder="Nome" 
+        value={name} 
+        onChangeText={setName}
+        onBlur={() => touchField('name')}
+        error={getFieldError('name')}
+        required={true}
+      />
+      <ValidatedInput 
+        iconName="fish" 
+        placeholder="Espécie (ex: Cachorro, Gato)" 
+        value={species} 
+        onChangeText={setSpecies}
+        onBlur={() => touchField('species')}
+        error={getFieldError('species')}
+        required={true}
+      />
+      <ValidatedInput 
+        iconName="heart" 
+        placeholder="Raça" 
+        value={breed} 
+        onChangeText={setBreed}
+        onBlur={() => touchField('breed')}
+        error={getFieldError('breed')}
+      />
       <DatePickerInput 
         label="Data de Nascimento"
         value={dob} 

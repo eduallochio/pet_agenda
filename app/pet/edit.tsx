@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Text, StyleSheet, Alert, View, Image, TouchableOpacity, ScrollView } from 'react-native';
+import { Text, StyleSheet, Alert, View, TouchableOpacity, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -7,11 +7,12 @@ import * as ImagePicker from 'expo-image-picker';
 import { Pet } from '../../types/pet';
 import { Shadows } from '../../constants/Shadows';
 import { Theme } from '../../constants/Colors';
-import IconInput from '../../components/IconInput';
 import { Ionicons } from '@expo/vector-icons';
 import AnimatedButton from '../../components/animations/AnimatedButton';
 import DatePickerInput from '../../components/DatePickerInput';
 import PetAvatar from '../../components/PetAvatar';
+import ValidatedInput from '../../components/ValidatedInput';
+import { useFormValidation } from '../../hooks/useFormValidation';
 
 export default function EditPetScreen() {
   const router = useRouter();
@@ -23,11 +24,13 @@ export default function EditPetScreen() {
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadPetData();
-  }, [id]);
+  const { validateAll, getFieldError, touchField } = useFormValidation({
+    name: { required: true, minLength: 2, maxLength: 50 },
+    species: { required: true, minLength: 2, maxLength: 30 },
+    breed: { maxLength: 50 },
+  });
 
-  const loadPetData = async () => {
+  const loadPetData = React.useCallback(async () => {
     try {
       const petsJSON = await AsyncStorage.getItem('pets');
       if (petsJSON) {
@@ -55,7 +58,11 @@ export default function EditPetScreen() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
+
+  useEffect(() => {
+    loadPetData();
+  }, [loadPetData]);
 
   const pickImage = async (useCamera: boolean) => {
     try {
@@ -107,8 +114,10 @@ export default function EditPetScreen() {
   };
 
   const handleUpdatePet = async () => {
-    if (name.trim() === '') {
-      Alert.alert('Atenção', 'O nome do pet é obrigatório.');
+    // Valida todos os campos
+    const isValid = validateAll({ name, species, breed });
+    if (!isValid) {
+      Alert.alert('Atenção', 'Por favor, corrija os erros antes de continuar.');
       return;
     }
 
@@ -137,7 +146,7 @@ export default function EditPetScreen() {
         species: species.trim(),
         breed: breed.trim(),
         dob: formattedDob,
-        photoUri: photoUri,
+        photoUri: photoUri ?? undefined,
       };
 
       await AsyncStorage.setItem('pets', JSON.stringify(pets));
@@ -193,7 +202,7 @@ export default function EditPetScreen() {
         <TouchableOpacity style={styles.photoContainer} onPress={showImagePickerOptions}>
           <PetAvatar 
             species={species} 
-            photoUri={photoUri} 
+            photoUri={photoUri ?? undefined} 
             size="xlarge" 
             style={Shadows.medium}
           />
@@ -203,13 +212,36 @@ export default function EditPetScreen() {
         </TouchableOpacity>
 
         <Text style={styles.label}>Nome *</Text>
-        <IconInput iconName="paw" placeholder="Ex: Rex" value={name} onChangeText={setName} />
+        <ValidatedInput 
+          iconName="paw" 
+          placeholder="Ex: Rex" 
+          value={name} 
+          onChangeText={setName}
+          onBlur={() => touchField('name')}
+          error={getFieldError('name')}
+          required={true}
+        />
 
         <Text style={styles.label}>Espécie *</Text>
-        <IconInput iconName="fish" placeholder="Ex: Cachorro" value={species} onChangeText={setSpecies} />
+        <ValidatedInput 
+          iconName="fish" 
+          placeholder="Ex: Cachorro" 
+          value={species} 
+          onChangeText={setSpecies}
+          onBlur={() => touchField('species')}
+          error={getFieldError('species')}
+          required={true}
+        />
 
         <Text style={styles.label}>Raça</Text>
-        <IconInput iconName="ribbon" placeholder="Ex: Labrador" value={breed} onChangeText={setBreed} />
+        <ValidatedInput 
+          iconName="ribbon" 
+          placeholder="Ex: Labrador" 
+          value={breed} 
+          onChangeText={setBreed}
+          onBlur={() => touchField('breed')}
+          error={getFieldError('breed')}
+        />
 
         <DatePickerInput 
           label="Data de Nascimento *"
