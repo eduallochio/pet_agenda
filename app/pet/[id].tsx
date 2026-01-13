@@ -9,6 +9,7 @@ import { Shadows } from '../../constants/Shadows';
 import { Theme, getCategoryColor } from '../../constants/Colors';
 import Badge from '../../components/Badge';
 import PetAvatar from '../../components/PetAvatar';
+import EmptyState from '../../components/EmptyState';
 
 // 2. Crie um mapa para associar as categorias às imagens que você adicionou
 const reminderImages = {
@@ -141,7 +142,12 @@ export default function PetDetailScreen() {
 						keyExtractor={item => item.id}
 					/>
 				) : (
-					<Text style={styles.placeholderText}>Nenhum evento agendado.</Text>
+					<EmptyState 
+						icon="calendar-outline"
+						title="Nenhum evento agendado"
+						message="Adicione lembretes de vacinas, consultas ou cuidados com seu pet."
+						style={{ paddingVertical: 40 }}
+					/>
 				)}
 			</View>
 		</SafeAreaView>

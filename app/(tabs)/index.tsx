@@ -9,13 +9,20 @@ import Badge from '../../components/Badge';
 import PetAvatar from '../../components/PetAvatar';
 import FadeIn from '../../components/animations/FadeIn';
 import AnimatedButton from '../../components/animations/AnimatedButton';
+import EmptyState from '../../components/EmptyState';
+import { useRouter } from 'expo-router';
+import { SkeletonCard } from '../../components/Skeleton';
+
 export default function PetDashboard() {
+  const router = useRouter();
   // Estado para guardar a lista de pets
   const [pets, setPets] = useState<Pet[]>([]);
   const [reminders, setReminders] = useState<Reminder[]>([]);
+  const [loading, setLoading] = useState(true);
 
   // Função para carregar os pets do armazenamento local
   const loadPets = async () => {
+    setLoading(true);
     try {
       const petsJSON = await AsyncStorage.getItem('pets');
       if (petsJSON) {
@@ -32,6 +39,8 @@ export default function PetDashboard() {
       }
     } catch (error) {
       console.error("Erro ao carregar os pets", error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -84,6 +93,22 @@ export default function PetDashboard() {
     }).length;
   };
 
+  // Loading state
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>Meus Pets</Text>
+        </View>
+        <View style={{ padding: 20 }}>
+          <SkeletonCard />
+          <SkeletonCard />
+          <SkeletonCard />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   // Componente para renderizar cada item da lista
   type PetItemProps = {
     pet: Pet;
@@ -118,8 +143,13 @@ export default function PetDashboard() {
   if (pets.length === 0) {
     return (
       <SafeAreaView style={styles.containerEmpty}>
-        <Text style={styles.emptyText}>Você ainda não cadastrou nenhum pet.</Text>
-        <Text style={styles.emptySubtext}>Vá para a aba de cadastro para adicionar seu primeiro amigo!</Text>
+        <EmptyState 
+          icon="paw"
+          title="Nenhum pet cadastrado"
+          message="Que tal adicionar seu primeiro amigo? Comece criando o perfil do seu pet e acompanhe sua saúde e bem-estar."
+          actionLabel="Adicionar Pet"
+          onAction={() => router.push('/(tabs)/add-pet')}
+        />
       </SafeAreaView>
     );
   }

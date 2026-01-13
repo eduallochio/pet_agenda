@@ -10,6 +10,7 @@ import { Ionicons } from '@expo/vector-icons';
 import StatCard from '../../components/StatCard';
 import PetAvatar from '../../components/PetAvatar';
 import AnimatedButton from '../../components/animations/AnimatedButton';
+import EmptyState from '../../components/EmptyState';
 
 // Dados falsos para a lista de amigos (para fins de UI)
 const mockFriends: Friend[] = [
