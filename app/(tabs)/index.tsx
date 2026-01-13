@@ -7,6 +7,8 @@ import { Shadows } from '../../constants/Shadows';
 import { Theme } from '../../constants/Colors';
 import Badge from '../../components/Badge';
 import PetAvatar from '../../components/PetAvatar';
+import FadeIn from '../../components/animations/FadeIn';
+import AnimatedButton from '../../components/animations/AnimatedButton';
 export default function PetDashboard() {
   // Estado para guardar a lista de pets
   const [pets, setPets] = useState<Pet[]>([]);
@@ -88,12 +90,12 @@ export default function PetDashboard() {
     onDelete: () => void;
   };
 
-  const PetItem = ({ pet, onDelete }: PetItemProps) => {
+  const PetItem = ({ pet, onDelete, index }: PetItemProps & { index: number }) => {
     const upcomingCount = getUpcomingRemindersCount(pet.id);
     return (
-      // Componente Link para criar a navegação para a tela de detalhes
-      <Link href={{ pathname: "/pet/[id]", params: { id: pet.id } }} asChild>
-        <TouchableOpacity style={styles.petItem}>
+      <FadeIn delay={index * 100}>
+        <Link href={{ pathname: "/pet/[id]", params: { id: pet.id } }} asChild>
+          <TouchableOpacity style={styles.petItem}>
           <PetAvatar species={pet.species} size="medium" style={Shadows.small} />
           <View style={styles.petInfo}>
             <Text style={styles.petName}>{pet.name}</Text>
@@ -103,11 +105,12 @@ export default function PetDashboard() {
             )}
           </View>
           {/* Envolvemos o botão de excluir em uma View para evitar que o clique se propague para o Link */}
-          <TouchableOpacity onPress={onDelete} style={styles.deleteButton}>
+          <AnimatedButton onPress={onDelete} style={styles.deleteButton}>
             <Text style={styles.deleteButtonText}>🗑️</Text>
-          </TouchableOpacity>
+          </AnimatedButton>
         </TouchableOpacity>
       </Link>
+      </FadeIn>
     );
   };
 
@@ -132,9 +135,10 @@ export default function PetDashboard() {
       </View>
       <FlatList
         data={pets}
-        renderItem={({ item }) => (
+        renderItem={({ item, index }) => (
           <PetItem
             pet={item}
+            index={index}
             onDelete={() => confirmDelete(item)}
           />
         )}

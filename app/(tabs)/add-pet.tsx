@@ -8,6 +8,8 @@ import { Shadows } from '../../constants/Shadows';
 import { Theme } from '../../constants/Colors';
 import IconInput from '../../components/IconInput';
 import { Ionicons } from '@expo/vector-icons';
+import AnimatedButton from '../../components/animations/AnimatedButton';
+import SuccessAnimation from '../../components/animations/SuccessAnimation';
 
 export default function AddPetScreen() {
   const router = useRouter();
@@ -15,6 +17,7 @@ export default function AddPetScreen() {
   const [species, setSpecies] = useState('');
   const [breed, setBreed] = useState('');
   const [dob, setDob] = useState('');
+  const [showSuccess, setShowSuccess] = useState(false);
 
   const handleSavePet = async () => {
     if (name.trim() === '') {
@@ -39,16 +42,20 @@ export default function AddPetScreen() {
       existingPets.push(newPet);
       await AsyncStorage.setItem('pets', JSON.stringify(existingPets));
 
-      Alert.alert('Sucesso!', 'Seu pet foi salvo.');
+      // Mostra animação de sucesso
+      setShowSuccess(true);
 
-      // Lógica de redirecionamento
-      if (isFirstPet) {
-        // Se for o primeiro pet, substitui a rota para o perfil
-        router.replace('/(tabs)/profile');
-      } else {
-        // Se não for o primeiro, apenas volta para a tela anterior
-        router.back();
-      }
+      // Aguarda animação antes de redirecionar
+      setTimeout(() => {
+        // Lógica de redirecionamento
+        if (isFirstPet) {
+          // Se for o primeiro pet, substitui a rota para o perfil
+          router.replace('/(tabs)/profile');
+        } else {
+          // Se não for o primeiro, apenas volta para a tela anterior
+          router.back();
+        }
+      }, 2000);
 
     } catch (error) {
       console.error('Erro ao salvar o pet:', error);
@@ -63,10 +70,15 @@ export default function AddPetScreen() {
       <IconInput iconName="fish" placeholder="Espécie (ex: Cachorro, Gato)" value={species} onChangeText={setSpecies} />
       <IconInput iconName="heart" placeholder="Raça" value={breed} onChangeText={setBreed} />
       <IconInput iconName="calendar" placeholder="Data de Nascimento (DD/MM/AAAA)" value={dob} onChangeText={setDob} keyboardType="numeric" />
-      <TouchableOpacity style={styles.button} onPress={handleSavePet}>
+      <AnimatedButton style={styles.button} onPress={handleSavePet}>
         <Ionicons name="checkmark-circle" size={24} color="#fff" style={styles.buttonIcon} />
         <Text style={styles.buttonText}>Salvar Pet</Text>
-      </TouchableOpacity>
+      </AnimatedButton>
+
+      <SuccessAnimation 
+        visible={showSuccess} 
+        onAnimationEnd={() => setShowSuccess(false)} 
+      />
     </SafeAreaView>
   );
 }

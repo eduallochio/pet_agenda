@@ -9,6 +9,7 @@ import { Theme } from '../../constants/Colors';
 import { Ionicons } from '@expo/vector-icons';
 import StatCard from '../../components/StatCard';
 import PetAvatar from '../../components/PetAvatar';
+import AnimatedButton from '../../components/animations/AnimatedButton';
 
 // Dados falsos para a lista de amigos (para fins de UI)
 const mockFriends: Friend[] = [
@@ -128,16 +129,16 @@ export default function ProfileScreen() {
 
 				<View style={styles.actionsContainer}>
 					<Link href="/profile/edit" asChild>
-						<TouchableOpacity style={styles.buttonSecondary}>
+						<AnimatedButton style={styles.buttonSecondary}>
 							<Ionicons name="create-outline" size={20} color={Theme.text.primary} style={styles.buttonIcon} />
 							<Text style={styles.buttonSecondaryText}>Editar Perfil</Text>
-						</TouchableOpacity>
+						</AnimatedButton>
 					</Link>
 					<Link href="/friends/add" asChild>
-						<TouchableOpacity style={styles.buttonPrimary}>
+						<AnimatedButton style={styles.buttonPrimary}>
 							<Ionicons name="person-add" size={20} color="#fff" style={styles.buttonIcon} />
 							<Text style={styles.buttonPrimaryText}>Adicionar Amigos</Text>
-						</TouchableOpacity>
+						</AnimatedButton>
 					</Link>
 				</View>
 			</ScrollView>
