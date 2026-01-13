@@ -18,12 +18,12 @@ const Skeleton = ({ width = '100%', height = 20, borderRadius = 8, style }: Skel
         Animated.timing(pulseAnim, {
           toValue: 1,
           duration: 1000,
-          useNativeDriver: true,
+          useNativeDriver: false, // Web compatibility
         }),
         Animated.timing(pulseAnim, {
           toValue: 0,
           duration: 1000,
-          useNativeDriver: true,
+          useNativeDriver: false, // Web compatibility
         }),
       ])
     );

@@ -14,12 +14,26 @@ if (__DEV__ && Platform.OS === 'web') {
     const message = args[0];
     if (
       typeof message === 'string' &&
-      (message.includes('shadow*') || 
-       message.includes('pointerEvents is deprecated'))
+      (message.includes('shadow') || 
+       message.includes('pointerEvents is deprecated') ||
+       message.includes('useNativeDriver'))
     ) {
-      return; // Ignora esses warnings específicos
+      return; // Ignora esses warnings específicos do React Native Web
     }
     originalWarn(...args);
+  };
+  
+  const originalError = console.error;
+  console.error = (...args) => {
+    const message = args[0];
+    if (
+      typeof message === 'string' &&
+      (message.includes('shadow') ||
+       message.includes('useNativeDriver'))
+    ) {
+      return; // Ignora esses erros específicos do React Native Web
+    }
+    originalError(...args);
   };
 }
 
