@@ -27,6 +27,7 @@ export const Colors = {
 
 // ====== TEMA PET AGENDA ======
 
+// MODO LEGADO (será migrado para ThemeContext)
 export const Theme = {
   // Cores principais
   primary: '#40E0D0',        // Turquesa - Cor principal do app
@@ -54,6 +55,11 @@ export const Theme = {
       main: '#9E9E9E',       // Cinza
       light: '#F5F5F5',      // Cinza claro
       dark: '#616161',       // Cinza escuro
+    },
+    Prevenção: {
+      main: '#00BCD4',       // Ciano
+      light: '#E0F7FA',      // Ciano claro
+      dark: '#00838F',       // Ciano escuro
     },
   },
 
@@ -90,7 +96,7 @@ export const Theme = {
 };
 
 // Helper para obter cor por categoria
-export const getCategoryColor = (category: 'Saúde' | 'Higiene' | 'Consulta' | 'Outro') => {
+export const getCategoryColor = (category: 'Saúde' | 'Higiene' | 'Consulta' | 'Prevenção' | 'Outro') => {
   return Theme.categories[category] || Theme.categories.Outro;
 };
 
