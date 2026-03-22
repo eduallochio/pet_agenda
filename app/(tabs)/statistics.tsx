@@ -1,245 +1,733 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import {
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, FlatList,
+} from 'react-native';
+import { Shadows } from '../../constants/Shadows';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useFocusEffect, router } from 'expo-router';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Pet, Reminder, VaccineRecord } from '../../types/pet';
 import { Theme, getCategoryColor } from '../../constants/Colors';
-import StatCard from '../../components/charts/StatCard';
-import CategoryChart from '../../components/charts/CategoryChart';
-import VaccineTimeline from '../../components/charts/VaccineTimeline';
+import { useTheme } from '../../hooks/useTheme';
+import { getUnlockedAchievements, ACHIEVEMENTS } from '../../hooks/useAchievements';
+import { useTranslation } from 'react-i18next';
+
+// ─── helpers ────────────────────────────────────────────────────────────────
+
+function parseDate(dateStr: string): Date {
+  const parts = dateStr.split('/');
+  if (parts.length === 3) {
+    return new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+  }
+  return new Date(dateStr);
+}
+
+function isDateUpcoming(dateStr: string): boolean {
+  return parseDate(dateStr) > new Date();
+}
+
+function getSpeciesColor(species: string): string {
+  const map: Record<string, string> = {
+    Cachorro: '#FF6B6B',
+    Gato: '#4ECDC4',
+    Pássaro: '#FFE66D',
+    Peixe: '#95E1D3',
+    Hamster: '#F38181',
+    Coelho: '#AA96DA',
+  };
+  return map[species] || '#A8DADC';
+}
+
+function getSpeciesIcon(species: string): string {
+  const map: Record<string, string> = {
+    Cachorro: 'dog',
+    Gato: 'cat',
+    Pássaro: 'bird',
+    Peixe: 'fish',
+    Hamster: 'rodent',
+    Coelho: 'rabbit',
+  };
+  return map[species] || 'paw';
+}
+
+type MCIName = keyof typeof MaterialCommunityIcons.glyphMap;
+
+// ─── Subcomponentes ──────────────────────────────────────────────────────────
+
+function BigStatCard({
+  value, label, icon, color, sub, subIsAlert,
+}: {
+  value: number; label: string; icon: string; color: string; sub?: string; subIsAlert?: boolean;
+}) {
+  const { colors } = useTheme();
+  return (
+    <View style={[styles.bigCard, { backgroundColor: colors.surface }]}>
+      <View style={[styles.bigCardIcon, { backgroundColor: color + '18' }]}>
+        <MaterialCommunityIcons name={icon as MCIName} size={28} color={color} />
+      </View>
+      <Text style={[styles.bigCardValue, { color: colors.text.primary }]}>{value}</Text>
+      <Text style={[styles.bigCardLabel, { color: colors.text.secondary }]}>{label}</Text>
+      {!!sub && (
+        <View style={[styles.bigCardSub, { backgroundColor: subIsAlert ? '#F4433618' : color + '12' }]}>
+          <Text style={[styles.bigCardSubText, { color: subIsAlert ? '#F44336' : color }]}>{sub}</Text>
+        </View>
+      )}
+    </View>
+  );
+}
+
+function SectionHeader({ title, icon, color }: { title: string; icon: string; color: string }) {
+  const { colors } = useTheme();
+  return (
+    <View style={styles.sectionHeader}>
+      <View style={[styles.sectionHeaderIcon, { backgroundColor: color + '18' }]}>
+        <MaterialCommunityIcons name={icon as MCIName} size={16} color={color} />
+      </View>
+      <Text style={[styles.sectionHeaderText, { color: colors.text.primary }]}>{title}</Text>
+    </View>
+  );
+}
+
+function HorizontalBar({
+  label, count, total, color,
+}: {
+  label: string; count: number; total: number; color: string;
+}) {
+  const { colors } = useTheme();
+  const pct = total > 0 ? count / total : 0;
+  return (
+    <View style={styles.barRow}>
+      <View style={styles.barLabelRow}>
+        <View style={[styles.barDot, { backgroundColor: color }]} />
+        <Text style={[styles.barLabel, { color: colors.text.primary }]}>{label}</Text>
+        <Text style={[styles.barCount, { color: colors.text.secondary }]}>{count}</Text>
+      </View>
+      <View style={[styles.barTrack, { backgroundColor: colors.border }]}>
+        <View style={[styles.barFill, { width: `${pct * 100}%` as any, backgroundColor: color }]} />
+      </View>
+    </View>
+  );
+}
+
+function HealthStatusRow({
+  label, value, max, color, icon,
+}: {
+  label: string; value: number; max: number; color: string; icon: string;
+}) {
+  const { colors } = useTheme();
+  const pct = max > 0 ? Math.min(value / max, 1) : 0;
+  return (
+    <View style={styles.healthRow}>
+      <View style={[styles.healthIcon, { backgroundColor: color + '18' }]}>
+        <Ionicons name={icon as any} size={16} color={color} />
+      </View>
+      <View style={styles.healthInfo}>
+        <View style={styles.healthLabelRow}>
+          <Text style={[styles.healthLabel, { color: colors.text.primary }]}>{label}</Text>
+          <Text style={[styles.healthVal, { color }]}>{value}/{max}</Text>
+        </View>
+        <View style={[styles.healthTrack, { backgroundColor: colors.border }]}>
+          <View style={[styles.healthFill, { width: `${pct * 100}%` as any, backgroundColor: color }]} />
+        </View>
+      </View>
+    </View>
+  );
+}
+
+function SpeciesChip({ species, count, color }: { species: string; count: number; color: string }) {
+  const { colors } = useTheme();
+  return (
+    <View style={[styles.speciesChip, { backgroundColor: colors.surface, borderColor: color + '40' }]}>
+      <View style={[styles.speciesChipIcon, { backgroundColor: color + '18' }]}>
+        <MaterialCommunityIcons name={getSpeciesIcon(species) as MCIName} size={18} color={color} />
+      </View>
+      <Text style={[styles.speciesName, { color: colors.text.primary }]}>{species}</Text>
+      <View style={[styles.speciesCountBadge, { backgroundColor: color }]}>
+        <Text style={styles.speciesCount}>{count}</Text>
+      </View>
+    </View>
+  );
+}
+
+function TimelineCard({
+  event, isLast,
+}: {
+  event: { id: string; date: string; title: string; type: 'past' | 'upcoming'; petName: string };
+  isLast: boolean;
+}) {
+  const { colors } = useTheme();
+  const { t } = useTranslation();
+  const isUpcoming = event.type === 'upcoming';
+  const color = isUpcoming ? Theme.primary : Theme.success;
+  return (
+    <View style={styles.tlRow}>
+      <View style={styles.tlLeft}>
+        <View style={[styles.tlDot, { backgroundColor: color, borderColor: color + '30' }]} />
+        {!isLast && <View style={[styles.tlLine, { backgroundColor: colors.border }]} />}
+      </View>
+      <View style={[styles.tlCard, {
+        backgroundColor: colors.surface,
+        borderColor: isUpcoming ? color + '30' : colors.border,
+        borderLeftColor: color,
+        marginBottom: isLast ? 0 : 10,
+      }]}>
+        <View style={styles.tlCardTop}>
+          <View style={[styles.tlBadge, { backgroundColor: isUpcoming ? color + '18' : color + '12' }]}>
+            <Ionicons
+              name={isUpcoming ? 'time-outline' : 'checkmark-circle'}
+              size={12}
+              color={color}
+            />
+            <Text style={[styles.tlBadgeText, { color }]}>
+              {isUpcoming ? t('statistics.timeline.upcoming') : t('statistics.timeline.applied')}
+            </Text>
+          </View>
+          <Text style={[styles.tlDate, { color: colors.text.light }]}>{event.date}</Text>
+        </View>
+        <Text style={[styles.tlTitle, { color: colors.text.primary }]}>{event.title}</Text>
+        <View style={styles.tlPetRow}>
+          <MaterialCommunityIcons name="paw" size={11} color={colors.text.light} />
+          <Text style={[styles.tlPet, { color: colors.text.secondary }]}> {event.petName}</Text>
+        </View>
+      </View>
+    </View>
+  );
+}
+
+// ─── Tela principal ──────────────────────────────────────────────────────────
 
 export default function StatisticsScreen() {
+  const { colors } = useTheme();
+  const { t } = useTranslation();
   const [pets, setPets] = useState<Pet[]>([]);
   const [reminders, setReminders] = useState<Reminder[]>([]);
   const [vaccines, setVaccines] = useState<VaccineRecord[]>([]);
+  const [achievementsCount, setAchievementsCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [selectedPetId, setSelectedPetId] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      const load = async () => {
+        try {
+          const [pd, rd, vd, unlocked] = await Promise.all([
+            AsyncStorage.getItem('pets'),
+            AsyncStorage.getItem('reminders'),
+            AsyncStorage.getItem('vaccinations'),
+            getUnlockedAchievements(),
+          ]);
+          setPets(pd ? JSON.parse(pd) : []);
+          setReminders(rd ? JSON.parse(rd) : []);
+          setVaccines(vd ? JSON.parse(vd) : []);
+          setAchievementsCount(unlocked.length);
+        } catch {
+          // silently fail
+        } finally {
+          setLoading(false);
+        }
+      };
+      load();
+    }, [])
+  );
 
-  const loadData = async () => {
-    try {
-      const [petsData, remindersData, vaccinesData] = await Promise.all([
-        AsyncStorage.getItem('pets'),
-        AsyncStorage.getItem('reminders'),
-        AsyncStorage.getItem('vaccinations'),
-      ]);
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
 
-      setPets(petsData ? JSON.parse(petsData) : []);
-      setReminders(remindersData ? JSON.parse(remindersData) : []);
-      setVaccines(vaccinesData ? JSON.parse(vaccinesData) : []);
-    } catch (error) {
-      console.error('Erro ao carregar dados:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Estatísticas gerais
   const totalPets = pets.length;
   const totalReminders = reminders.length;
   const totalVaccines = vaccines.length;
 
-  // Lembretes por categoria
-  const remindersByCategory = [
-    {
-      name: 'Saúde',
-      count: reminders.filter(r => r.category === 'Saúde').length,
-      color: getCategoryColor('Saúde').main,
-    },
-    {
-      name: 'Higiene',
-      count: reminders.filter(r => r.category === 'Higiene').length,
-      color: getCategoryColor('Higiene').main,
-    },
-    {
-      name: 'Consulta',
-      count: reminders.filter(r => r.category === 'Consulta').length,
-      color: getCategoryColor('Consulta').main,
-    },
-  ];
+  const overdueReminders = reminders.filter(r => {
+    const d = parseDate(r.date); d.setHours(0, 0, 0, 0); return d < now;
+  }).length;
 
-  // Pets por espécie
+  const overdueVaccines = vaccines.filter(v => {
+    if (!v.nextDueDate) return false;
+    const d = parseDate(v.nextDueDate); d.setHours(0, 0, 0, 0); return d < now;
+  }).length;
+
+  const upcoming30 = reminders.filter(r => {
+    const d = parseDate(r.date);
+    const in30 = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+    return d >= now && d <= in30;
+  }).length;
+
+  const remindersByCategory = [
+    { name: 'Saúde',    count: reminders.filter(r => r.category === 'Saúde').length,    color: getCategoryColor('Saúde').main },
+    { name: 'Higiene',  count: reminders.filter(r => r.category === 'Higiene').length,  color: getCategoryColor('Higiene').main },
+    { name: 'Consulta', count: reminders.filter(r => r.category === 'Consulta').length, color: getCategoryColor('Consulta').main },
+    { name: 'Outro',    count: reminders.filter(r => r.category === 'Outro').length,    color: getCategoryColor('Outro').main },
+  ].filter(c => c.count > 0);
+
   const petsBySpecies = pets.reduce((acc, pet) => {
-    const species = pet.species || 'Outro';
-    const existing = acc.find(item => item.name === species);
-    if (existing) {
-      existing.count++;
-    } else {
-      acc.push({
-        name: species,
-        count: 1,
-        color: getSpeciesColor(species),
-      });
-    }
+    const sp = pet.species || 'Outro';
+    const ex = acc.find(i => i.name === sp);
+    if (ex) ex.count++; else acc.push({ name: sp, count: 1, color: getSpeciesColor(sp) });
     return acc;
   }, [] as { name: string; count: number; color: string }[]);
 
-  // Timeline de vacinas
-  const vaccineTimeline = vaccines.map(vaccine => {
-    const pet = pets.find(p => p.id === vaccine.petId);
-    const isUpcoming = vaccine.nextDueDate ? isDateUpcoming(vaccine.nextDueDate) : false;
-    
-    return {
-      id: vaccine.id,
-      date: vaccine.nextDueDate || vaccine.dateAdministered,
-      title: vaccine.vaccineName,
-      type: (vaccine.nextDueDate && isUpcoming) ? 'upcoming' as const : 'past' as const,
-      petName: pet?.name || 'Pet desconhecido',
-    };
-  }).slice(0, 10); // Limitar a 10 eventos
+  // Pets que têm pelo menos uma vacina registrada
+  const petsWithVaccines = pets.filter(p => vaccines.some(v => v.petId === p.id));
 
-  // Lembretes próximos (próximos 30 dias)
-  const upcomingReminders = reminders.filter(reminder => {
-    const reminderDate = parseDate(reminder.date);
-    const now = new Date();
-    const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
-    return reminderDate >= now && reminderDate <= thirtyDaysFromNow;
-  }).length;
+  const allTimeline = vaccines.map(v => {
+    const pet = pets.find(p => p.id === v.petId);
+    const upcoming = v.nextDueDate ? isDateUpcoming(v.nextDueDate) : false;
+    return {
+      id: v.id,
+      petId: v.petId,
+      date: v.nextDueDate || v.dateAdministered,
+      title: v.vaccineName,
+      type: (v.nextDueDate && upcoming) ? 'upcoming' as const : 'past' as const,
+      petName: pet?.name || t('statistics.timeline.unknownPet'),
+    };
+  }).sort((a, b) => parseDate(b.date).getTime() - parseDate(a.date).getTime());
+
+  const vaccineTimeline = (selectedPetId
+    ? allTimeline.filter(ev => ev.petId === selectedPetId)
+    : allTimeline
+  ).slice(0, 8);
+
+  const vaccinesWithBooster = vaccines.filter(v => v.nextDueDate).length;
+  const vaccinesUpcoming = vaccines.filter(v => v.nextDueDate && isDateUpcoming(v.nextDueDate)).length;
+  const hasAnyData = totalPets > 0 || totalReminders > 0 || totalVaccines > 0;
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
-        <Text style={styles.loadingText}>Carregando estatísticas...</Text>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+        <View style={styles.loadingWrap}>
+          <MaterialCommunityIcons name="chart-bar" size={40} color={colors.text.light} />
+          <Text style={[styles.loadingText, { color: colors.text.secondary }]}>
+            {t('statistics.loading')}
+          </Text>
+        </View>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <Text style={styles.title}>Estatísticas</Text>
-
-        {/* Cards de resumo */}
-        <View style={styles.statsRow}>
-          <View style={styles.statCardHalf}>
-            <StatCard
-              title="Total de Pets"
-              value={totalPets}
-              icon="paw"
-              color={Theme.primary}
-            />
-          </View>
-          <View style={styles.statCardHalf}>
-            <StatCard
-              title="Lembretes"
-              value={totalReminders}
-              icon="notifications"
-              color="#FF9500"
-              subtitle={`${upcomingReminders} próximos`}
-            />
-          </View>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      {/* Header */}
+      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+          <Ionicons name="chevron-back" size={26} color={colors.text.primary} />
+        </TouchableOpacity>
+        <View style={styles.headerCenter}>
+          <Text style={[styles.headerTitle, { color: colors.text.primary }]}>{t('statistics.title')}</Text>
+          <Text style={[styles.headerSub, { color: colors.text.secondary }]}>
+            {t('statistics.subtitle')}
+          </Text>
         </View>
+        <View style={{ width: 40 }} />
+      </View>
 
-        <StatCard
-          title="Total de Vacinas"
-          value={totalVaccines}
-          icon="medical"
-          color={Theme.success}
-          subtitle={`${vaccines.filter(v => v.nextDueDate).length} com reforço`}
-        />
+      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
 
-        {/* Gráfico de lembretes por categoria */}
-        {totalReminders > 0 && (
-          <CategoryChart
-            title="Lembretes por Categoria"
-            data={remindersByCategory}
-            emptyMessage="Nenhum lembrete cadastrado"
-          />
-        )}
-
-        {/* Gráfico de pets por espécie */}
-        {totalPets > 0 && (
-          <CategoryChart
-            title="Pets por Espécie"
-            data={petsBySpecies}
-            emptyMessage="Nenhum pet cadastrado"
-          />
-        )}
-
-        {/* Timeline de vacinas */}
-        {totalVaccines > 0 && (
-          <VaccineTimeline
-            title="Timeline de Vacinas"
-            events={vaccineTimeline}
-          />
-        )}
-
-        {/* Mensagem quando não há dados */}
-        {totalPets === 0 && totalReminders === 0 && totalVaccines === 0 && (
+        {!hasAnyData ? (
           <View style={styles.emptyState}>
-            <Text style={styles.emptyText}>
-              Comece adicionando um pet para ver suas estatísticas!
+            <View style={[styles.emptyIconCircle, { backgroundColor: colors.surface }]}>
+              <MaterialCommunityIcons name="chart-bar" size={48} color={colors.text.light} />
+            </View>
+            <Text style={[styles.emptyTitle, { color: colors.text.primary }]}>{t('statistics.noData')}</Text>
+            <Text style={[styles.emptyText, { color: colors.text.secondary }]}>
+              {t('statistics.noDataMsg')}
             </Text>
           </View>
+        ) : (
+          <>
+            {/* ── Alerta de atraso ── */}
+            {(overdueReminders > 0 || overdueVaccines > 0) && (
+              <View style={[styles.alertBanner, { backgroundColor: '#F4433610', borderColor: '#F4433640' }]}>
+                <View style={styles.alertIcon}>
+                  <Ionicons name="alert-circle" size={20} color="#F44336" />
+                </View>
+                <Text style={[styles.alertText, { color: '#F44336' }]}>
+                  {overdueReminders > 0 && overdueVaccines > 0
+                    ? t('statistics.overdueBanner', {
+                        reminders: t('statistics.overdueReminders', { count: overdueReminders }),
+                        vaccines: t('statistics.overdueVaccines', { count: overdueVaccines }),
+                      })
+                    : overdueReminders > 0
+                      ? t('statistics.overdueReminders', { count: overdueReminders })
+                      : t('statistics.overdueVaccines', { count: overdueVaccines })
+                  }
+                </Text>
+              </View>
+            )}
+
+            {/* ── Cards principais ── */}
+            <View style={styles.bigCardGrid}>
+              <BigStatCard
+                value={totalPets}
+                label={t('statistics.cards.pets')}
+                icon="paw"
+                color={Theme.primary}
+              />
+              <BigStatCard
+                value={totalReminders}
+                label={t('statistics.cards.reminders')}
+                icon="bell"
+                color="#FF9500"
+                sub={overdueReminders > 0 ? t('statistics.cards.overdue', { count: overdueReminders }) : upcoming30 > 0 ? t('statistics.cards.upcoming', { count: upcoming30 }) : undefined}
+                subIsAlert={overdueReminders > 0}
+              />
+              <BigStatCard
+                value={totalVaccines}
+                label={t('statistics.cards.vaccines')}
+                icon="needle"
+                color={Theme.success}
+                sub={overdueVaccines > 0 ? t('statistics.cards.overdueVaccines', { count: overdueVaccines }) : vaccinesUpcoming > 0 ? t('statistics.cards.upcomingVaccines', { count: vaccinesUpcoming }) : undefined}
+                subIsAlert={overdueVaccines > 0}
+              />
+              <BigStatCard
+                value={achievementsCount}
+                label={t('statistics.cards.achievements')}
+                icon="trophy"
+                color="#FF9800"
+                sub={`${t('statistics.cards.of')} ${ACHIEVEMENTS.length}`}
+              />
+            </View>
+
+            {/* ── Saúde Geral ── */}
+            <View style={[styles.card, { backgroundColor: colors.surface }]}>
+              <SectionHeader title={t('statistics.sections.health')} icon="heart-pulse" color="#F44336" />
+              <HealthStatusRow
+                label={t('statistics.health.activeReminders')}
+                value={totalReminders - overdueReminders}
+                max={totalReminders || 1}
+                color={Theme.primary}
+                icon="checkmark-circle-outline"
+              />
+              <HealthStatusRow
+                label={t('statistics.health.vaccinesOnTime')}
+                value={totalVaccines - overdueVaccines}
+                max={totalVaccines || 1}
+                color={Theme.success}
+                icon="shield-checkmark-outline"
+              />
+              <HealthStatusRow
+                label={t('statistics.health.achievements')}
+                value={achievementsCount}
+                max={ACHIEVEMENTS.length}
+                color="#FF9800"
+                icon="trophy-outline"
+              />
+            </View>
+
+            {/* ── Lembretes por categoria ── */}
+            {remindersByCategory.length > 0 && (
+              <View style={[styles.card, { backgroundColor: colors.surface }]}>
+                <SectionHeader title={t('statistics.sections.byCategory')} icon="tag-multiple" color="#9C27B0" />
+                {remindersByCategory.map(item => (
+                  <HorizontalBar
+                    key={item.name}
+                    label={item.name}
+                    count={item.count}
+                    total={totalReminders}
+                    color={item.color}
+                  />
+                ))}
+              </View>
+            )}
+
+            {/* ── Pets por espécie ── */}
+            {petsBySpecies.length > 0 && (
+              <View style={[styles.card, { backgroundColor: colors.surface }]}>
+                <SectionHeader title={t('statistics.sections.bySpecies')} icon="paw" color={Theme.primary} />
+                <View style={styles.speciesGrid}>
+                  {petsBySpecies.map(sp => (
+                    <SpeciesChip key={sp.name} species={sp.name} count={sp.count} color={sp.color} />
+                  ))}
+                </View>
+              </View>
+            )}
+
+            {/* ── Vacinas com reforço ── */}
+            {vaccinesWithBooster > 0 && (
+              <View style={[styles.card, { backgroundColor: colors.surface }]}>
+                <SectionHeader title={t('statistics.sections.boosters')} icon="calendar-clock" color={Theme.success} />
+                <View style={styles.boosterRow}>
+                  <View style={[styles.boosterItem, { backgroundColor: Theme.success + '12' }]}>
+                    <Text style={[styles.boosterNum, { color: Theme.success }]}>{vaccinesUpcoming}</Text>
+                    <Text style={[styles.boosterLabel, { color: colors.text.secondary }]}>{t('statistics.boosters.upcoming')}</Text>
+                  </View>
+                  <View style={[styles.boosterItem, { backgroundColor: '#FF950012' }]}>
+                    <Text style={[styles.boosterNum, { color: '#FF9500' }]}>
+                      {vaccinesWithBooster - vaccinesUpcoming - overdueVaccines}
+                    </Text>
+                    <Text style={[styles.boosterLabel, { color: colors.text.secondary }]}>{t('statistics.boosters.onTime')}</Text>
+                  </View>
+                  <View style={[styles.boosterItem, { backgroundColor: '#F4433612' }]}>
+                    <Text style={[styles.boosterNum, { color: '#F44336' }]}>{overdueVaccines}</Text>
+                    <Text style={[styles.boosterLabel, { color: colors.text.secondary }]}>{t('statistics.boosters.overdue')}</Text>
+                  </View>
+                </View>
+              </View>
+            )}
+
+            {/* ── Timeline de Vacinas ── */}
+            {allTimeline.length > 0 && (
+              <View style={[styles.card, { backgroundColor: colors.surface }]}>
+                <SectionHeader title={t('statistics.sections.timeline')} icon="clock-outline" color="#2196F3" />
+
+                {/* Seletor de pet — só aparece quando há mais de um pet com vacinas */}
+                {petsWithVaccines.length > 1 && (
+                  <FlatList
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    data={[{ id: null, name: t('statistics.timeline.allPets') }, ...petsWithVaccines]}
+                    keyExtractor={item => item.id ?? '__all__'}
+                    style={styles.petSelectorList}
+                    contentContainerStyle={styles.petSelectorContent}
+                    renderItem={({ item }) => {
+                      const active = selectedPetId === item.id;
+                      const color = item.id ? getSpeciesColor(pets.find(p => p.id === item.id)?.species ?? '') : '#2196F3';
+                      return (
+                        <TouchableOpacity
+                          style={[
+                            styles.petChip,
+                            {
+                              backgroundColor: active ? color : colors.card,
+                              borderColor: active ? color : colors.border,
+                            },
+                          ]}
+                          onPress={() => setSelectedPetId(item.id)}
+                          activeOpacity={0.75}
+                        >
+                          {item.id && (
+                            <MaterialCommunityIcons
+                              name={getSpeciesIcon(pets.find(p => p.id === item.id)?.species ?? '') as MCIName}
+                              size={13}
+                              color={active ? '#fff' : colors.text.secondary}
+                            />
+                          )}
+                          <Text style={[styles.petChipText, { color: active ? '#fff' : colors.text.secondary }]}>
+                            {item.name}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    }}
+                  />
+                )}
+
+                <View style={{ marginTop: 4 }}>
+                  {vaccineTimeline.length > 0 ? (
+                    vaccineTimeline.map((ev, i) => (
+                      <TimelineCard key={ev.id} event={ev} isLast={i === vaccineTimeline.length - 1} />
+                    ))
+                  ) : (
+                    <View style={styles.tlEmpty}>
+                      <Ionicons name="calendar-outline" size={32} color={colors.text.light} />
+                      <Text style={[styles.tlEmptyText, { color: colors.text.secondary }]}>
+                        {t('statistics.timeline.noVaccinesForPet')}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              </View>
+            )}
+
+            <View style={{ height: 16 }} />
+          </>
         )}
       </ScrollView>
     </SafeAreaView>
   );
 }
 
-// Função auxiliar para parsear data DD/MM/YYYY
-function parseDate(dateStr: string): Date {
-  const [day, month, year] = dateStr.split('/').map(Number);
-  return new Date(year, month - 1, day);
-}
-
-// Função auxiliar para verificar se data é futura
-function isDateUpcoming(dateStr: string): boolean {
-  const date = parseDate(dateStr);
-  return date > new Date();
-}
-
-// Função auxiliar para cores das espécies
-function getSpeciesColor(species: string): string {
-  const colors: { [key: string]: string } = {
-    'Cachorro': '#FF6B6B',
-    'Gato': '#4ECDC4',
-    'Pássaro': '#FFE66D',
-    'Peixe': '#95E1D3',
-    'Hamster': '#F38181',
-    'Coelho': '#AA96DA',
-  };
-  return colors[species] || '#A8DADC';
-}
-
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F8F9FA',
-  },
-  scrollContent: {
-    padding: 20,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: Theme.text.primary,
-    marginBottom: 20,
-  },
-  statsRow: {
+  container: { flex: 1 },
+
+  // Header
+  header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-  },
-  statCardHalf: {
-    flex: 1,
-    marginRight: 6,
-  },
-  loadingText: {
-    fontSize: 16,
-    color: Theme.text.light,
-    textAlign: 'center',
-    marginTop: 40,
-  },
-  emptyState: {
-    paddingVertical: 60,
     alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
   },
-  emptyText: {
-    fontSize: 16,
-    color: Theme.text.light,
-    textAlign: 'center',
+  backBtn: { width: 40, height: 40, justifyContent: 'center' },
+  headerCenter: { flex: 1, alignItems: 'center' },
+  headerTitle: { fontSize: 17, fontWeight: '700' },
+  headerSub: { fontSize: 12, marginTop: 1 },
+
+  scroll: { padding: 16, paddingBottom: 40 },
+
+  // Loading / Empty
+  loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
+  loadingText: { fontSize: 15 },
+  emptyState: { alignItems: 'center', paddingVertical: 80, paddingHorizontal: 40 },
+  emptyIconCircle: {
+    width: 96, height: 96, borderRadius: 48,
+    justifyContent: 'center', alignItems: 'center', marginBottom: 20,
+    ...Shadows.small,
   },
+  emptyTitle: { fontSize: 20, fontWeight: '700', marginBottom: 8 },
+  emptyText: { fontSize: 14, textAlign: 'center', lineHeight: 22 },
+
+  // Alert banner
+  alertBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 16,
+    gap: 10,
+  },
+  alertIcon: { width: 24, alignItems: 'center' },
+  alertText: { flex: 1, fontSize: 13, fontWeight: '600' },
+
+  // Big stat cards grid
+  bigCardGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginHorizontal: -5,
+    marginBottom: 4,
+  },
+  bigCard: {
+    width: '46%',
+    margin: '2%',
+    borderRadius: 16,
+    padding: 16,
+    alignItems: 'center',
+    ...Shadows.small,
+  },
+  bigCardIcon: {
+    width: 52, height: 52, borderRadius: 16,
+    justifyContent: 'center', alignItems: 'center',
+    marginBottom: 10,
+  },
+  bigCardValue: { fontSize: 32, fontWeight: '800', lineHeight: 36 },
+  bigCardLabel: { fontSize: 12, fontWeight: '600', marginTop: 2, marginBottom: 8 },
+  bigCardSub: {
+    paddingHorizontal: 10, paddingVertical: 3, borderRadius: 10,
+  },
+  bigCardSubText: { fontSize: 11, fontWeight: '700' },
+
+  // Section card
+  card: {
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+    ...Shadows.small,
+  },
+
+  // Section header
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 16,
+  },
+  sectionHeaderIcon: {
+    width: 28, height: 28, borderRadius: 8,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  sectionHeaderText: { fontSize: 15, fontWeight: '700' },
+
+  // Health rows
+  healthRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 14,
+  },
+  healthIcon: {
+    width: 32, height: 32, borderRadius: 10,
+    justifyContent: 'center', alignItems: 'center',
+    flexShrink: 0,
+  },
+  healthInfo: { flex: 1 },
+  healthLabelRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 5 },
+  healthLabel: { fontSize: 13, fontWeight: '500' },
+  healthVal: { fontSize: 13, fontWeight: '700' },
+  healthTrack: { height: 6, borderRadius: 3, overflow: 'hidden' },
+  healthFill: { height: '100%', borderRadius: 3 },
+
+  // Horizontal bars
+  barRow: { marginBottom: 12 },
+  barLabelRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
+  barDot: { width: 8, height: 8, borderRadius: 4, marginRight: 8 },
+  barLabel: { flex: 1, fontSize: 13, fontWeight: '500' },
+  barCount: { fontSize: 13, fontWeight: '700' },
+  barTrack: { height: 7, borderRadius: 4, overflow: 'hidden' },
+  barFill: { height: '100%', borderRadius: 4 },
+
+  // Species chips
+  speciesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  speciesChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    gap: 8,
+  },
+  speciesChipIcon: {
+    width: 30, height: 30, borderRadius: 8,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  speciesName: { fontSize: 13, fontWeight: '600' },
+  speciesCountBadge: {
+    minWidth: 22, height: 22, borderRadius: 11,
+    justifyContent: 'center', alignItems: 'center', paddingHorizontal: 6,
+  },
+  speciesCount: { color: '#fff', fontSize: 11, fontWeight: '800' },
+
+  // Booster stats
+  boosterRow: { flexDirection: 'row', gap: 8 },
+  boosterItem: {
+    flex: 1, alignItems: 'center',
+    borderRadius: 12, paddingVertical: 12,
+  },
+  boosterNum: { fontSize: 24, fontWeight: '800' },
+  boosterLabel: { fontSize: 11, fontWeight: '600', marginTop: 2 },
+
+  // Pet selector
+  petSelectorList: { marginBottom: 12 },
+  petSelectorContent: { gap: 8, paddingVertical: 2 },
+  petChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1.5,
+  },
+  petChipText: { fontSize: 12, fontWeight: '600' },
+
+  // Timeline
+  tlRow: { flexDirection: 'row' },
+  tlLeft: { width: 28, alignItems: 'center', paddingTop: 14 },
+  tlDot: {
+    width: 12, height: 12, borderRadius: 6, borderWidth: 2, flexShrink: 0,
+  },
+  tlLine: { width: 2, flex: 1, marginTop: 4 },
+  tlCard: {
+    flex: 1,
+    marginLeft: 10,
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderLeftWidth: 3,
+  },
+  tlCardTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 },
+  tlBadge: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 7, paddingVertical: 2, borderRadius: 8, gap: 4,
+  },
+  tlBadgeText: { fontSize: 10, fontWeight: '700' },
+  tlDate: { fontSize: 11 },
+  tlTitle: { fontSize: 13, fontWeight: '700', marginBottom: 4 },
+  tlPetRow: { flexDirection: 'row', alignItems: 'center' },
+  tlPet: { fontSize: 11 },
+  tlEmpty: { alignItems: 'center', paddingVertical: 24, gap: 8 },
+  tlEmptyText: { fontSize: 13 },
 });
