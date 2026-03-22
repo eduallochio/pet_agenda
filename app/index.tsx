@@ -9,24 +9,29 @@ export default function EntryPoint() {
 	useEffect(() => {
 		const checkUserStatus = async () => {
 			try {
-				// Solicitar permissões de notificação no primeiro uso (apenas mobile)
+				// Solicitar permissões e agendar reengajamento (apenas mobile)
 				if (Platform.OS !== 'web') {
 					try {
-						const NotificationService = await import('../services/notificationService');
-						await NotificationService.requestNotificationPermissions();
+						const NS = await import('../services/notificationService');
+						await NS.requestNotificationPermissions();
+						await NS.scheduleReengagementNotification(5);
 					} catch (notifError) {
 						console.warn('Erro ao configurar notificações:', notifError);
 					}
 				}
 
-				const petsJSON = await AsyncStorage.getItem('pets');
+				const [petsJSON, onboardingDone] = await Promise.all([
+					AsyncStorage.getItem('pets'),
+					AsyncStorage.getItem('onboardingDone'),
+				]);
 				const pets = petsJSON ? JSON.parse(petsJSON) : [];
 
-				if (pets.length === 0) {
-					// Utilizador novo: não tem pets, vai para a tela de adicionar
-					router.replace('/add-pet');
+				if (!onboardingDone) {
+					// Primeiro acesso: mostrar onboarding
+					router.replace('/onboarding');
+				} else if (pets.length === 0) {
+					router.replace('/(tabs)/add-pet');
 				} else {
-					// Utilizador recorrente: já tem pets, vai para o Dashboard (primeira aba)
 					router.replace('/(tabs)');
 				}
 			} catch (error) {
