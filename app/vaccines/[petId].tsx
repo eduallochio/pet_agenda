@@ -1,42 +1,72 @@
-// Arquivo: app/vaccines/[petId].tsx (Versão final com lista e link corrigido)
-
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Link, Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
-import { ActivityIndicator, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { FlatList, StyleSheet, Text, TouchableOpacity, View, Platform } from 'react-native';
+import { useGoBack } from '../../hooks/useGoBack';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { VaccineRecord } from '../../types/pet';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Theme } from '../../constants/Colors';
+import { Shadows } from '../../constants/Shadows';
+import { useTheme } from '../../hooks/useTheme';
+import { SkeletonCard } from '../../components/Skeleton';
+import EmptyState from '../../components/EmptyState';
+import { useTranslation } from 'react-i18next';
+
+const parseDate = (dateString: string): Date | null => {
+	if (!dateString) return null;
+	const parts = dateString.split('/');
+	if (parts.length === 3) {
+		const [day, month, year] = parts;
+		return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+	}
+	return null;
+};
+
+const getDaysUntil = (dateString?: string): number | null => {
+	if (!dateString) return null;
+	const date = parseDate(dateString);
+	if (!date) return null;
+	const today = new Date();
+	today.setHours(0, 0, 0, 0);
+	return Math.ceil((date.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+};
+
+const getStatusInfo = (nextDueDate: string | undefined, t: (key: string, opts?: any) => string): { label: string; color: string; icon: keyof typeof MaterialCommunityIcons.glyphMap } => {
+	if (!nextDueDate) return { label: t('vaccinationCard.statusNoBooster'), color: Theme.text.light, icon: 'check-circle-outline' };
+	const days = getDaysUntil(nextDueDate);
+	if (days === null) return { label: t('vaccinationCard.statusNoBooster'), color: Theme.text.light, icon: 'check-circle-outline' };
+	if (days < 0) return { label: t('vaccinationCard.statusOverdue'), color: Theme.danger, icon: 'alert-circle' };
+	if (days === 0) return { label: t('vaccinationCard.statusToday'), color: Theme.warning, icon: 'alert' };
+	if (days <= 7) return { label: t('vaccinationCard.statusDaysBooster', { days }), color: Theme.warning, icon: 'clock-alert-outline' };
+	if (days <= 30) return { label: t('vaccinationCard.statusDaysBooster', { days }), color: Theme.categories.Consulta.main, icon: 'clock-outline' };
+	return { label: t('vaccinationCard.statusDaysBooster', { days }), color: Theme.success, icon: 'check-circle-outline' };
+};
 
 export default function VaccinationCardScreen() {
 	const { petId } = useLocalSearchParams();
+	const router = useRouter();
+	const goBack = useGoBack('/(tabs)');
+	const { colors } = useTheme();
+	const { t } = useTranslation();
 	const [vaccinations, setVaccinations] = useState<VaccineRecord[]>([]);
 	const [loading, setLoading] = useState(true);
 
-	const formatDate = (dateString: string) => {
-		if (!dateString || dateString.length !== 8) {
-			return dateString;
-		}
-		const day = dateString.substring(0, 2);
-		const month = dateString.substring(2, 4);
-		const year = dateString.substring(4, 8);
-		return `${day}/${month}/${year}`;
-	};
-
-	// useFocusEffect garante que a lista seja recarregada sempre que o usuário
-	// voltar para esta tela (ex: depois de adicionar uma nova vacina).
 	useFocusEffect(
 		useCallback(() => {
 			const loadVaccinations = async () => {
 				if (!petId) return;
 				setLoading(true);
 				try {
-					// Busca todos os registros de vacina salvos
 					const recordsJSON = await AsyncStorage.getItem('vaccinations');
 					const allRecords: VaccineRecord[] = recordsJSON ? JSON.parse(recordsJSON) : [];
-
-					// Filtra para manter apenas os registros do pet atual
-					const petRecords = allRecords.filter(v => v.petId === petId);
+					const petRecords = allRecords
+						.filter(v => v.petId === petId)
+						.sort((a, b) => {
+							const dateA = parseDate(a.dateAdministered)?.getTime() ?? 0;
+							const dateB = parseDate(b.dateAdministered)?.getTime() ?? 0;
+							return dateB - dateA; // mais recente primeiro
+						});
 					setVaccinations(petRecords);
 				} catch (error) {
 					console.error("Erro ao carregar vacinas:", error);
@@ -48,45 +78,107 @@ export default function VaccinationCardScreen() {
 		}, [petId])
 	);
 
-	// Componente para renderizar cada item da lista de vacinas
-	const VaccineItem = ({ item }: { item: VaccineRecord }) => (
-		<Link href={{ pathname: '/vaccines/new', params: { petId: petId, vaccineId: item.id } }} asChild>
-			<TouchableOpacity style={styles.vaccineItem}>
-				<View style={{ flex: 1 }}>
-					<Text style={styles.vaccineName}>{item.vaccineName}</Text>
-					<Text style={styles.vaccineDate}>Aplicada em: {formatDate(item.dateAdministered)}</Text>
-					{item.nextDueDate ? <Text style={styles.vaccineNextDate}>Próximo reforço: {formatDate(item.nextDueDate)}</Text> : null}
+	// Estatísticas rápidas
+	const total = vaccinations.length;
+	const overdue = vaccinations.filter(v => {
+		const days = getDaysUntil(v.nextDueDate);
+		return days !== null && days < 0;
+	}).length;
+	const upcoming = vaccinations.filter(v => {
+		const days = getDaysUntil(v.nextDueDate);
+		return days !== null && days >= 0 && days <= 30;
+	}).length;
+
+	const VaccineItem = ({ item }: { item: VaccineRecord }) => {
+		const status = getStatusInfo(item.nextDueDate, t);
+		return (
+			<TouchableOpacity
+				style={[styles.vaccineItem, { backgroundColor: colors.surface }]}
+				onPress={() => router.push({ pathname: '/vaccines/new', params: { petId: petId as string, vaccineId: item.id } })}
+				activeOpacity={0.7}
+			>
+				<View style={[styles.vaccineIcon, { backgroundColor: Theme.primary + '20' }]}>
+					<MaterialCommunityIcons name="needle" size={24} color={Theme.primary} />
 				</View>
-				<Ionicons name="pencil" size={20} color="#BDBDBD" />
+				<View style={styles.vaccineInfo}>
+					<Text style={[styles.vaccineName, { color: colors.text.primary }]}>{item.vaccineName}</Text>
+					<Text style={[styles.vaccineDate, { color: colors.text.secondary }]}>
+						{t('vaccinationCard.appliedOn', { date: item.dateAdministered })}
+					</Text>
+					{!!item.nextDueDate && (
+						<View style={styles.statusRow}>
+							<MaterialCommunityIcons name={status.icon} size={14} color={status.color} />
+							<Text style={[styles.statusText, { color: status.color }]}>{status.label}</Text>
+						</View>
+					)}
+				</View>
+				<Ionicons name="chevron-forward" size={20} color={colors.text.light} />
 			</TouchableOpacity>
-		</Link>
-	);
+		);
+	};
 
 	return (
-		<SafeAreaView style={styles.container}>
-			<Stack.Screen options={{ title: "Carteirinha de Vacinação" }} />
+		<SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+			<Stack.Screen options={{ headerShown: false }} />
+
+			{/* Header */}
+			<View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+				<TouchableOpacity style={styles.headerBtn} onPress={goBack}>
+					<Ionicons name="arrow-back" size={24} color={colors.text.primary} />
+				</TouchableOpacity>
+				<Text style={[styles.headerTitle, { color: colors.text.primary }]}>{t('vaccinationCard.title')}</Text>
+				<TouchableOpacity
+					style={[styles.addBtn, { backgroundColor: Theme.primary }]}
+					onPress={() => router.push({ pathname: '/vaccines/new', params: { petId: petId as string } })}
+				>
+					<Ionicons name="add" size={22} color="#fff" />
+				</TouchableOpacity>
+			</View>
+
+			{/* Cards de estatísticas */}
+			{!loading && total > 0 && (
+				<View style={[styles.statsRow, { borderBottomColor: colors.border }]}>
+					<View style={styles.statItem}>
+						<Text style={[styles.statValue, { color: colors.text.primary }]}>{total}</Text>
+						<Text style={[styles.statLabel, { color: colors.text.secondary }]}>{t('vaccinationCard.statTotal')}</Text>
+					</View>
+					<View style={[styles.statDivider, { backgroundColor: colors.border }]} />
+					<View style={styles.statItem}>
+						<Text style={[styles.statValue, { color: overdue > 0 ? Theme.danger : Theme.success }]}>{overdue}</Text>
+						<Text style={[styles.statLabel, { color: colors.text.secondary }]}>{t('vaccinationCard.statOverdue')}</Text>
+					</View>
+					<View style={[styles.statDivider, { backgroundColor: colors.border }]} />
+					<View style={styles.statItem}>
+						<Text style={[styles.statValue, { color: upcoming > 0 ? Theme.warning : colors.text.primary }]}>{upcoming}</Text>
+						<Text style={[styles.statLabel, { color: colors.text.secondary }]}>{t('vaccinationCard.statUpcoming')}</Text>
+					</View>
+				</View>
+			)}
 
 			<View style={styles.content}>
-				<View style={styles.sectionHeader}>
-					<Text style={styles.sectionTitle}>Histórico de Vacinas</Text>
-					{/* LINK CORRIGIDO PARA A TELA DE FORMULÁRIO */}
-					<Link href={{ pathname: '/vaccines/new', params: { petId: petId as string } }} asChild>
-						<TouchableOpacity style={styles.addButton}>
-							<Text style={styles.addButtonText}>+</Text>
-						</TouchableOpacity>
-					</Link>
-				</View>
-
-				{loading ? <ActivityIndicator size="small" /> : (
-					vaccinations.length > 0 ? (
-						<FlatList
-							data={vaccinations}
-							renderItem={VaccineItem}
-							keyExtractor={item => item.id}
-						/>
-					) : (
-						<Text style={styles.placeholderText}>Nenhum registro de vacina encontrado.</Text>
-					)
+				{loading ? (
+					<>
+						<SkeletonCard />
+						<SkeletonCard />
+						<SkeletonCard />
+					</>
+				) : vaccinations.length > 0 ? (
+					<FlatList
+						data={vaccinations}
+						renderItem={({ item }) => <VaccineItem item={item} />}
+						keyExtractor={item => item.id}
+						showsVerticalScrollIndicator={false}
+						contentContainerStyle={{ paddingBottom: 20 }}
+					/>
+				) : (
+					<EmptyState
+						icon="needle"
+						iconLib="mci"
+						title={t('vaccinationCard.emptyTitle')}
+						message={t('vaccinationCard.emptyMsg')}
+						actionLabel={t('vaccinationCard.addVaccine')}
+						onAction={() => router.push({ pathname: '/vaccines/new', params: { petId: petId as string } })}
+					/>
 				)}
 			</View>
 		</SafeAreaView>
@@ -94,37 +186,50 @@ export default function VaccinationCardScreen() {
 }
 
 const styles = StyleSheet.create({
-	container: { flex: 1, backgroundColor: '#F8F9FA' },
-	content: { padding: 20, flex: 1 },
-	sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 },
-	sectionTitle: { fontSize: 22, fontWeight: 'bold' },
-	addButton: { backgroundColor: '#40E0D0', width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center' },
-	addButtonText: { color: '#fff', fontSize: 24, lineHeight: 30 },
-	placeholderText: { fontSize: 16, color: '#888', textAlign: 'center', marginTop: 40 },
-	vaccineItem: {
-		backgroundColor: '#fff',
-		padding: 15,
-		borderRadius: 10,
-		marginBottom: 10,
-		borderWidth: 1,
-		borderColor: '#eee',
+	container: { flex: 1 },
+	header: {
 		flexDirection: 'row',
 		alignItems: 'center',
+		justifyContent: 'space-between',
+		paddingHorizontal: 16,
+		paddingVertical: 12,
+		borderBottomWidth: 1,
 	},
-	vaccineName: {
-		fontSize: 16,
-		fontWeight: 'bold',
-		color: '#333',
+	headerBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
+	headerTitle: { fontSize: 20, fontWeight: 'bold' },
+	addBtn: { width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center' },
+	// Stats
+	statsRow: {
+		flexDirection: 'row',
+		paddingVertical: 14,
+		paddingHorizontal: 20,
+		borderBottomWidth: 1,
 	},
-	vaccineDate: {
-		fontSize: 14,
-		color: 'gray',
-		marginTop: 4,
+	statItem: { flex: 1, alignItems: 'center' },
+	statValue: { fontSize: 22, fontWeight: 'bold' },
+	statLabel: { fontSize: 12, marginTop: 2 },
+	statDivider: { width: 1, marginHorizontal: 8 },
+	// Lista
+	content: { flex: 1, padding: 16 },
+	vaccineItem: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		padding: 14,
+		borderRadius: 14,
+		marginBottom: 10,
+		...Shadows.small,
 	},
-	vaccineNextDate: {
-		fontSize: 14,
-		color: '#0a7ea4',
-		marginTop: 4,
-		fontWeight: '500',
+	vaccineIcon: {
+		width: 46,
+		height: 46,
+		borderRadius: 23,
+		justifyContent: 'center',
+		alignItems: 'center',
+		marginRight: 12,
 	},
+	vaccineInfo: { flex: 1 },
+	vaccineName: { fontSize: 16, fontWeight: '700', marginBottom: 3 },
+	vaccineDate: { fontSize: 13, marginBottom: 3 },
+	statusRow: { flexDirection: 'row', alignItems: 'center', marginTop: 2 },
+	statusText: { fontSize: 12, fontWeight: '600', marginLeft: 4 },
 });

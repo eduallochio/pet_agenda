@@ -1,20 +1,34 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
+import { useGoBack } from '../../hooks/useGoBack';
 import React, { useState, useEffect } from 'react';
-import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, Platform } from 'react-native';
+import { Alert, StyleSheet, Text, TouchableOpacity, View, ScrollView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { VaccineRecord, Pet } from '../../types/pet';
 import { Theme } from '../../constants/Colors';
 import { Shadows } from '../../constants/Shadows';
-import IconInput from '../../components/IconInput';
 import DatePickerInput from '../../components/DatePickerInput';
 import AnimatedButton from '../../components/animations/AnimatedButton';
-import { Ionicons } from '@expo/vector-icons';
+import SuccessAnimation from '../../components/animations/SuccessAnimation';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import ValidatedInput from '../../components/ValidatedInput';
 import { useFormValidation } from '../../hooks/useFormValidation';
+import { useTheme } from '../../hooks/useTheme';
+import { checkAndUnlockAchievements } from '../../hooks/useAchievements';
+import { autoCompleteChallenge } from '../../hooks/useChallenges';
+import { useTranslation } from 'react-i18next';
+
+// Vacinas comuns para sugestão rápida
+const COMMON_VACCINES = [
+	'V8 Canina', 'V10 Canina', 'Antirrábica', 'Gripe Canina',
+	'Quíntupla Felina', 'Tríplice Felina', 'FeLV', 'Giárdia',
+];
 
 export default function NewVaccineScreen() {
 	const router = useRouter();
+	const goBack = useGoBack('/(tabs)');
+	const { colors } = useTheme();
+	const { t } = useTranslation();
 	const params = useLocalSearchParams();
 	const petId = params.petId as string;
 	const vaccineId = params.vaccineId as string | undefined;
@@ -23,240 +37,318 @@ export default function NewVaccineScreen() {
 	const [vaccineName, setVaccineName] = useState('');
 	const [dateAdministered, setDateAdministered] = useState<Date | null>(null);
 	const [nextDueDate, setNextDueDate] = useState<Date | null>(null);
+	const [showSuccess, setShowSuccess] = useState(false);
 
-	const { validateAll, getFieldError, hasError, touchField } = useFormValidation({
+	const { validateAll, getFieldError, touchField } = useFormValidation({
 		vaccineName: { required: true, minLength: 2, maxLength: 100 },
 	});
 
-	// Carregar dados ao editar
 	useEffect(() => {
-		if (isEditing) {
-			const loadVaccineData = async () => {
-				try {
-					const recordsJSON = await AsyncStorage.getItem('vaccinations');
-					const allRecords: VaccineRecord[] = recordsJSON ? JSON.parse(recordsJSON) : [];
-					const recordToEdit = allRecords.find(v => v.id === vaccineId);
-
-					if (recordToEdit) {
-						setVaccineName(recordToEdit.vaccineName);
-						// Converter strings para Date
-						const adminParts = recordToEdit.dateAdministered.split('/');
-						if (adminParts.length === 3) {
-							const [day, month, year] = adminParts;
-							setDateAdministered(new Date(parseInt(year), parseInt(month) - 1, parseInt(day)));
-						}
-						if (recordToEdit.nextDueDate) {
-							const dueParts = recordToEdit.nextDueDate.split('/');
-							if (dueParts.length === 3) {
-								const [day, month, year] = dueParts;
-								setNextDueDate(new Date(parseInt(year), parseInt(month) - 1, parseInt(day)));
-							}
-						}
+		if (!isEditing) return;
+		const loadVaccineData = async () => {
+			try {
+				const recordsJSON = await AsyncStorage.getItem('vaccinations');
+				const allRecords: VaccineRecord[] = recordsJSON ? JSON.parse(recordsJSON) : [];
+				const record = allRecords.find(v => v.id === vaccineId);
+				if (record) {
+					setVaccineName(record.vaccineName);
+					const parseDateStr = (s: string) => {
+						const parts = s.split('/');
+						if (parts.length === 3) return new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+						return null;
+					};
+					const d = parseDateStr(record.dateAdministered);
+					if (d) setDateAdministered(d);
+					if (record.nextDueDate) {
+						const n = parseDateStr(record.nextDueDate);
+						if (n) setNextDueDate(n);
 					}
-				} catch (error) {
-					console.error("Erro ao carregar vacina para edição:", error);
 				}
-			};
-			loadVaccineData();
-		}
+			} catch (error) {
+				console.error("Erro ao carregar vacina:", error);
+			}
+		};
+		loadVaccineData();
 	}, [vaccineId, isEditing]);
-	const handleDeleteVaccine = async () => {
-		Alert.alert(
-			"Confirmar exclusão",
-			"Tem certeza que deseja excluir este registro de vacina?",
-			[
-				{ text: "Cancelar", style: "cancel" },
-				{ 
-					text: "Excluir", 
-					style: "destructive",
-					onPress: async () => {
-						try {
-							const vaccinationsJSON = await AsyncStorage.getItem('vaccinations');
-							let existingRecords: VaccineRecord[] = vaccinationsJSON ? JSON.parse(vaccinationsJSON) : [];
-							
-							// Cancelar notificações da vacina (apenas mobile)
-							const vaccineToDelete = existingRecords.find(v => v.id === vaccineId);
-							if (vaccineToDelete?.notificationIds && Platform.OS !== 'web') {
-								try {
-									const NotificationService = await import('../../services/notificationService');
-									await NotificationService.cancelNotifications(vaccineToDelete.notificationIds);
-								} catch (notifError) {
-									console.warn('Erro ao cancelar notificações:', notifError);
-								}
-							}
-							
-							// Remover registro
-							existingRecords = existingRecords.filter(v => v.id !== vaccineId);
-							await AsyncStorage.setItem('vaccinations', JSON.stringify(existingRecords));
-							
-							Alert.alert("Sucesso", "Registro de vacina excluído!");
-							router.back();
-						} catch (error) {
-							console.error('Erro ao excluir vacina:', error);
-							Alert.alert("Erro", "Não foi possível excluir.");
+
+	const formatDate = (date: Date) =>
+		`${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear()}`;
+
+	const handleDelete = async () => {
+		Alert.alert(t('vaccine.deleteTitle'), t('vaccine.deleteConfirm'), [
+			{ text: t('common.cancel'), style: "cancel" },
+			{
+				text: t('common.delete'),
+				style: "destructive",
+				onPress: async () => {
+					try {
+						const json = await AsyncStorage.getItem('vaccinations');
+						let records: VaccineRecord[] = json ? JSON.parse(json) : [];
+						const toDelete = records.find(v => v.id === vaccineId);
+						if (toDelete?.notificationIds && Platform.OS !== 'web') {
+							const NS = await import('../../services/notificationService');
+							await NS.cancelNotifications(toDelete.notificationIds);
 						}
+						records = records.filter(v => v.id !== vaccineId);
+						await AsyncStorage.setItem('vaccinations', JSON.stringify(records));
+						goBack();
+					} catch {
+						Alert.alert(t('common.error'), t('vaccine.deleteError'));
 					}
 				}
-			]
-		);
+			}
+		]);
 	};
-	const handleSaveVaccine = async () => {
-		// Valida campos
+
+	const handleSave = async () => {
 		const isValid = validateAll({ vaccineName });
-		if (!isValid) {
-			Alert.alert("Atenção", "Por favor, corrija os erros antes de continuar.");
-			return;
-		}
-
+		if (!isValid) return;
 		if (!dateAdministered) {
-			Alert.alert("Atenção", "A data de aplicação é obrigatória.");
+			Alert.alert(t('common.attention'), t('vaccine.dateRequired'));
 			return;
 		}
-
-		// Formatar datas para DD/MM/YYYY
-		const formatDate = (date: Date) => 
-			`${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear()}`;
 
 		const formattedAdmin = formatDate(dateAdministered);
-		const formattedNextDue = nextDueDate ? formatDate(nextDueDate) : undefined;
+		const formattedNext = nextDueDate ? formatDate(nextDueDate) : undefined;
+
+		// Verifica duplicata
+		try {
+			const existingJSON = await AsyncStorage.getItem('vaccinations');
+			const existing: VaccineRecord[] = existingJSON ? JSON.parse(existingJSON) : [];
+			const duplicate = existing.find(v =>
+				v.petId === petId &&
+				v.vaccineName.trim().toLowerCase() === vaccineName.trim().toLowerCase() &&
+				v.dateAdministered === formattedAdmin &&
+				v.id !== vaccineId
+			);
+			if (duplicate) {
+				Alert.alert(
+					t('vaccine.duplicateTitle'),
+					t('vaccine.duplicateMessage')
+				);
+				return;
+			}
+		} catch { /* ignora e prossegue */ }
 
 		try {
-			const existingRecordsJSON = await AsyncStorage.getItem('vaccinations');
-			let existingRecords: VaccineRecord[] = existingRecordsJSON ? JSON.parse(existingRecordsJSON) : [];
+			const json = await AsyncStorage.getItem('vaccinations');
+			let records: VaccineRecord[] = json ? JSON.parse(json) : [];
 
-			// Buscar nome do pet para notificação
 			const petsJSON = await AsyncStorage.getItem('pets');
-			const allPets: Pet[] = petsJSON ? JSON.parse(petsJSON) : [];
-			const pet = allPets.find(p => p.id === petId);
+			const pets: Pet[] = petsJSON ? JSON.parse(petsJSON) : [];
+			const pet = pets.find(p => p.id === petId);
 			const petName = pet?.name || 'Seu pet';
 
 			let notificationIds: string[] = [];
-
-			// Agendar notificações APENAS se houver data de reforço, for futura e não for web
 			if (Platform.OS !== 'web' && nextDueDate && nextDueDate > new Date()) {
 				try {
-					const NotificationService = await import('../../services/notificationService');
-					notificationIds = await NotificationService.scheduleVaccineNotification(
-						vaccineId || Date.now().toString(),
-						petName,
-						vaccineName,
-						nextDueDate
+					const NS = await import('../../services/notificationService');
+					notificationIds = await NS.scheduleVaccineNotification(
+						vaccineId || Date.now().toString(), petName, vaccineName, nextDueDate
 					);
-				} catch (notifError) {
-					console.warn('Erro ao agendar notificações:', notifError);
-				}
+				} catch { /* notif opcional */ }
 			}
 
 			if (isEditing) {
-				// MODO EDIÇÃO: Cancela notificações antigas e atualiza
-				const oldRecord = existingRecords.find(v => v.id === vaccineId);
-				if (oldRecord?.notificationIds && Platform.OS !== 'web') {
+				const old = records.find(v => v.id === vaccineId);
+				if (old?.notificationIds && Platform.OS !== 'web') {
 					try {
-						const NotificationService = await import('../../services/notificationService');
-						await NotificationService.cancelNotifications(oldRecord.notificationIds);
-					} catch (notifError) {
-						console.warn('Erro ao cancelar notificações:', notifError);
-					}
+						const NS = await import('../../services/notificationService');
+						await NS.cancelNotifications(old.notificationIds);
+					} catch { /* ignore */ }
 				}
-				existingRecords = existingRecords.map(v =>
+				records = records.map(v =>
 					v.id === vaccineId
-						? { ...v, vaccineName, dateAdministered: formattedAdmin, nextDueDate: formattedNextDue, notificationIds }
+						? { ...v, vaccineName, dateAdministered: formattedAdmin, nextDueDate: formattedNext, notificationIds }
 						: v
 				);
 			} else {
-				// MODO CRIAÇÃO: Adiciona novo registro
-				const newRecord: VaccineRecord = {
+				records.push({
 					id: Date.now().toString(),
 					petId,
 					vaccineName,
 					dateAdministered: formattedAdmin,
-					nextDueDate: formattedNextDue,
+					nextDueDate: formattedNext,
 					notificationIds,
-				};
-				existingRecords.push(newRecord);
+				});
 			}
 
-			await AsyncStorage.setItem('vaccinations', JSON.stringify(existingRecords));
+			await AsyncStorage.setItem('vaccinations', JSON.stringify(records));
 
-			const successMessage = isEditing ? 'atualizado' : 'salvo';
-			const notifMessage = notificationIds.length > 0 
-				? ` e ${notificationIds.length} notificação(ões) agendada(s) para o reforço` 
-				: '';
-			Alert.alert("Sucesso", `Registro de vacina ${successMessage}${notifMessage}!`);
-			router.back();
-		} catch (error) {
-			console.error("Erro ao salvar o registro da vacina:", error);
-			Alert.alert("Erro", "Não foi possível salvar o registro.");
+			// Verificar conquistas
+			const petsJ = await AsyncStorage.getItem('pets');
+			const remJ = await AsyncStorage.getItem('reminders');
+			await checkAndUnlockAchievements({
+				pets: petsJ ? JSON.parse(petsJ) : [],
+				reminders: remJ ? JSON.parse(remJ) : [],
+				vaccines: records,
+			});
+			await autoCompleteChallenge('register_vaccine');
+
+			setShowSuccess(true);
+			setTimeout(() => goBack(), 1800);
+		} catch {
+			Alert.alert(t('common.error'), t('vaccine.saveError'));
 		}
 	};
 
 	return (
-		<SafeAreaView style={styles.container}>
-			<Text style={styles.title}>{isEditing ? 'Editar Vacina' : 'Adicionar Vacina'}</Text>
-			
-			<ValidatedInput 
-				iconName="medical" 
-				placeholder="Ex: V10 Canina, Antirrábica" 
-				value={vaccineName} 
-				onChangeText={setVaccineName}
-				onBlur={() => touchField('vaccineName')}
-				error={getFieldError('vaccineName')}
-				required={true}
-			/>
-			
-			<DatePickerInput 
-				label="Data de Aplicação *"
-				value={dateAdministered} 
-				onChange={setDateAdministered} 
-				placeholder="Selecione a data de aplicação"
-				maximumDate={new Date()}
-			/>
-			
-			<DatePickerInput 
-				label="Próximo Reforço (Opcional)"
-				value={nextDueDate} 
-				onChange={setNextDueDate} 
-				placeholder="Selecione a data do reforço"
-				minimumDate={dateAdministered || new Date()}
-			/>
-			
-			<AnimatedButton style={styles.saveButton} onPress={handleSaveVaccine}>
-				<Ionicons name="checkmark-circle" size={24} color="#fff" style={{ marginRight: 8 }} />
-				<Text style={styles.saveButtonText}>{isEditing ? 'Atualizar' : 'Salvar'} Registro</Text>
-			</AnimatedButton>
-			{isEditing && (
-				<TouchableOpacity style={styles.deleteButton} onPress={handleDeleteVaccine}>
-					<Ionicons name="trash-outline" size={24} color="#fff" style={{ marginRight: 8 }} />
-					<Text style={styles.deleteButtonText}>Excluir Registro</Text>
+		<SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+			<Stack.Screen options={{ headerShown: false }} />
+
+			{/* Header */}
+			<View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+				<TouchableOpacity style={styles.headerBtn} onPress={() => goBack()}>
+					<Ionicons name="arrow-back" size={24} color={colors.text.primary} />
 				</TouchableOpacity>
-			)}
+				<Text style={[styles.headerTitle, { color: colors.text.primary }]}>
+					{isEditing ? t('vaccine.editTitle') : t('vaccine.newTitle')}
+				</Text>
+				{isEditing ? (
+					<TouchableOpacity style={styles.headerBtn} onPress={handleDelete}>
+						<Ionicons name="trash-outline" size={22} color={Theme.danger} />
+					</TouchableOpacity>
+				) : (
+					<View style={styles.headerBtn} />
+				)}
+			</View>
+
+			<ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+				{/* Ícone decorativo */}
+				<View style={styles.iconSection}>
+					<View style={[styles.iconCircle, { backgroundColor: Theme.primary + '20' }]}>
+						<MaterialCommunityIcons name="needle" size={40} color={Theme.primary} />
+					</View>
+				</View>
+
+				{/* Nome da vacina */}
+				<ValidatedInput
+					iconName="medical"
+					placeholder={t('vaccine.namePlaceholder')}
+					value={vaccineName}
+					onChangeText={setVaccineName}
+					onBlur={() => touchField('vaccineName')}
+					error={getFieldError('vaccineName')}
+					required
+				/>
+
+				{/* Sugestões rápidas */}
+				{!isEditing && (
+					<View style={styles.suggestionsSection}>
+						<Text style={[styles.suggestionsLabel, { color: colors.text.secondary }]}>{t('reminder.suggestions')}</Text>
+						<View style={styles.suggestionsGrid}>
+							{COMMON_VACCINES.map(name => (
+								<TouchableOpacity
+									key={name}
+									style={[
+										styles.suggestionChip,
+										{ borderColor: colors.border, backgroundColor: colors.surface },
+										vaccineName === name && { borderColor: Theme.primary, backgroundColor: Theme.primary + '15' },
+									]}
+									onPress={() => setVaccineName(name)}
+								>
+									<Text style={[
+										styles.suggestionText,
+										{ color: colors.text.secondary },
+										vaccineName === name && { color: Theme.primary, fontWeight: '700' },
+									]}>
+										{name}
+									</Text>
+								</TouchableOpacity>
+							))}
+						</View>
+					</View>
+				)}
+
+				{/* Data de aplicação */}
+				<DatePickerInput
+					label={t('vaccine.appliedDateLabel')}
+					value={dateAdministered}
+					onChange={setDateAdministered}
+					placeholder={t('vaccine.appliedDatePlaceholder')}
+					maximumDate={new Date()}
+				/>
+
+				{/* Próximo reforço */}
+				<DatePickerInput
+					label={t('vaccine.boosterLabel')}
+					value={nextDueDate}
+					onChange={setNextDueDate}
+					placeholder={t('vaccine.boosterPlaceholder')}
+					minimumDate={dateAdministered || new Date()}
+				/>
+
+				{/* Info sobre notificações */}
+				{!!nextDueDate && Platform.OS !== 'web' && (
+					<View style={[styles.infoBox, { backgroundColor: Theme.info + '15', borderColor: Theme.info + '40' }]}>
+						<Ionicons name="notifications-outline" size={16} color={Theme.info} />
+						<Text style={[styles.infoText, { color: Theme.info }]}>
+							{t('vaccine.boosterInfo')}
+						</Text>
+					</View>
+				)}
+
+				{/* Botão salvar */}
+				<AnimatedButton style={styles.saveButton} onPress={handleSave}>
+					<Ionicons name="checkmark-circle" size={22} color="#fff" style={{ marginRight: 8 }} />
+					<Text style={styles.saveButtonText}>{isEditing ? t('vaccine.editTitle') : t('vaccine.newTitle')}</Text>
+				</AnimatedButton>
+			</ScrollView>
+
+			<SuccessAnimation visible={showSuccess} onAnimationEnd={() => setShowSuccess(false)} />
 		</SafeAreaView>
 	);
 }
 
 const styles = StyleSheet.create({
-	container: { flex: 1, padding: 20, backgroundColor: Theme.background },
-	title: { fontSize: 24, fontWeight: 'bold', textAlign: 'center', marginBottom: 30, color: Theme.text.primary },
-	saveButton: { 
-		backgroundColor: Theme.primary, 
-		padding: 16, 
-		borderRadius: 12, 
-		alignItems: 'center', 
-		marginTop: 30,
+	container: { flex: 1 },
+	header: {
 		flexDirection: 'row',
+		alignItems: 'center',
+		justifyContent: 'space-between',
+		paddingHorizontal: 16,
+		paddingVertical: 12,
+		borderBottomWidth: 1,
+	},
+	headerBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
+	headerTitle: { fontSize: 20, fontWeight: 'bold' },
+	scrollContent: { padding: 20, paddingBottom: 40 },
+	iconSection: { alignItems: 'center', marginBottom: 24 },
+	iconCircle: {
+		width: 80, height: 80, borderRadius: 40,
+		justifyContent: 'center', alignItems: 'center',
+	},
+	// Sugestões
+	suggestionsSection: { marginBottom: 20 },
+	suggestionsLabel: { fontSize: 13, fontWeight: '600', marginBottom: 8 },
+	suggestionsGrid: { flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -4 },
+	suggestionChip: {
+		borderWidth: 1.5,
+		borderRadius: 20,
+		paddingHorizontal: 12,
+		paddingVertical: 6,
+		margin: 4,
+	},
+	suggestionText: { fontSize: 12 },
+	// Info box
+	infoBox: {
+		flexDirection: 'row',
+		alignItems: 'flex-start',
+		borderWidth: 1,
+		borderRadius: 10,
+		padding: 12,
+		marginBottom: 20,
+	},
+	infoText: { flex: 1, fontSize: 13, marginLeft: 8, lineHeight: 18 },
+	// Botão
+	saveButton: {
+		backgroundColor: Theme.primary,
+		padding: 16,
+		borderRadius: 12,
+		flexDirection: 'row',
+		alignItems: 'center',
 		justifyContent: 'center',
 		...Shadows.primary,
 	},
 	saveButtonText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
-	deleteButton: {
-		backgroundColor: '#DC3545',
-		padding: 16,
-		borderRadius: 12,
-		alignItems: 'center',
-		marginTop: 10,
-		...Shadows.small,
-		flexDirection: 'row',
-		justifyContent: 'center',
-	},
-	deleteButtonText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
 });
