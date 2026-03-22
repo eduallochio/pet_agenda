@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, Dimensions } from 'react-native';
 import { PieChart } from 'react-native-chart-kit';
-import { Theme } from '../../constants/Colors';
+import { useTheme } from '../../hooks/useTheme';
 import { Shadows } from '../../constants/Shadows';
 
 interface CategoryData {
@@ -19,21 +19,22 @@ interface CategoryChartProps {
 }
 
 export default function CategoryChart({ title, data, emptyMessage = 'Nenhum dado disponível' }: CategoryChartProps) {
+  const { colors } = useTheme();
   const screenWidth = Dimensions.get('window').width;
 
   const chartData = data.map(item => ({
     name: item.name,
     population: item.count,
     color: item.color,
-    legendFontColor: Theme.text.primary,
+    legendFontColor: colors.text.primary,
     legendFontSize: 14,
   }));
 
   const hasData = data.length > 0 && data.some(item => item.count > 0);
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>{title}</Text>
+    <View style={[styles.container, { backgroundColor: colors.surface, ...Shadows.small }]}>
+      <Text style={[styles.title, { color: colors.text.primary }]}>{title}</Text>
       {hasData ? (
         <>
           <PieChart
@@ -52,7 +53,7 @@ export default function CategoryChart({ title, data, emptyMessage = 'Nenhum dado
             {data.map((item, index) => (
               <View key={index} style={styles.legendItem}>
                 <View style={[styles.legendDot, { backgroundColor: item.color }]} />
-                <Text style={styles.legendText}>
+                <Text style={[styles.legendText, { color: colors.text.primary }]}>
                   {item.name}: {item.count}
                 </Text>
               </View>
@@ -61,7 +62,7 @@ export default function CategoryChart({ title, data, emptyMessage = 'Nenhum dado
         </>
       ) : (
         <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>{emptyMessage}</Text>
+          <Text style={[styles.emptyText, { color: colors.text.secondary }]}>{emptyMessage}</Text>
         </View>
       )}
     </View>
@@ -70,16 +71,13 @@ export default function CategoryChart({ title, data, emptyMessage = 'Nenhum dado
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#fff',
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
-    ...Shadows.medium,
   },
   title: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: Theme.text.primary,
     marginBottom: 16,
   },
   legendContainer: {
@@ -98,7 +96,6 @@ const styles = StyleSheet.create({
   },
   legendText: {
     fontSize: 14,
-    color: Theme.text.primary,
   },
   emptyContainer: {
     paddingVertical: 40,
@@ -106,6 +103,5 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 14,
-    color: Theme.text.light,
   },
 });

@@ -61,13 +61,13 @@ export default function ValidatedInput({
           multiline={multiline}
           numberOfLines={numberOfLines}
         />
-        {required && !value && (
+        {!!(required && !value) && (
           <View style={styles.requiredBadge}>
             <Text style={styles.requiredText}>*</Text>
           </View>
         )}
       </View>
-      {error && (
+      {!!error && (
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>{error}</Text>
         </View>

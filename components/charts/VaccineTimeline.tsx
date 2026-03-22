@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Theme } from '../../constants/Colors';
 import { Shadows } from '../../constants/Shadows';
+import { useTheme } from '../../hooks/useTheme';
 
 interface TimelineEvent {
   id: string;

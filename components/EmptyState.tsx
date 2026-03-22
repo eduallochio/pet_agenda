@@ -1,23 +1,28 @@
 import React from 'react';
 import { View, Text, StyleSheet, ViewStyle } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Theme } from '../constants/Colors';
 import AnimatedButton from './animations/AnimatedButton';
 
-interface EmptyStateProps {
-  icon: keyof typeof Ionicons.glyphMap;
+type EmptyStateProps = {
   title: string;
   message: string;
   actionLabel?: string;
   onAction?: () => void;
   style?: ViewStyle;
-}
+} & (
+  | { icon: keyof typeof Ionicons.glyphMap; iconLib?: 'ionicons' }
+  | { icon: keyof typeof MaterialCommunityIcons.glyphMap; iconLib: 'mci' }
+);
 
-const EmptyState = ({ icon, title, message, actionLabel, onAction, style }: EmptyStateProps) => {
+const EmptyState = ({ icon, iconLib = 'ionicons', title, message, actionLabel, onAction, style }: EmptyStateProps) => {
   return (
     <View style={[styles.container, style]}>
       <View style={styles.iconCircle}>
-        <Ionicons name={icon} size={60} color={Theme.primary} />
+        {iconLib === 'mci'
+          ? <MaterialCommunityIcons name={icon as keyof typeof MaterialCommunityIcons.glyphMap} size={60} color={Theme.primary} />
+          : <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={60} color={Theme.primary} />
+        }
       </View>
       <Text style={styles.title}>{title}</Text>
       <Text style={styles.message}>{message}</Text>

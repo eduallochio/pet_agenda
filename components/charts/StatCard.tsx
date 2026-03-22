@@ -1,8 +1,9 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Theme } from '../../constants/Colors';
 import { Shadows } from '../../constants/Shadows';
+import { useTheme } from '../../hooks/useTheme';
 
 interface StatCardProps {
   title: string;
@@ -13,16 +14,22 @@ interface StatCardProps {
 }
 
 export default function StatCard({ title, value, icon, color, subtitle }: StatCardProps) {
+  const { colors } = useTheme();
   return (
-    <View style={[styles.card, { borderLeftColor: color, borderLeftWidth: 4 }]}>
+    <View style={[styles.card, {
+      backgroundColor: colors.surface,
+      borderLeftColor: color,
+      borderLeftWidth: 4,
+      ...Shadows.small,
+    }]}>
       <View style={styles.header}>
         <View style={[styles.iconContainer, { backgroundColor: color + '20' }]}>
           <Ionicons name={icon} size={24} color={color} />
         </View>
         <View style={styles.textContainer}>
-          <Text style={styles.title}>{title}</Text>
+          <Text style={[styles.title, { color: colors.text.light }]}>{title}</Text>
           <Text style={[styles.value, { color }]}>{value}</Text>
-          {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
+          {!!subtitle && <Text style={[styles.subtitle, { color: colors.text.light }]}>{subtitle}</Text>}
         </View>
       </View>
     </View>
@@ -31,11 +38,9 @@ export default function StatCard({ title, value, icon, color, subtitle }: StatCa
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#fff',
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
-    ...Shadows.medium,
   },
   header: {
     flexDirection: 'row',
@@ -54,7 +59,6 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 14,
-    color: Theme.text.light,
     marginBottom: 4,
   },
   value: {
@@ -63,7 +67,6 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 12,
-    color: Theme.text.light,
     marginTop: 2,
   },
 });
