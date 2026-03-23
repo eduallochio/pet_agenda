@@ -115,8 +115,9 @@ export default function FeedingScreen() {
 					<Ionicons name="arrow-back" size={24} color={colors.text.primary} />
 				</TouchableOpacity>
 				<View style={styles.headerCenter}>
-					<Text style={[styles.headerTitle, { color: colors.text.primary }]}>{t('feeding.title')}</Text>
-					{!!petName && <Text style={[styles.headerSub, { color: colors.text.secondary }]}>{petName}</Text>}
+					<Text style={[styles.headerTitle, { color: colors.text.primary }]} numberOfLines={1}>
+						{t('feeding.title', { name: petName ?? '' })}
+					</Text>
 				</View>
 				<TouchableOpacity
 					style={[styles.headerBtn, styles.addBtn, { backgroundColor: '#8BC34A' }]}

@@ -212,6 +212,7 @@ export default {
     day: 'dia',
     deleteTitle: 'Excluir Registro',
     deleteConfirm: 'Deseja excluir este registro?',
+    required: 'Preencha a marca e a quantidade diária.',
     saveError: 'Não foi possível salvar.',
     lastRefillDate: 'Última compra: {{date}}',
     dailyAmountFmt: '{{amount}} por dia',

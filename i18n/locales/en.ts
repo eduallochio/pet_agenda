@@ -212,6 +212,7 @@ export default {
     day: 'day',
     deleteTitle: 'Delete Record',
     deleteConfirm: 'Delete this record?',
+    required: 'Please fill in the brand and daily amount.',
     saveError: 'Could not save.',
     lastRefillDate: 'Last purchase: {{date}}',
     dailyAmountFmt: '{{amount}} per day',
