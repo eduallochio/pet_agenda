@@ -174,6 +174,9 @@ export default function ProfileScreen() {
   // ── Desafio da semana ─────────────────────────────────────────────────────
   const currentChallenge = getCurrentChallenge();
   const isDoneBefore = completedChallengeIds.includes(currentChallenge.id) && !challengeCompleted;
+  const currentIndex = CHALLENGES.findIndex(c => c.id === currentChallenge.id);
+  const nextChallenge = CHALLENGES[(currentIndex + 1) % CHALLENGES.length];
+  const pendingChallenges = CHALLENGES.filter(c => !completedChallengeIds.includes(c.id) && c.id !== currentChallenge.id);
 
   const handleCompleteChallenge = async () => {
     await completeChallenge(currentChallenge.id);
@@ -420,11 +423,33 @@ export default function ProfileScreen() {
 
             {/* Ações */}
             {challengeCompleted ? (
-              <View style={[styles.completedRow, { backgroundColor: Theme.success + '15' }]}>
-                <Ionicons name="checkmark-circle" size={20} color={Theme.success} />
-                <Text style={[styles.completedText, { color: Theme.success }]}>
-                  {t('profile.challengeDone')}
-                </Text>
+              <View>
+                <View style={[styles.completedRow, { backgroundColor: Theme.success + '15' }]}>
+                  <Ionicons name="checkmark-circle" size={20} color={Theme.success} />
+                  <Text style={[styles.completedText, { color: Theme.success }]}>
+                    {t('profile.challengeDone')}
+                  </Text>
+                </View>
+
+                {/* Próximo desafio */}
+                <View style={[styles.nextChallengeBox, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                  <Text style={[styles.nextChallengeLabel, { color: colors.text.light }]}>
+                    {t('profile.nextChallenge')}
+                  </Text>
+                  <View style={styles.nextChallengeRow}>
+                    <View style={[styles.nextChallengeIcon, { backgroundColor: nextChallenge.color + '20' }]}>
+                      <MaterialCommunityIcons name={nextChallenge.icon as any} size={18} color={nextChallenge.color} />
+                    </View>
+                    <Text style={[styles.nextChallengeTitle, { color: colors.text.primary }]} numberOfLines={1}>
+                      {t(`challenges.items.${nextChallenge.id}.title`, { defaultValue: nextChallenge.title })}
+                    </Text>
+                  </View>
+                  {pendingChallenges.length > 0 && (
+                    <Text style={[styles.nextChallengePending, { color: colors.text.light }]}>
+                      {t('profile.pendingChallenges', { count: pendingChallenges.length })}
+                    </Text>
+                  )}
+                </View>
               </View>
             ) : (
               <View style={styles.challengeBtns}>
@@ -661,6 +686,15 @@ const styles = StyleSheet.create({
     padding: 12, borderRadius: 10,
   },
   completedText: { fontSize: 14, fontWeight: '600', marginLeft: 8 },
+  nextChallengeBox: {
+    marginTop: 10, borderRadius: 10, borderWidth: 1,
+    padding: 12,
+  },
+  nextChallengeLabel: { fontSize: 11, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 6 },
+  nextChallengeRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  nextChallengeIcon: { width: 32, height: 32, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
+  nextChallengeTitle: { fontSize: 14, fontWeight: '700', flex: 1 },
+  nextChallengePending: { fontSize: 12, marginTop: 6 },
   challengeBtns: { flexDirection: 'row', flexWrap: 'wrap' },
   challengeActionBtn: {
     flexDirection: 'row', alignItems: 'center',
