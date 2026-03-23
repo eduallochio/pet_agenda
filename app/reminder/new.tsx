@@ -212,12 +212,18 @@ export default function ReminderFormScreen() {
 			await AsyncStorage.setItem('reminders', JSON.stringify(all));
 
 			// Verificar conquistas
-			const petsJ = await AsyncStorage.getItem('pets');
-			const vacJ = await AsyncStorage.getItem('vaccinations');
+			const [petsJ, vacJ, weightJ, streakJ] = await Promise.all([
+				AsyncStorage.getItem('pets'),
+				AsyncStorage.getItem('vaccinations'),
+				AsyncStorage.getItem('weightRecords'),
+				AsyncStorage.getItem('streakData'),
+			]);
 			await checkAndUnlockAchievements({
 				pets: petsJ ? JSON.parse(petsJ) : [],
 				reminders: all,
 				vaccines: vacJ ? JSON.parse(vacJ) : [],
+				weightRecords: weightJ ? JSON.parse(weightJ) : [],
+				streak: streakJ ? JSON.parse(streakJ) : { currentStreak: 0, bestStreak: 0, lastOpenedDate: '', totalDays: 0 },
 			});
 			await autoCompleteChallenge('register_reminder');
 

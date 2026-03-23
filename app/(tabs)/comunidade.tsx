@@ -220,7 +220,7 @@ export default function CommunityScreen() {
   const loadAll = async () => {
     try {
       const [postsJSON, lostJSON, achJSON, challengeJSON, historyJSON,
-        profJSON, petsJSON, remJSON, vacJSON, storedDeviceId] = await Promise.all([
+        profJSON, petsJSON, remJSON, vacJSON, storedDeviceId, weightJSON, streakJSON] = await Promise.all([
         AsyncStorage.getItem('communityPosts'),
         AsyncStorage.getItem('lostPets'),
         AsyncStorage.getItem('achievements'),
@@ -231,6 +231,8 @@ export default function CommunityScreen() {
         AsyncStorage.getItem('reminders'),
         AsyncStorage.getItem('vaccinations'),
         AsyncStorage.getItem('deviceId'),
+        AsyncStorage.getItem('weightRecords'),
+        AsyncStorage.getItem('streakData'),
       ]);
 
       let did = storedDeviceId;
@@ -257,7 +259,13 @@ export default function CommunityScreen() {
       const pets: Pet[] = petsJSON ? JSON.parse(petsJSON) : [];
       const reminders: Reminder[] = remJSON ? JSON.parse(remJSON) : [];
       const vaccines: VaccineRecord[] = vacJSON ? JSON.parse(vacJSON) : [];
-      await checkAndUnlockAchievements({ pets, reminders, vaccines });
+      await checkAndUnlockAchievements({
+        pets,
+        reminders,
+        vaccines,
+        weightRecords: weightJSON ? JSON.parse(weightJSON) : [],
+        streak: streakJSON ? JSON.parse(streakJSON) : { currentStreak: 0, bestStreak: 0, lastOpenedDate: '', totalDays: 0 },
+      });
 
       const achJSON2 = await AsyncStorage.getItem('achievements');
       setUnlockedAchievements(achJSON2 ? JSON.parse(achJSON2) : []);

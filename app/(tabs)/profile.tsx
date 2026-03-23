@@ -68,11 +68,13 @@ export default function ProfileScreen() {
     useCallback(() => {
       const load = async () => {
         try {
-          const [pJSON, profJSON, rJSON, vJSON] = await Promise.all([
+          const [pJSON, profJSON, rJSON, vJSON, weightJSON, streakJSON] = await Promise.all([
             AsyncStorage.getItem('pets'),
             AsyncStorage.getItem('userProfile'),
             AsyncStorage.getItem('reminders'),
             AsyncStorage.getItem('vaccinations'),
+            AsyncStorage.getItem('weightRecords'),
+            AsyncStorage.getItem('streakData'),
           ]);
 
           const parsedPets: Pet[] = pJSON ? JSON.parse(pJSON) : [];
@@ -89,6 +91,8 @@ export default function ProfileScreen() {
             pets: parsedPets,
             reminders: parsedReminders,
             vaccines: parsedVaccines,
+            weightRecords: weightJSON ? JSON.parse(weightJSON) : [],
+            streak: streakJSON ? JSON.parse(streakJSON) : { currentStreak: 0, bestStreak: 0, lastOpenedDate: '', totalDays: 0 },
           });
           const achJSON = await AsyncStorage.getItem('achievements');
           setUnlockedAchievements(achJSON ? JSON.parse(achJSON) : []);

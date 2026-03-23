@@ -176,12 +176,18 @@ export default function NewVaccineScreen() {
 			await AsyncStorage.setItem('vaccinations', JSON.stringify(records));
 
 			// Verificar conquistas
-			const petsJ = await AsyncStorage.getItem('pets');
-			const remJ = await AsyncStorage.getItem('reminders');
+			const [petsJ, remJ, weightJ, streakJ] = await Promise.all([
+				AsyncStorage.getItem('pets'),
+				AsyncStorage.getItem('reminders'),
+				AsyncStorage.getItem('weightRecords'),
+				AsyncStorage.getItem('streakData'),
+			]);
 			await checkAndUnlockAchievements({
 				pets: petsJ ? JSON.parse(petsJ) : [],
 				reminders: remJ ? JSON.parse(remJ) : [],
 				vaccines: records,
+				weightRecords: weightJ ? JSON.parse(weightJ) : [],
+				streak: streakJ ? JSON.parse(streakJ) : { currentStreak: 0, bestStreak: 0, lastOpenedDate: '', totalDays: 0 },
 			});
 			await autoCompleteChallenge('register_vaccine');
 

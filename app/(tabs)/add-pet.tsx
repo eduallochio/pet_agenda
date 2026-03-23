@@ -119,12 +119,18 @@ export default function AddPetScreen() {
       }
 
       // Verificar conquistas
-      const remJSON = await AsyncStorage.getItem('reminders');
-      const vacJSON = await AsyncStorage.getItem('vaccinations');
+      const [remJSON, vacJSON, weightJSON, streakJSON] = await Promise.all([
+        AsyncStorage.getItem('reminders'),
+        AsyncStorage.getItem('vaccinations'),
+        AsyncStorage.getItem('weightRecords'),
+        AsyncStorage.getItem('streakData'),
+      ]);
       await checkAndUnlockAchievements({
         pets: existingPets,
         reminders: remJSON ? JSON.parse(remJSON) : [],
         vaccines: vacJSON ? JSON.parse(vacJSON) : [],
+        weightRecords: weightJSON ? JSON.parse(weightJSON) : [],
+        streak: streakJSON ? JSON.parse(streakJSON) : { currentStreak: 0, bestStreak: 0, lastOpenedDate: '', totalDays: 0 },
       });
 
       await autoCompleteChallenge('add_pet');
