@@ -788,11 +788,10 @@ ${petsSection || '<p>Nenhum pet cadastrado.</p>'}
               <Text style={[styles.modalSectionLabel, { color: colors.text.secondary, marginTop: 20 }]}>{t('profile.settings.about')}</Text>
               <View style={[styles.aboutCard, { backgroundColor: colors.background, borderColor: colors.border }]}>
                 <View style={[styles.aboutIconCircle, { backgroundColor: Theme.primary + '18' }]}>
-                  <MaterialCommunityIcons name="paw" size={28} color={Theme.primary} />
+                  <MaterialCommunityIcons name="paw" size={18} color={Theme.primary} />
                 </View>
                 <Text style={[styles.aboutAppName, { color: colors.text.primary }]}>Pet Agenda</Text>
-                <Text style={[styles.aboutVersion, { color: colors.text.secondary }]}>{t('profile.settings.version')} 1.0.3</Text>
-                <Text style={[styles.aboutDesc, { color: colors.text.light }]}>{t('profile.settings.aboutDesc')}</Text>
+                <Text style={[styles.aboutVersion, { color: colors.text.secondary }]}>v1.0.4</Text>
               </View>
 
               <View style={{ height: 20 }} />
@@ -970,14 +969,15 @@ const styles = StyleSheet.create({
 
   // About card
   aboutCard: {
-    borderRadius: 14, borderWidth: 1,
-    padding: 16, alignItems: 'center', gap: 4,
+    borderRadius: 10, borderWidth: 1,
+    paddingHorizontal: 14, paddingVertical: 10,
+    flexDirection: 'row', alignItems: 'center', gap: 10,
   },
   aboutIconCircle: {
-    width: 56, height: 56, borderRadius: 28,
-    justifyContent: 'center', alignItems: 'center', marginBottom: 4,
+    width: 30, height: 30, borderRadius: 15,
+    justifyContent: 'center', alignItems: 'center',
   },
-  aboutAppName: { fontSize: 18, fontWeight: '800' },
-  aboutVersion: { fontSize: 13, fontWeight: '500' },
+  aboutAppName: { fontSize: 14, fontWeight: '700', flex: 1 },
+  aboutVersion: { fontSize: 12, fontWeight: '400' },
   aboutDesc: { fontSize: 12, textAlign: 'center', lineHeight: 18, marginTop: 4 },
 });
