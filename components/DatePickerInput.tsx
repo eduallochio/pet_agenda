@@ -88,29 +88,21 @@ const DatePickerInput = ({
     return `${year}-${month}-${day}`;
   };
 
-  // Versão Web com input type="date"
+  // Versão Web com TextInput (type="date" via nativeID)
   if (Platform.OS === 'web') {
     return (
       <View style={styles.container}>
         {!!label && <Text style={[styles.label, { color: colors.text.primary }]}>{label}</Text>}
         <View style={[styles.input, { backgroundColor: colors.surface }]}>
           <Ionicons name="calendar-outline" size={20} color={colors.text.secondary} style={styles.icon} />
-          <input
-            type="date"
-            style={{
-              flex: 1,
-              fontSize: 16,
-              color: colors.text.primary,
-              backgroundColor: 'transparent',
-              border: 'none',
-              outline: 'none',
-              fontFamily: 'System',
-            }}
+          <TextInput
+            style={[styles.dateText, { color: colors.text.primary }]}
             value={formatDateForWeb(value)}
-            onChange={(e) => handleWebDateChange(e.target.value)}
+            onChangeText={(text) => handleWebDateChange(text)}
             placeholder={placeholder}
-            min={formatDateLimitForWeb(minimumDate)}
-            max={formatDateLimitForWeb(maximumDate)}
+            placeholderTextColor={colors.text.light}
+            // @ts-ignore — web-only prop
+            type="date"
           />
         </View>
       </View>

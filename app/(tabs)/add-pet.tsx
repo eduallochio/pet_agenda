@@ -220,9 +220,10 @@ export default function AddPetScreen() {
         />
 
         {/* Seletor de Espécie */}
-        <Text style={[styles.sectionLabel, { color: colors.text.primary }]}>
-          {t('addPet.speciesLabel')} <Text style={{ color: Theme.danger }}>*</Text>
-        </Text>
+        <View style={{ flexDirection: 'row', marginBottom: 6 }}>
+          <Text style={[styles.sectionLabel, { color: colors.text.primary }]}>{t('addPet.speciesLabel')} </Text>
+          <Text style={[styles.sectionLabel, { color: Theme.danger }]}>*</Text>
+        </View>
         {getFieldError('species') && (
           <Text style={styles.fieldError}>{getFieldError('species')}</Text>
         )}
