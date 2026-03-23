@@ -186,8 +186,9 @@ export default function NewVaccineScreen() {
 			await autoCompleteChallenge('register_vaccine');
 
 			setShowSuccess(true);
-			setTimeout(() => goBack(), 1800);
-		} catch {
+			setTimeout(() => { try { goBack(); } catch (e) { console.error('nav error:', e); } }, 1800);
+		} catch (err) {
+			console.error('Erro ao salvar vacina:', err);
 			Alert.alert(t('common.error'), t('vaccine.saveError'));
 		}
 	};

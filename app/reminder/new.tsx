@@ -222,8 +222,9 @@ export default function ReminderFormScreen() {
 			await autoCompleteChallenge('register_reminder');
 
 			setShowSuccess(true);
-			setTimeout(() => goBack(), 1800);
-		} catch {
+			setTimeout(() => { try { goBack(); } catch (e) { console.error('nav error:', e); } }, 1800);
+		} catch (err) {
+			console.error('Erro ao salvar lembrete:', err);
 			Alert.alert(t('common.error'), t('reminder.saveError'));
 		}
 	};

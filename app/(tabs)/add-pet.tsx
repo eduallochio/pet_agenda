@@ -131,13 +131,18 @@ export default function AddPetScreen() {
 
       setShowSuccess(true);
       setTimeout(() => {
-        if (isFirstPet) {
-          router.replace('/(tabs)/profile');
-        } else {
-          router.back();
+        try {
+          if (isFirstPet) {
+            router.replace('/(tabs)/profile');
+          } else {
+            router.back();
+          }
+        } catch (navErr) {
+          console.error('Erro de navegação ao salvar pet:', navErr);
         }
       }, 2000);
-    } catch {
+    } catch (err) {
+      console.error('Erro ao salvar pet:', err);
       Alert.alert(t('common.error'), t('addPet.saveError'));
     }
   };

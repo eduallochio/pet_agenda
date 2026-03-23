@@ -89,8 +89,11 @@ export default function EditProfileScreen() {
     try {
       await AsyncStorage.setItem('userProfile', JSON.stringify(newProfile));
       setShowSuccess(true);
-      setTimeout(() => goBack(), 1800);
-    } catch {
+      setTimeout(() => {
+        try { goBack(); } catch (navErr) { console.error('Erro de navegação ao salvar perfil:', navErr); }
+      }, 1800);
+    } catch (err) {
+      console.error('Erro ao salvar perfil:', err);
       Alert.alert(t('common.error'), t('editProfile.saveError'));
     }
   };
