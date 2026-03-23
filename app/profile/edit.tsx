@@ -38,6 +38,8 @@ export default function EditProfileScreen() {
   const [bio, setBio]             = useState('');
   const [phone, setPhone]         = useState('');
   const [city, setCity]           = useState('');
+  const [state, setState]         = useState('');
+  const [cep, setCep]             = useState('');
   const [birthDate, setBirthDate] = useState('');
   const [experience, setExperience] = useState<UserProfile['experience']>(undefined);
   const [avatarUrl, setAvatarUrl] = useState<string | undefined>(undefined);
@@ -53,6 +55,8 @@ export default function EditProfileScreen() {
       setBio(p.bio || '');
       setPhone(p.phone || '');
       setCity(p.city || '');
+      setState(p.state || '');
+      setCep(p.cep || '');
       setBirthDate(p.birthDate || '');
       setExperience(p.experience);
       setAvatarUrl(p.avatarUrl);
@@ -95,6 +99,15 @@ export default function EditProfileScreen() {
     setBirthDate(formatted);
   };
 
+  const handleCepChange = (text: string) => {
+    const digits = text.replace(/\D/g, '').slice(0, 8);
+    setCep(digits.length > 5 ? digits.slice(0, 5) + '-' + digits.slice(5) : digits);
+  };
+
+  const handleStateChange = (text: string) => {
+    setState(text.replace(/[^a-zA-Z]/g, '').slice(0, 2).toUpperCase());
+  };
+
   const handlePhoneChange = (text: string) => {
     const digits = text.replace(/\D/g, '').slice(0, 11);
     let formatted = digits;
@@ -121,6 +134,8 @@ export default function EditProfileScreen() {
       bio: bio.trim(),
       phone: phone.trim(),
       city: city.trim(),
+      state: state.trim(),
+      cep: cep.trim(),
       birthDate: birthDate.trim(),
       experience,
       avatarUrl,
@@ -222,17 +237,51 @@ export default function EditProfileScreen() {
           </InputRow>
         </FieldGroup>
 
-        {/* Cidade */}
-        <FieldGroup label={t('editProfile.cityLabel')}>
-          <InputRow icon="location-outline" colors={colors}>
+        {/* Cidade + Estado na mesma linha */}
+        <View style={{ flexDirection: 'row', gap: 10 }}>
+          <View style={{ flex: 1 }}>
+            <FieldGroup label={t('editProfile.cityLabel')}>
+              <InputRow icon="location-outline" colors={colors}>
+                <RNTextInput
+                  value={city}
+                  onChangeText={setCity}
+                  placeholder={t('editProfile.cityPlaceholder')}
+                  placeholderTextColor={colors.text.light}
+                  style={[styles.textInput, { color: colors.text.primary }]}
+                  autoCapitalize="words"
+                  maxLength={60}
+                />
+              </InputRow>
+            </FieldGroup>
+          </View>
+          <View style={{ width: 80 }}>
+            <FieldGroup label={t('editProfile.stateLabel')}>
+              <InputRow icon="flag-outline" colors={colors}>
+                <RNTextInput
+                  value={state}
+                  onChangeText={handleStateChange}
+                  placeholder="UF"
+                  placeholderTextColor={colors.text.light}
+                  style={[styles.textInput, { color: colors.text.primary }]}
+                  autoCapitalize="characters"
+                  maxLength={2}
+                />
+              </InputRow>
+            </FieldGroup>
+          </View>
+        </View>
+
+        {/* CEP */}
+        <FieldGroup label={t('editProfile.cepLabel')}>
+          <InputRow icon="mail-outline" colors={colors}>
             <RNTextInput
-              value={city}
-              onChangeText={setCity}
-              placeholder={t('editProfile.cityPlaceholder')}
+              value={cep}
+              onChangeText={handleCepChange}
+              placeholder="00000-000"
               placeholderTextColor={colors.text.light}
               style={[styles.textInput, { color: colors.text.primary }]}
-              autoCapitalize="words"
-              maxLength={60}
+              keyboardType="numeric"
+              maxLength={9}
             />
           </InputRow>
         </FieldGroup>

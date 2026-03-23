@@ -21,6 +21,9 @@ import AchievementGroupSection from '../../components/AchievementGroupSection';
 import {
   CHALLENGES, getCurrentChallenge, loadChallengeState, completeChallenge, autoCompleteDataChallenge,
 } from '../../hooks/useChallenges';
+import * as Print from 'expo-print';
+import * as Sharing from 'expo-sharing';
+import { Share } from 'react-native';
 
 type MCIName = keyof typeof MaterialCommunityIcons.glyphMap;
 
@@ -209,8 +212,6 @@ export default function ProfileScreen() {
 
   const exportAsPDF = async () => {
     try {
-      const Print = await import('expo-print');
-      const Sharing = await import('expo-sharing');
       const data = await loadExportData();
       const now = new Date().toLocaleDateString('pt-BR');
 
@@ -255,10 +256,10 @@ ${petsSection || '<p>Nenhum pet cadastrado.</p>'}
 <div class="footer">Pet Agenda · Exportado em ${now}</div>
 </body></html>`;
 
-      const { uri } = await Print.default.printToFileAsync({ html, base64: false });
-      const canShare = await Sharing.default.isAvailableAsync();
+      const { uri } = await Print.printToFileAsync({ html, base64: false });
+      const canShare = await Sharing.isAvailableAsync();
       if (canShare) {
-        await Sharing.default.shareAsync(uri, {
+        await Sharing.shareAsync(uri, {
           mimeType: 'application/pdf',
           dialogTitle: 'Pet Agenda — Meus Dados',
           UTI: 'com.adobe.pdf',
@@ -274,7 +275,6 @@ ${petsSection || '<p>Nenhum pet cadastrado.</p>'}
       const data = await loadExportData();
       const exportObj = { exportedAt: new Date().toISOString(), ...data };
       const json = JSON.stringify(exportObj, null, 2);
-      const Share = await import('react-native').then(m => m.Share);
       await Share.share({ message: json, title: 'Pet Agenda — Backup' });
     } catch {
       Alert.alert(t('common.error'), t('profile.settings.exportError'));
@@ -732,7 +732,7 @@ ${petsSection || '<p>Nenhum pet cadastrado.</p>'}
               <Text style={[styles.modalSectionLabel, { color: colors.text.secondary, marginTop: 20 }]}>{t('profile.settings.notifications')}</Text>
               <TouchableOpacity
                 style={[styles.modalItem, { backgroundColor: colors.background }]}
-                onPress={() => { setSettingsVisible(false); router.push('/notifications-settings' as any); }}
+                onPress={() => { setSettingsVisible(false); Alert.alert(t('profile.settings.notifications'), t('profile.settings.manageNotifications')); }}
               >
                 <View style={[styles.modalItemIcon, { backgroundColor: '#FF950018' }]}>
                   <Ionicons name="notifications-outline" size={20} color="#FF9500" />

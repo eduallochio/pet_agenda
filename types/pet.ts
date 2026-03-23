@@ -37,6 +37,8 @@ export type UserProfile = {
   avatarUrl?: string
   phone?: string
   city?: string
+  state?: string       // UF, ex: "ES", "SP"
+  cep?: string         // 00000-000
   birthDate?: string   // DD/MM/YYYY
   experience?: 'beginner' | 'intermediate' | 'expert'
 }

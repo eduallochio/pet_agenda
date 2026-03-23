@@ -819,6 +819,8 @@ export default {
     phoneInvalid: 'Invalid phone number.',
     cityLabel: 'City',
     cityPlaceholder: 'Your city',
+    stateLabel: 'State',
+    cepLabel: 'ZIP Code',
     birthDateLabel: 'Date of Birth',
     expLabel: 'Pet Experience',
     exp: {
