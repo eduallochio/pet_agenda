@@ -103,27 +103,21 @@ export default function AddPetScreen() {
     };
 
     try {
-      Alert.alert('DEBUG', 'Passo 1: lendo pets do storage');
       const existingPetsJSON = await AsyncStorage.getItem('pets');
       const existingPets: Pet[] = existingPetsJSON ? JSON.parse(existingPetsJSON) : [];
       const isFirstPet = existingPets.length === 0;
 
       existingPets.push(newPet);
-      Alert.alert('DEBUG', 'Passo 2: salvando pets');
       await AsyncStorage.setItem('pets', JSON.stringify(existingPets));
 
-      Alert.alert('DEBUG', 'Passo 3: notificação');
       // Agendar notificação de aniversário
       if (Platform.OS !== 'web' && newPet.dob) {
         try {
           const NS = await import('../../services/notificationService');
           await NS.scheduleBirthdayNotification(newPet.id, newPet.name, newPet.species, newPet.dob);
-        } catch (notifErr) {
-          Alert.alert('DEBUG notif erro', String(notifErr));
-        }
+        } catch { /* notif opcional */ }
       }
 
-      Alert.alert('DEBUG', 'Passo 4: conquistas');
       // Verificar conquistas
       const [remJSON, vacJSON, weightJSON, streakJSON] = await Promise.all([
         AsyncStorage.getItem('reminders'),
@@ -139,10 +133,8 @@ export default function AddPetScreen() {
         streak: streakJSON ? JSON.parse(streakJSON) : { currentStreak: 0, bestStreak: 0, lastOpenedDate: '', totalDays: 0 },
       });
 
-      Alert.alert('DEBUG', 'Passo 5: challenge');
       await autoCompleteChallenge('add_pet');
 
-      Alert.alert('DEBUG', 'Passo 6: navegação');
       setShowSuccess(true);
       setTimeout(() => {
         try {
@@ -152,11 +144,11 @@ export default function AddPetScreen() {
             router.back();
           }
         } catch (navErr) {
-          Alert.alert('DEBUG nav erro', String(navErr));
+          console.error('Erro de navegação ao salvar pet:', navErr);
         }
       }, 2000);
     } catch (err) {
-      Alert.alert('ERRO ao salvar', String(err));
+      Alert.alert(t('common.error'), t('addPet.saveError'));
     }
   };
 
