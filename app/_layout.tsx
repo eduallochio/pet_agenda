@@ -69,7 +69,9 @@ if (__DEV__ && Platform.OS === 'web') {
     if (
       typeof message === 'string' &&
       (message.includes('shadow') ||
-       message.includes('useNativeDriver'))
+       message.includes('useNativeDriver') ||
+       message.includes('Unexpected text node') ||
+       message.includes('aria-hidden'))
     ) {
       return;
     }

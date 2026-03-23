@@ -192,31 +192,109 @@ export default function ProfileScreen() {
     }
   };
 
-  const handleExportData = async () => {
+  const loadExportData = async () => {
+    const [pJSON, rJSON, vJSON, profJSON] = await Promise.all([
+      AsyncStorage.getItem('pets'),
+      AsyncStorage.getItem('reminders'),
+      AsyncStorage.getItem('vaccinations'),
+      AsyncStorage.getItem('userProfile'),
+    ]);
+    return {
+      profile: profJSON ? JSON.parse(profJSON) : null,
+      pets: (pJSON ? JSON.parse(pJSON) : []) as Pet[],
+      reminders: (rJSON ? JSON.parse(rJSON) : []) as Reminder[],
+      vaccines: (vJSON ? JSON.parse(vJSON) : []) as VaccineRecord[],
+    };
+  };
+
+  const exportAsPDF = async () => {
     try {
-      const [pJSON, rJSON, vJSON, profJSON] = await Promise.all([
-        AsyncStorage.getItem('pets'),
-        AsyncStorage.getItem('reminders'),
-        AsyncStorage.getItem('vaccinations'),
-        AsyncStorage.getItem('userProfile'),
-      ]);
-      const exportObj = {
-        exportedAt: new Date().toISOString(),
-        profile: profJSON ? JSON.parse(profJSON) : null,
-        pets: pJSON ? JSON.parse(pJSON) : [],
-        reminders: rJSON ? JSON.parse(rJSON) : [],
-        vaccines: vJSON ? JSON.parse(vJSON) : [],
-      };
-      const json = JSON.stringify(exportObj, null, 2);
-      if (Platform.OS !== 'web') {
-        const Share = await import('react-native').then(m => m.Share);
-        await Share.share({ message: json, title: 'Pet Agenda — Backup' });
-      } else {
-        Alert.alert('Export', t('profile.settings.exportWebUnsupported'));
+      const Print = await import('expo-print');
+      const Sharing = await import('expo-sharing');
+      const data = await loadExportData();
+      const now = new Date().toLocaleDateString('pt-BR');
+
+      const petsSection = data.pets.map(p => {
+        const petReminders = data.reminders.filter(r => r.petId === p.id);
+        const petVaccines = data.vaccines.filter(v => v.petId === p.id);
+        const remindersRows = petReminders.length
+          ? petReminders.map(r => `<tr><td>${r.title}</td><td>${r.date ?? '—'}</td><td>${r.done ? '✓' : '—'}</td></tr>`).join('')
+          : `<tr><td colspan="3" style="color:#999">Nenhum lembrete</td></tr>`;
+        const vaccinesRows = petVaccines.length
+          ? petVaccines.map(v => `<tr><td>${v.vaccineName}</td><td>${v.date}</td><td>${v.nextDue ?? '—'}</td></tr>`).join('')
+          : `<tr><td colspan="3" style="color:#999">Nenhuma vacina</td></tr>`;
+        return `
+          <div class="pet-card">
+            <h2>${p.name}</h2>
+            <p class="meta">${[p.species, p.breed, p.age ? `${p.age}` : ''].filter(Boolean).join(' · ')}</p>
+            <h3>Lembretes</h3>
+            <table><tr><th>Título</th><th>Data</th><th>Feito</th></tr>${remindersRows}</table>
+            <h3>Vacinas</h3>
+            <table><tr><th>Vacina</th><th>Data</th><th>Próxima</th></tr>${vaccinesRows}</table>
+          </div>`;
+      }).join('');
+
+      const html = `<!DOCTYPE html>
+<html><head><meta charset="utf-8"/>
+<style>
+  body{font-family:Arial,sans-serif;padding:24px;color:#222}
+  h1{color:#4CAF50;border-bottom:2px solid #4CAF50;padding-bottom:8px}
+  h2{color:#2196F3;margin-top:0}
+  h3{color:#555;font-size:14px;margin-bottom:4px}
+  .pet-card{background:#f9f9f9;border-radius:8px;padding:16px;margin-bottom:20px;page-break-inside:avoid}
+  .meta{color:#777;font-size:13px;margin-top:-8px;margin-bottom:12px}
+  table{width:100%;border-collapse:collapse;margin-bottom:12px}
+  th{background:#eee;text-align:left;padding:6px 8px;font-size:12px}
+  td{padding:5px 8px;font-size:12px;border-bottom:1px solid #eee}
+  .footer{color:#aaa;font-size:11px;text-align:center;margin-top:24px}
+</style>
+</head><body>
+<h1>Pet Agenda — Meus Dados</h1>
+<p>Exportado em ${now} · ${data.pets.length} pet(s)</p>
+${petsSection || '<p>Nenhum pet cadastrado.</p>'}
+<div class="footer">Pet Agenda · Exportado em ${now}</div>
+</body></html>`;
+
+      const { uri } = await Print.default.printToFileAsync({ html, base64: false });
+      const canShare = await Sharing.default.isAvailableAsync();
+      if (canShare) {
+        await Sharing.default.shareAsync(uri, {
+          mimeType: 'application/pdf',
+          dialogTitle: 'Pet Agenda — Meus Dados',
+          UTI: 'com.adobe.pdf',
+        });
       }
     } catch {
       Alert.alert(t('common.error'), t('profile.settings.exportError'));
     }
+  };
+
+  const exportAsJSON = async () => {
+    try {
+      const data = await loadExportData();
+      const exportObj = { exportedAt: new Date().toISOString(), ...data };
+      const json = JSON.stringify(exportObj, null, 2);
+      const Share = await import('react-native').then(m => m.Share);
+      await Share.share({ message: json, title: 'Pet Agenda — Backup' });
+    } catch {
+      Alert.alert(t('common.error'), t('profile.settings.exportError'));
+    }
+  };
+
+  const handleExportData = () => {
+    if (Platform.OS === 'web') {
+      Alert.alert('Export', t('profile.settings.exportWebUnsupported'));
+      return;
+    }
+    Alert.alert(
+      t('profile.settings.exportData'),
+      t('profile.settings.exportChoose'),
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        { text: 'PDF', onPress: exportAsPDF },
+        { text: 'JSON (Backup)', onPress: exportAsJSON },
+      ]
+    );
   };
 
   const handleClearData = () => {
@@ -680,7 +758,7 @@ export default function ProfileScreen() {
                 style={[styles.modalItem, { backgroundColor: colors.background, marginTop: 6 }]}
                 onPress={() => {
                   setSettingsVisible(false);
-                  handleExportData();
+                  setTimeout(() => handleExportData(), 400);
                 }}
               >
                 <View style={[styles.modalItemIcon, { backgroundColor: '#2196F318' }]}>
