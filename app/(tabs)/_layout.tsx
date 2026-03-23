@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { View, StyleSheet, Platform } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../hooks/useTheme';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from 'expo-router';
@@ -78,6 +79,11 @@ function TabBarBackground() {
 export default function TabLayout() {
   const { colors, isDarkMode } = useTheme();
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
+
+  // Altura da tab bar: garante espaço para a navigation bar do Android
+  const tabBarHeight = Platform.OS === 'ios' ? 60 + insets.bottom : 56 + insets.bottom;
+  const tabBarPaddingBottom = Platform.OS === 'ios' ? insets.bottom : insets.bottom + 4;
 
   return (
     <Tabs
@@ -86,16 +92,11 @@ export default function TabLayout() {
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.text.light,
         tabBarStyle: {
-          // iOS: fundo transparente para o blur aparecer
           backgroundColor: Platform.OS === 'ios' ? 'transparent' : colors.surface,
           borderTopColor: colors.border,
           borderTopWidth: StyleSheet.hairlineWidth,
-          height: Platform.OS === 'ios' ? 80 : 60,
-          paddingBottom: Platform.OS === 'ios' ? 24 : 8,
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: -2 },
-          shadowOpacity: 0.07,
-          shadowRadius: 8,
+          height: tabBarHeight,
+          paddingBottom: tabBarPaddingBottom,
           elevation: 12,
         },
         tabBarBackground: () => <TabBarBackground />,
