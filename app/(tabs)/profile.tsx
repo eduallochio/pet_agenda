@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  FlatList, Modal, Image,
+  FlatList, Modal, Image, Platform, Alert,
 } from 'react-native';
 import { Shadows } from '../../constants/Shadows';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -192,6 +192,61 @@ export default function ProfileScreen() {
     }
   };
 
+  const handleExportData = async () => {
+    try {
+      const [pJSON, rJSON, vJSON, profJSON] = await Promise.all([
+        AsyncStorage.getItem('pets'),
+        AsyncStorage.getItem('reminders'),
+        AsyncStorage.getItem('vaccinations'),
+        AsyncStorage.getItem('userProfile'),
+      ]);
+      const exportObj = {
+        exportedAt: new Date().toISOString(),
+        profile: profJSON ? JSON.parse(profJSON) : null,
+        pets: pJSON ? JSON.parse(pJSON) : [],
+        reminders: rJSON ? JSON.parse(rJSON) : [],
+        vaccines: vJSON ? JSON.parse(vJSON) : [],
+      };
+      const json = JSON.stringify(exportObj, null, 2);
+      if (Platform.OS !== 'web') {
+        const Share = await import('react-native').then(m => m.Share);
+        await Share.share({ message: json, title: 'Pet Agenda — Backup' });
+      } else {
+        Alert.alert('Export', t('profile.settings.exportWebUnsupported'));
+      }
+    } catch {
+      Alert.alert(t('common.error'), t('profile.settings.exportError'));
+    }
+  };
+
+  const handleClearData = () => {
+    Alert.alert(
+      t('profile.settings.clearDataTitle'),
+      t('profile.settings.clearDataMsg'),
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        {
+          text: t('common.delete'), style: 'destructive', onPress: async () => {
+            try {
+              await AsyncStorage.multiRemove([
+                'pets', 'reminders', 'vaccinations', 'userProfile',
+                'weightRecords', 'streakData', 'achievements', 'feedingRecords',
+                'medications', 'diaryEntries', 'petDocuments', 'petPhotos',
+              ]);
+              setPets([]);
+              setReminders([]);
+              setVaccines([]);
+              setProfile(null);
+              setUnlockedAchievements([]);
+            } catch {
+              Alert.alert(t('common.error'), t('profile.settings.clearDataError'));
+            }
+          },
+        },
+      ]
+    );
+  };
+
   // ── Conquistas ────────────────────────────────────────────────────────────
   const unlockedIds = unlockedAchievements.map(a => a.id);
   const totalAchievements = ACHIEVEMENTS.length;
@@ -242,6 +297,23 @@ export default function ProfileScreen() {
             )}
           </View>
           <Text style={[styles.userName, { color: colors.text.primary }]}>{displayName}</Text>
+          {!!(profile?.experience) && (
+            <View style={[styles.expBadge, { backgroundColor: Theme.primary + '18' }]}>
+              <MaterialCommunityIcons
+                name={profile.experience === 'expert' ? 'trophy-outline' : profile.experience === 'intermediate' ? 'paw' : 'sprout'}
+                size={13} color={Theme.primary}
+              />
+              <Text style={[styles.expBadgeText, { color: Theme.primary }]}>
+                {t(`editProfile.exp.${profile.experience}`)}
+              </Text>
+            </View>
+          )}
+          {!!(profile?.city) && (
+            <View style={styles.profileMetaRow}>
+              <Ionicons name="location-outline" size={13} color={colors.text.light} />
+              <Text style={[styles.profileMetaText, { color: colors.text.light }]}> {profile.city}</Text>
+            </View>
+          )}
           {!!(profile?.bio) && (
             <Text style={[styles.userBio, { color: colors.text.secondary }]}>{profile.bio}</Text>
           )}
@@ -548,26 +620,28 @@ export default function ProfileScreen() {
                 <Ionicons name="close" size={26} color={colors.text.primary} />
               </TouchableOpacity>
             </View>
-            <ScrollView style={styles.modalBody}>
+            <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
+
+              {/* ── Aparência ── */}
               <Text style={[styles.modalSectionLabel, { color: colors.text.secondary }]}>{t('profile.settings.appearance')}</Text>
               <ThemeToggle />
-              <Text style={[styles.modalSectionLabel, { color: colors.text.secondary, marginTop: 16 }]}>{t('profile.settings.language')}</Text>
-              <View style={[styles.langRow]}>
+
+              {/* ── Idioma ── */}
+              <Text style={[styles.modalSectionLabel, { color: colors.text.secondary, marginTop: 20 }]}>{t('profile.settings.language')}</Text>
+              <View style={styles.langRow}>
                 {([
-                  { lang: 'pt-BR', label: 'Português' },
-                  { lang: 'en', label: 'English' },
-                  { lang: 'es', label: 'Español' },
-                ] as { lang: SupportedLanguage; label: string }[]).map(({ lang, label }) => {
+                  { lang: 'pt-BR', label: 'Português', flag: '🇧🇷' },
+                  { lang: 'en',    label: 'English',   flag: '🇺🇸' },
+                  { lang: 'es',    label: 'Español',   flag: '🇪🇸' },
+                ] as { lang: SupportedLanguage; label: string; flag: string }[]).map(({ lang, label, flag }) => {
                   const active = currentLang === lang;
                   return (
                     <TouchableOpacity
                       key={lang}
-                      style={[
-                        styles.langChip,
-                        { borderColor: active ? colors.primary : colors.border, backgroundColor: active ? colors.primary + '18' : colors.background },
-                      ]}
+                      style={[styles.langChip, { borderColor: active ? colors.primary : colors.border, backgroundColor: active ? colors.primary + '18' : colors.background }]}
                       onPress={() => handleChangeLanguage(lang)}
                     >
+                      <Text style={styles.langFlag}>{flag}</Text>
                       <Text style={[styles.langChipText, { color: active ? colors.primary : colors.text.secondary, fontWeight: active ? '700' : '400' }]}>
                         {label}
                       </Text>
@@ -575,15 +649,75 @@ export default function ProfileScreen() {
                   );
                 })}
               </View>
-              <Text style={[styles.modalSectionLabel, { color: colors.text.secondary, marginTop: 16 }]}>{t('profile.settings.account')}</Text>
+
+              {/* ── Notificações ── */}
+              <Text style={[styles.modalSectionLabel, { color: colors.text.secondary, marginTop: 20 }]}>{t('profile.settings.notifications')}</Text>
+              <TouchableOpacity
+                style={[styles.modalItem, { backgroundColor: colors.background }]}
+                onPress={() => { setSettingsVisible(false); router.push('/notifications-settings' as any); }}
+              >
+                <View style={[styles.modalItemIcon, { backgroundColor: '#FF950018' }]}>
+                  <Ionicons name="notifications-outline" size={20} color="#FF9500" />
+                </View>
+                <Text style={[styles.modalItemText, { color: colors.text.primary }]}>{t('profile.settings.manageNotifications')}</Text>
+                <Ionicons name="chevron-forward" size={18} color={colors.text.light} />
+              </TouchableOpacity>
+
+              {/* ── Conta ── */}
+              <Text style={[styles.modalSectionLabel, { color: colors.text.secondary, marginTop: 20 }]}>{t('profile.settings.account')}</Text>
               <TouchableOpacity
                 style={[styles.modalItem, { backgroundColor: colors.background }]}
                 onPress={() => { setSettingsVisible(false); router.push('/profile/edit'); }}
               >
-                <Ionicons name="create-outline" size={22} color={colors.text.primary} />
+                <View style={[styles.modalItemIcon, { backgroundColor: Theme.primary + '18' }]}>
+                  <Ionicons name="create-outline" size={20} color={Theme.primary} />
+                </View>
                 <Text style={[styles.modalItemText, { color: colors.text.primary }]}>{t('profile.editProfile')}</Text>
                 <Ionicons name="chevron-forward" size={18} color={colors.text.light} />
               </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.modalItem, { backgroundColor: colors.background, marginTop: 6 }]}
+                onPress={() => {
+                  setSettingsVisible(false);
+                  handleExportData();
+                }}
+              >
+                <View style={[styles.modalItemIcon, { backgroundColor: '#2196F318' }]}>
+                  <Ionicons name="download-outline" size={20} color="#2196F3" />
+                </View>
+                <Text style={[styles.modalItemText, { color: colors.text.primary }]}>{t('profile.settings.exportData')}</Text>
+                <Ionicons name="chevron-forward" size={18} color={colors.text.light} />
+              </TouchableOpacity>
+
+              {/* ── Zona de Perigo ── */}
+              <Text style={[styles.modalSectionLabel, { color: colors.text.secondary, marginTop: 20 }]}>{t('profile.settings.danger')}</Text>
+              <TouchableOpacity
+                style={[styles.modalItem, { backgroundColor: '#F4433608', borderWidth: 1, borderColor: '#F4433630' }]}
+                onPress={() => {
+                  setSettingsVisible(false);
+                  handleClearData();
+                }}
+              >
+                <View style={[styles.modalItemIcon, { backgroundColor: '#F4433618' }]}>
+                  <Ionicons name="trash-outline" size={20} color="#F44336" />
+                </View>
+                <Text style={[styles.modalItemText, { color: '#F44336' }]}>{t('profile.settings.clearData')}</Text>
+                <Ionicons name="chevron-forward" size={18} color="#F4433660" />
+              </TouchableOpacity>
+
+              {/* ── Sobre ── */}
+              <Text style={[styles.modalSectionLabel, { color: colors.text.secondary, marginTop: 20 }]}>{t('profile.settings.about')}</Text>
+              <View style={[styles.aboutCard, { backgroundColor: colors.background, borderColor: colors.border }]}>
+                <View style={[styles.aboutIconCircle, { backgroundColor: Theme.primary + '18' }]}>
+                  <MaterialCommunityIcons name="paw" size={28} color={Theme.primary} />
+                </View>
+                <Text style={[styles.aboutAppName, { color: colors.text.primary }]}>Pet Agenda</Text>
+                <Text style={[styles.aboutVersion, { color: colors.text.secondary }]}>{t('profile.settings.version')} 1.0.3</Text>
+                <Text style={[styles.aboutDesc, { color: colors.text.light }]}>{t('profile.settings.aboutDesc')}</Text>
+              </View>
+
+              <View style={{ height: 20 }} />
             </ScrollView>
           </View>
         </View>
@@ -627,6 +761,13 @@ const styles = StyleSheet.create({
     borderWidth: 1.5, borderRadius: 20, paddingHorizontal: 16, paddingVertical: 6,
   },
   editBtnText: { fontSize: 13, fontWeight: '600', marginLeft: 5 },
+  expBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, marginBottom: 6,
+  },
+  expBadgeText: { fontSize: 12, fontWeight: '700' },
+  profileMetaRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
+  profileMetaText: { fontSize: 13 },
 
   // Sections
   section: { paddingHorizontal: 20, marginTop: 24 },
@@ -739,6 +880,26 @@ const styles = StyleSheet.create({
   modalItem: { flexDirection: 'row', alignItems: 'center', padding: 14, borderRadius: 12 },
   modalItemText: { flex: 1, fontSize: 15, fontWeight: '500', marginLeft: 12 },
   langRow: { flexDirection: 'row', gap: 8, marginBottom: 4 },
-  langChip: { flex: 1, alignItems: 'center', paddingVertical: 8, paddingHorizontal: 4, borderRadius: 10, borderWidth: 1.5 },
-  langChipText: { fontSize: 13 },
+  langChip: { flex: 1, alignItems: 'center', paddingVertical: 10, paddingHorizontal: 4, borderRadius: 10, borderWidth: 1.5, gap: 4 },
+  langFlag: { fontSize: 18 },
+  langChipText: { fontSize: 12 },
+
+  // Modal items com ícone
+  modalItemIcon: {
+    width: 36, height: 36, borderRadius: 10,
+    justifyContent: 'center', alignItems: 'center', marginRight: 12,
+  },
+
+  // About card
+  aboutCard: {
+    borderRadius: 14, borderWidth: 1,
+    padding: 16, alignItems: 'center', gap: 4,
+  },
+  aboutIconCircle: {
+    width: 56, height: 56, borderRadius: 28,
+    justifyContent: 'center', alignItems: 'center', marginBottom: 4,
+  },
+  aboutAppName: { fontSize: 18, fontWeight: '800' },
+  aboutVersion: { fontSize: 13, fontWeight: '500' },
+  aboutDesc: { fontSize: 12, textAlign: 'center', lineHeight: 18, marginTop: 4 },
 });

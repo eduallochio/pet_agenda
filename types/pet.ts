@@ -34,7 +34,11 @@ export type VaccineRecord = {
 export type UserProfile = {
   name: string
   bio: string
-  avatarUrl?: string // URL da foto (opcional por agora)
+  avatarUrl?: string
+  phone?: string
+  city?: string
+  birthDate?: string   // DD/MM/YYYY
+  experience?: 'beginner' | 'intermediate' | 'expert'
 }
 
 export type Friend = {
