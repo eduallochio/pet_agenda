@@ -3,8 +3,9 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useState, useMemo, useRef } from 'react';
 import {
   Alert, FlatList, Platform,
-  SafeAreaView, StyleSheet, Text, TouchableOpacity, View,
+  StyleSheet, Text, TouchableOpacity, View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Shadows } from '../../constants/Shadows';
 import Animated, {
   useSharedValue, useAnimatedStyle, withSpring, withTiming,
