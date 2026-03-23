@@ -90,9 +90,9 @@ function SectionHeader({ title, icon, color }: { title: string; icon: string; co
 }
 
 function HorizontalBar({
-  label, count, total, color,
+  label, count, total, color, sub,
 }: {
-  label: string; count: number; total: number; color: string;
+  label: string; count: number; total: number; color: string; sub?: string;
 }) {
   const { colors } = useTheme();
   const pct = total > 0 ? count / total : 0;
@@ -101,7 +101,14 @@ function HorizontalBar({
       <View style={styles.barLabelRow}>
         <View style={[styles.barDot, { backgroundColor: color }]} />
         <Text style={[styles.barLabel, { color: colors.text.primary }]}>{label}</Text>
-        <Text style={[styles.barCount, { color: colors.text.secondary }]}>{count}</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          {!!sub && (
+            <View style={[styles.barSubBadge, { backgroundColor: color + '18' }]}>
+              <Text style={[styles.barSubText, { color }]}>{sub}</Text>
+            </View>
+          )}
+          <Text style={[styles.barCount, { color: colors.text.secondary }]}>{count}</Text>
+        </View>
       </View>
       <View style={[styles.barTrack, { backgroundColor: colors.border }]}>
         <View style={[styles.barFill, { width: `${pct * 100}%` as any, backgroundColor: color }]} />
@@ -234,30 +241,35 @@ export default function StatisticsScreen() {
   const now = new Date();
   now.setHours(0, 0, 0, 0);
 
-  const totalPets = pets.length;
-  const totalReminders = reminders.length;
-  const totalVaccines = vaccines.length;
+  // ── Dados filtrados pelo pet selecionado ────────────────────────────────────
+  const filteredPets      = selectedPetId ? pets.filter(p => p.id === selectedPetId) : pets;
+  const filteredReminders = selectedPetId ? reminders.filter(r => r.petId === selectedPetId) : reminders;
+  const filteredVaccines  = selectedPetId ? vaccines.filter(v => v.petId === selectedPetId) : vaccines;
 
-  const overdueReminders = reminders.filter(r => {
+  const totalPets      = filteredPets.length;
+  const totalReminders = filteredReminders.length;
+  const totalVaccines  = filteredVaccines.length;
+
+  const overdueReminders = filteredReminders.filter(r => {
     const d = parseDate(r.date); d.setHours(0, 0, 0, 0); return d < now;
   }).length;
 
-  const overdueVaccines = vaccines.filter(v => {
+  const overdueVaccines = filteredVaccines.filter(v => {
     if (!v.nextDueDate) return false;
     const d = parseDate(v.nextDueDate); d.setHours(0, 0, 0, 0); return d < now;
   }).length;
 
-  const upcoming30 = reminders.filter(r => {
+  const upcoming30 = filteredReminders.filter(r => {
     const d = parseDate(r.date);
     const in30 = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
     return d >= now && d <= in30;
   }).length;
 
   const remindersByCategory = [
-    { name: 'Saúde',    count: reminders.filter(r => r.category === 'Saúde').length,    color: getCategoryColor('Saúde').main },
-    { name: 'Higiene',  count: reminders.filter(r => r.category === 'Higiene').length,  color: getCategoryColor('Higiene').main },
-    { name: 'Consulta', count: reminders.filter(r => r.category === 'Consulta').length, color: getCategoryColor('Consulta').main },
-    { name: 'Outro',    count: reminders.filter(r => r.category === 'Outro').length,    color: getCategoryColor('Outro').main },
+    { name: 'Saúde',    count: filteredReminders.filter(r => r.category === 'Saúde').length,    color: getCategoryColor('Saúde').main },
+    { name: 'Higiene',  count: filteredReminders.filter(r => r.category === 'Higiene').length,  color: getCategoryColor('Higiene').main },
+    { name: 'Consulta', count: filteredReminders.filter(r => r.category === 'Consulta').length, color: getCategoryColor('Consulta').main },
+    { name: 'Outro',    count: filteredReminders.filter(r => r.category === 'Outro').length,    color: getCategoryColor('Outro').main },
   ].filter(c => c.count > 0);
 
   const petsBySpecies = pets.reduce((acc, pet) => {
@@ -267,7 +279,81 @@ export default function StatisticsScreen() {
     return acc;
   }, [] as { name: string; count: number; color: string }[]);
 
-  // Pets que têm pelo menos uma vacina registrada
+  // ── Lembretes por pet ───────────────────────────────────────────────────────
+  const remindersByPet = pets.map(pet => ({
+    pet,
+    total: reminders.filter(r => r.petId === pet.id).length,
+    overdue: reminders.filter(r => {
+      if (r.petId !== pet.id) return false;
+      const d = parseDate(r.date); d.setHours(0, 0, 0, 0); return d < now;
+    }).length,
+  })).filter(x => x.total > 0).sort((a, b) => b.total - a.total);
+
+  // ── Score de saúde por pet ──────────────────────────────────────────────────
+  const petHealthScores = pets.map(pet => {
+    let score = 0;
+    const petVaccines = vaccines.filter(v => v.petId === pet.id);
+    const petReminders = reminders.filter(r => r.petId === pet.id);
+    // tem vacina: +25
+    if (petVaccines.length > 0) score += 25;
+    // vacinas em dia (sem atrasadas): +25
+    const hasOverdueVax = petVaccines.some(v => {
+      if (!v.nextDueDate) return false;
+      const d = parseDate(v.nextDueDate); d.setHours(0, 0, 0, 0); return d < now;
+    });
+    if (petVaccines.length > 0 && !hasOverdueVax) score += 25;
+    // tem lembrete futuro: +25
+    const hasFutureReminder = petReminders.some(r => {
+      const d = parseDate(r.date); d.setHours(0, 0, 0, 0); return d >= now;
+    });
+    if (hasFutureReminder) score += 25;
+    // sem lembretes atrasados: +25
+    const hasOverdueRem = petReminders.some(r => {
+      const d = parseDate(r.date); d.setHours(0, 0, 0, 0); return d < now;
+    });
+    if (petReminders.length > 0 && !hasOverdueRem) score += 25;
+    else if (petReminders.length === 0) score += 25; // sem lembretes = neutro
+    return { pet, score };
+  });
+
+  // ── Timeline unificada (lembretes + vacinas) ────────────────────────────────
+  const in30 = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+
+  const upcomingRemindersEvents = filteredReminders
+    .filter(r => { const d = parseDate(r.date); d.setHours(0,0,0,0); return d >= now && d <= in30; })
+    .map(r => {
+      const pet = pets.find(p => p.id === r.petId);
+      return {
+        id: `rem-${r.id}`,
+        date: r.date,
+        title: r.description || r.category,
+        type: 'reminder' as const,
+        petName: pet?.name || t('statistics.timeline.unknownPet'),
+        color: getCategoryColor(r.category).main,
+        icon: r.category === 'Saúde' ? 'medical-bag' : r.category === 'Higiene' ? 'shower' : r.category === 'Consulta' ? 'stethoscope' : 'bell',
+      };
+    });
+
+  const upcomingVaccineEvents = filteredVaccines
+    .filter(v => v.nextDueDate && isDateUpcoming(v.nextDueDate) && parseDate(v.nextDueDate) <= in30)
+    .map(v => {
+      const pet = pets.find(p => p.id === v.petId);
+      return {
+        id: `vac-${v.id}`,
+        date: v.nextDueDate!,
+        title: v.vaccineName,
+        type: 'vaccine' as const,
+        petName: pet?.name || t('statistics.timeline.unknownPet'),
+        color: Theme.success,
+        icon: 'needle',
+      };
+    });
+
+  const upcomingEvents = [...upcomingRemindersEvents, ...upcomingVaccineEvents]
+    .sort((a, b) => parseDate(a.date).getTime() - parseDate(b.date).getTime())
+    .slice(0, 10);
+
+  // ── Timeline histórica de vacinas ───────────────────────────────────────────
   const petsWithVaccines = pets.filter(p => vaccines.some(v => v.petId === p.id));
 
   const allTimeline = vaccines.map(v => {
@@ -288,9 +374,9 @@ export default function StatisticsScreen() {
     : allTimeline
   ).slice(0, 8);
 
-  const vaccinesWithBooster = vaccines.filter(v => v.nextDueDate).length;
-  const vaccinesUpcoming = vaccines.filter(v => v.nextDueDate && isDateUpcoming(v.nextDueDate)).length;
-  const hasAnyData = totalPets > 0 || totalReminders > 0 || totalVaccines > 0;
+  const vaccinesWithBooster = filteredVaccines.filter(v => v.nextDueDate).length;
+  const vaccinesUpcoming = filteredVaccines.filter(v => v.nextDueDate && isDateUpcoming(v.nextDueDate)).length;
+  const hasAnyData = pets.length > 0 || reminders.length > 0 || vaccines.length > 0;
 
   if (loading) {
     return (
@@ -321,6 +407,37 @@ export default function StatisticsScreen() {
         <View style={{ width: 40 }} />
       </View>
 
+      {/* ── Filtro global por pet ── */}
+      {pets.length > 1 && (
+        <View style={[styles.petFilterBar, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+          <FlatList
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            data={[{ id: null, name: t('statistics.timeline.allPets'), species: '' }, ...pets]}
+            keyExtractor={item => item.id ?? '__all__'}
+            contentContainerStyle={styles.petFilterContent}
+            renderItem={({ item }) => {
+              const active = selectedPetId === item.id;
+              const color = item.id ? getSpeciesColor(item.species) : Theme.primary;
+              return (
+                <TouchableOpacity
+                  style={[styles.petFilterChip, { backgroundColor: active ? color : colors.card, borderColor: active ? color : colors.border }]}
+                  onPress={() => setSelectedPetId(item.id)}
+                  activeOpacity={0.75}
+                >
+                  {item.id ? (
+                    <MaterialCommunityIcons name={getSpeciesIcon(item.species) as MCIName} size={14} color={active ? '#fff' : colors.text.secondary} />
+                  ) : (
+                    <Ionicons name="apps-outline" size={14} color={active ? '#fff' : colors.text.secondary} />
+                  )}
+                  <Text style={[styles.petFilterChipText, { color: active ? '#fff' : colors.text.secondary }]}>{item.name}</Text>
+                </TouchableOpacity>
+              );
+            }}
+          />
+        </View>
+      )}
+
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
 
         {!hasAnyData ? (
@@ -338,9 +455,7 @@ export default function StatisticsScreen() {
             {/* ── Alerta de atraso ── */}
             {(overdueReminders > 0 || overdueVaccines > 0) && (
               <View style={[styles.alertBanner, { backgroundColor: '#F4433610', borderColor: '#F4433640' }]}>
-                <View style={styles.alertIcon}>
-                  <Ionicons name="alert-circle" size={20} color="#F44336" />
-                </View>
+                <Ionicons name="alert-circle" size={20} color="#F44336" />
                 <Text style={[styles.alertText, { color: '#F44336' }]}>
                   {overdueReminders > 0 && overdueVaccines > 0
                     ? t('statistics.overdueBanner', {
@@ -349,69 +464,99 @@ export default function StatisticsScreen() {
                       })
                     : overdueReminders > 0
                       ? t('statistics.overdueReminders', { count: overdueReminders })
-                      : t('statistics.overdueVaccines', { count: overdueVaccines })
-                  }
+                      : t('statistics.overdueVaccines', { count: overdueVaccines })}
                 </Text>
               </View>
             )}
 
             {/* ── Cards principais ── */}
             <View style={styles.bigCardGrid}>
+              <BigStatCard value={totalPets} label={t('statistics.cards.pets')} icon="paw" color={Theme.primary} />
               <BigStatCard
-                value={totalPets}
-                label={t('statistics.cards.pets')}
-                icon="paw"
-                color={Theme.primary}
-              />
-              <BigStatCard
-                value={totalReminders}
-                label={t('statistics.cards.reminders')}
-                icon="bell"
-                color="#FF9500"
+                value={totalReminders} label={t('statistics.cards.reminders')} icon="bell" color="#FF9500"
                 sub={overdueReminders > 0 ? t('statistics.cards.overdue', { count: overdueReminders }) : upcoming30 > 0 ? t('statistics.cards.upcoming', { count: upcoming30 }) : undefined}
                 subIsAlert={overdueReminders > 0}
               />
               <BigStatCard
-                value={totalVaccines}
-                label={t('statistics.cards.vaccines')}
-                icon="needle"
-                color={Theme.success}
+                value={totalVaccines} label={t('statistics.cards.vaccines')} icon="needle" color={Theme.success}
                 sub={overdueVaccines > 0 ? t('statistics.cards.overdueVaccines', { count: overdueVaccines }) : vaccinesUpcoming > 0 ? t('statistics.cards.upcomingVaccines', { count: vaccinesUpcoming }) : undefined}
                 subIsAlert={overdueVaccines > 0}
               />
               <BigStatCard
-                value={achievementsCount}
-                label={t('statistics.cards.achievements')}
-                icon="trophy"
-                color="#FF9800"
+                value={achievementsCount} label={t('statistics.cards.achievements')} icon="trophy" color="#FF9800"
                 sub={`${t('statistics.cards.of')} ${ACHIEVEMENTS.length}`}
               />
             </View>
 
+            {/* ── Score de saúde por pet ── */}
+            {!selectedPetId && petHealthScores.length > 0 && (
+              <View style={[styles.card, { backgroundColor: colors.surface }]}>
+                <SectionHeader title={t('statistics.sections.healthScore')} icon="heart-pulse" color="#E91E63" />
+                {petHealthScores.map(({ pet, score }) => {
+                  const scoreColor = score >= 75 ? Theme.success : score >= 50 ? '#FF9500' : '#F44336';
+                  return (
+                    <TouchableOpacity
+                      key={pet.id}
+                      style={styles.healthScoreRow}
+                      onPress={() => setSelectedPetId(pet.id)}
+                      activeOpacity={0.75}
+                    >
+                      <View style={[styles.healthScoreIcon, { backgroundColor: getSpeciesColor(pet.species) + '20' }]}>
+                        <MaterialCommunityIcons name={getSpeciesIcon(pet.species) as MCIName} size={18} color={getSpeciesColor(pet.species)} />
+                      </View>
+                      <View style={styles.healthScoreInfo}>
+                        <View style={styles.healthScoreLabelRow}>
+                          <Text style={[styles.healthScoreName, { color: colors.text.primary }]}>{pet.name}</Text>
+                          <Text style={[styles.healthScoreVal, { color: scoreColor }]}>{score}%</Text>
+                        </View>
+                        <View style={[styles.healthScoreTrack, { backgroundColor: colors.border }]}>
+                          <View style={[styles.healthScoreFill, { width: `${score}%` as any, backgroundColor: scoreColor }]} />
+                        </View>
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            )}
+
+            {/* ── Próximos eventos (lembretes + vacinas) ── */}
+            {upcomingEvents.length > 0 && (
+              <View style={[styles.card, { backgroundColor: colors.surface }]}>
+                <SectionHeader title={t('statistics.sections.upcoming')} icon="calendar-clock" color="#673AB7" />
+                {upcomingEvents.map((ev, i) => (
+                  <View
+                    key={ev.id}
+                    style={[styles.upcomingRow, i < upcomingEvents.length - 1 && { borderBottomWidth: 1, borderBottomColor: colors.border }]}
+                  >
+                    <View style={[styles.upcomingIconCircle, { backgroundColor: ev.color + '18' }]}>
+                      <MaterialCommunityIcons name={ev.icon as MCIName} size={16} color={ev.color} />
+                    </View>
+                    <View style={styles.upcomingInfo}>
+                      <Text style={[styles.upcomingTitle, { color: colors.text.primary }]} numberOfLines={1}>{ev.title}</Text>
+                      <View style={styles.upcomingMeta}>
+                        <MaterialCommunityIcons name="paw" size={10} color={colors.text.light} />
+                        <Text style={[styles.upcomingPet, { color: colors.text.secondary }]}> {ev.petName}</Text>
+                      </View>
+                    </View>
+                    <View style={styles.upcomingDateCol}>
+                      <Text style={[styles.upcomingDate, { color: ev.color }]}>{ev.date}</Text>
+                      <View style={[styles.upcomingTypeBadge, { backgroundColor: ev.color + '15' }]}>
+                        <Text style={[styles.upcomingTypeText, { color: ev.color }]}>
+                          {ev.type === 'vaccine' ? t('statistics.sections.vaccineTag') : t('statistics.sections.reminderTag')}
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+                ))}
+              </View>
+            )}
+
             {/* ── Saúde Geral ── */}
             <View style={[styles.card, { backgroundColor: colors.surface }]}>
-              <SectionHeader title={t('statistics.sections.health')} icon="heart-pulse" color="#F44336" />
-              <HealthStatusRow
-                label={t('statistics.health.activeReminders')}
-                value={totalReminders - overdueReminders}
-                max={totalReminders || 1}
-                color={Theme.primary}
-                icon="checkmark-circle-outline"
-              />
-              <HealthStatusRow
-                label={t('statistics.health.vaccinesOnTime')}
-                value={totalVaccines - overdueVaccines}
-                max={totalVaccines || 1}
-                color={Theme.success}
-                icon="shield-checkmark-outline"
-              />
-              <HealthStatusRow
-                label={t('statistics.health.achievements')}
-                value={achievementsCount}
-                max={ACHIEVEMENTS.length}
-                color="#FF9800"
-                icon="trophy-outline"
-              />
+              <SectionHeader title={t('statistics.sections.health')} icon="shield-check" color="#F44336" />
+              <HealthStatusRow label={t('statistics.health.activeReminders')} value={totalReminders - overdueReminders} max={totalReminders || 1} color={Theme.primary} icon="checkmark-circle-outline" />
+              <HealthStatusRow label={t('statistics.health.vaccinesOnTime')} value={totalVaccines - overdueVaccines} max={totalVaccines || 1} color={Theme.success} icon="shield-checkmark-outline" />
+              <HealthStatusRow label={t('statistics.health.achievements')} value={achievementsCount} max={ACHIEVEMENTS.length} color="#FF9800" icon="trophy-outline" />
             </View>
 
             {/* ── Lembretes por categoria ── */}
@@ -419,21 +564,33 @@ export default function StatisticsScreen() {
               <View style={[styles.card, { backgroundColor: colors.surface }]}>
                 <SectionHeader title={t('statistics.sections.byCategory')} icon="tag-multiple" color="#9C27B0" />
                 {remindersByCategory.map(item => (
-                  <HorizontalBar
-                    key={item.name}
-                    label={item.name}
-                    count={item.count}
-                    total={totalReminders}
-                    color={item.color}
-                  />
+                  <HorizontalBar key={item.name} label={item.name} count={item.count} total={totalReminders} color={item.color} />
+                ))}
+              </View>
+            )}
+
+            {/* ── Lembretes por pet ── */}
+            {!selectedPetId && remindersByPet.length > 0 && (
+              <View style={[styles.card, { backgroundColor: colors.surface }]}>
+                <SectionHeader title={t('statistics.sections.byPet')} icon="paw" color="#FF6B6B" />
+                {remindersByPet.map(({ pet, total, overdue }) => (
+                  <TouchableOpacity key={pet.id} onPress={() => setSelectedPetId(pet.id)} activeOpacity={0.75}>
+                    <HorizontalBar
+                      label={pet.name}
+                      count={total}
+                      total={reminders.length}
+                      color={overdue > 0 ? '#F44336' : getSpeciesColor(pet.species)}
+                      sub={overdue > 0 ? `${overdue} atrasado${overdue > 1 ? 's' : ''}` : undefined}
+                    />
+                  </TouchableOpacity>
                 ))}
               </View>
             )}
 
             {/* ── Pets por espécie ── */}
-            {petsBySpecies.length > 0 && (
+            {!selectedPetId && petsBySpecies.length > 0 && (
               <View style={[styles.card, { backgroundColor: colors.surface }]}>
-                <SectionHeader title={t('statistics.sections.bySpecies')} icon="paw" color={Theme.primary} />
+                <SectionHeader title={t('statistics.sections.bySpecies')} icon="shape" color={Theme.primary} />
                 <View style={styles.speciesGrid}>
                   {petsBySpecies.map(sp => (
                     <SpeciesChip key={sp.name} species={sp.name} count={sp.count} color={sp.color} />
@@ -445,16 +602,14 @@ export default function StatisticsScreen() {
             {/* ── Vacinas com reforço ── */}
             {vaccinesWithBooster > 0 && (
               <View style={[styles.card, { backgroundColor: colors.surface }]}>
-                <SectionHeader title={t('statistics.sections.boosters')} icon="calendar-clock" color={Theme.success} />
+                <SectionHeader title={t('statistics.sections.boosters')} icon="needle" color={Theme.success} />
                 <View style={styles.boosterRow}>
                   <View style={[styles.boosterItem, { backgroundColor: Theme.success + '12' }]}>
                     <Text style={[styles.boosterNum, { color: Theme.success }]}>{vaccinesUpcoming}</Text>
                     <Text style={[styles.boosterLabel, { color: colors.text.secondary }]}>{t('statistics.boosters.upcoming')}</Text>
                   </View>
                   <View style={[styles.boosterItem, { backgroundColor: '#FF950012' }]}>
-                    <Text style={[styles.boosterNum, { color: '#FF9500' }]}>
-                      {vaccinesWithBooster - vaccinesUpcoming - overdueVaccines}
-                    </Text>
+                    <Text style={[styles.boosterNum, { color: '#FF9500' }]}>{vaccinesWithBooster - vaccinesUpcoming - overdueVaccines}</Text>
                     <Text style={[styles.boosterLabel, { color: colors.text.secondary }]}>{t('statistics.boosters.onTime')}</Text>
                   </View>
                   <View style={[styles.boosterItem, { backgroundColor: '#F4433612' }]}>
@@ -465,16 +620,13 @@ export default function StatisticsScreen() {
               </View>
             )}
 
-            {/* ── Timeline de Vacinas ── */}
+            {/* ── Timeline histórica de vacinas ── */}
             {allTimeline.length > 0 && (
               <View style={[styles.card, { backgroundColor: colors.surface }]}>
                 <SectionHeader title={t('statistics.sections.timeline')} icon="clock-outline" color="#2196F3" />
-
-                {/* Seletor de pet — só aparece quando há mais de um pet com vacinas */}
-                {petsWithVaccines.length > 1 && (
+                {petsWithVaccines.length > 1 && !selectedPetId && (
                   <FlatList
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
+                    horizontal showsHorizontalScrollIndicator={false}
                     data={[{ id: null, name: t('statistics.timeline.allPets') }, ...petsWithVaccines]}
                     keyExtractor={item => item.id ?? '__all__'}
                     style={styles.petSelectorList}
@@ -484,43 +636,24 @@ export default function StatisticsScreen() {
                       const color = item.id ? getSpeciesColor(pets.find(p => p.id === item.id)?.species ?? '') : '#2196F3';
                       return (
                         <TouchableOpacity
-                          style={[
-                            styles.petChip,
-                            {
-                              backgroundColor: active ? color : colors.card,
-                              borderColor: active ? color : colors.border,
-                            },
-                          ]}
+                          style={[styles.petChip, { backgroundColor: active ? color : colors.card, borderColor: active ? color : colors.border }]}
                           onPress={() => setSelectedPetId(item.id)}
                           activeOpacity={0.75}
                         >
-                          {item.id && (
-                            <MaterialCommunityIcons
-                              name={getSpeciesIcon(pets.find(p => p.id === item.id)?.species ?? '') as MCIName}
-                              size={13}
-                              color={active ? '#fff' : colors.text.secondary}
-                            />
-                          )}
-                          <Text style={[styles.petChipText, { color: active ? '#fff' : colors.text.secondary }]}>
-                            {item.name}
-                          </Text>
+                          {item.id && <MaterialCommunityIcons name={getSpeciesIcon(pets.find(p => p.id === item.id)?.species ?? '') as MCIName} size={13} color={active ? '#fff' : colors.text.secondary} />}
+                          <Text style={[styles.petChipText, { color: active ? '#fff' : colors.text.secondary }]}>{item.name}</Text>
                         </TouchableOpacity>
                       );
                     }}
                   />
                 )}
-
                 <View style={{ marginTop: 4 }}>
                   {vaccineTimeline.length > 0 ? (
-                    vaccineTimeline.map((ev, i) => (
-                      <TimelineCard key={ev.id} event={ev} isLast={i === vaccineTimeline.length - 1} />
-                    ))
+                    vaccineTimeline.map((ev, i) => <TimelineCard key={ev.id} event={ev} isLast={i === vaccineTimeline.length - 1} />)
                   ) : (
                     <View style={styles.tlEmpty}>
                       <Ionicons name="calendar-outline" size={32} color={colors.text.light} />
-                      <Text style={[styles.tlEmptyText, { color: colors.text.secondary }]}>
-                        {t('statistics.timeline.noVaccinesForPet')}
-                      </Text>
+                      <Text style={[styles.tlEmptyText, { color: colors.text.secondary }]}>{t('statistics.timeline.noVaccinesForPet')}</Text>
                     </View>
                   )}
                 </View>
@@ -653,6 +786,8 @@ const styles = StyleSheet.create({
   barCount: { fontSize: 13, fontWeight: '700' },
   barTrack: { height: 7, borderRadius: 4, overflow: 'hidden' },
   barFill: { height: '100%', borderRadius: 4 },
+  barSubBadge: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 8 },
+  barSubText: { fontSize: 10, fontWeight: '700' },
 
   // Species chips
   speciesGrid: {
@@ -702,6 +837,63 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
   },
   petChipText: { fontSize: 12, fontWeight: '600' },
+
+  // Pet filter bar
+  petFilterBar: {
+    borderBottomWidth: 1,
+    paddingVertical: 8,
+  },
+  petFilterContent: { paddingHorizontal: 16, gap: 8 },
+  petFilterChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1.5,
+  },
+  petFilterChipText: { fontSize: 12, fontWeight: '600' },
+
+  // Health score per pet
+  healthScoreRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 14,
+  },
+  healthScoreIcon: {
+    width: 36, height: 36, borderRadius: 10,
+    justifyContent: 'center', alignItems: 'center',
+    flexShrink: 0,
+  },
+  healthScoreInfo: { flex: 1 },
+  healthScoreLabelRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 5 },
+  healthScoreName: { fontSize: 13, fontWeight: '600' },
+  healthScoreVal: { fontSize: 13, fontWeight: '800' },
+  healthScoreTrack: { height: 7, borderRadius: 4, overflow: 'hidden' },
+  healthScoreFill: { height: '100%', borderRadius: 4 },
+
+  // Upcoming events
+  upcomingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 10,
+  },
+  upcomingIconCircle: {
+    width: 36, height: 36, borderRadius: 10,
+    justifyContent: 'center', alignItems: 'center',
+    flexShrink: 0,
+  },
+  upcomingInfo: { flex: 1, minWidth: 0 },
+  upcomingTitle: { fontSize: 13, fontWeight: '600', marginBottom: 2 },
+  upcomingMeta: { flexDirection: 'row', alignItems: 'center' },
+  upcomingPet: { fontSize: 11 },
+  upcomingDateCol: { alignItems: 'flex-end', gap: 4 },
+  upcomingDate: { fontSize: 12, fontWeight: '700' },
+  upcomingTypeBadge: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 8 },
+  upcomingTypeText: { fontSize: 10, fontWeight: '700' },
 
   // Timeline
   tlRow: { flexDirection: 'row' },

@@ -425,6 +425,11 @@ export default {
       bySpecies: 'Pets por Espécie',
       boosters: 'Reforços de Vacina',
       timeline: 'Timeline de Vacinas',
+      healthScore: 'Score de Saúde',
+      upcoming: 'Próximos Eventos',
+      byPet: 'Lembretes por Pet',
+      vaccineTag: 'Vacina',
+      reminderTag: 'Lembrete',
     },
     health: {
       activeReminders: 'Lembretes ativos',
