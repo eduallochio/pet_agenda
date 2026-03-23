@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Text, TouchableOpacity, StyleSheet, Alert, View, Image, Platform, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { useGoBack } from '../../hooks/useGoBack';
 import * as ImagePicker from 'expo-image-picker';
 import { Pet } from '../../types/pet';
@@ -45,11 +45,21 @@ export default function AddPetScreen() {
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
 
-  const { validateAll, getFieldError, touchField } = useFormValidation({
+  const { validateAll, getFieldError, touchField, clearAllErrors } = useFormValidation({
     name:    { required: true, minLength: 2, maxLength: 50 },
     species: { required: true },
     breed:   { maxLength: 50 },
   });
+
+  useFocusEffect(useCallback(() => {
+    setName('');
+    setSpecies('');
+    setBreed('');
+    setDob(null);
+    setPhotoUri(null);
+    setShowSuccess(false);
+    clearAllErrors();
+  }, []));
 
   const pickImage = async (useCamera: boolean) => {
     try {
