@@ -2,12 +2,46 @@ import { DarkTheme, DefaultTheme, ThemeProvider as NavigationThemeProvider } fro
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { Platform } from 'react-native';
+import { Platform, View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import 'react-native-reanimated';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Component, ReactNode } from 'react';
 import { I18nextProvider } from 'react-i18next';
+
+// Captura global de erros JS não tratados
+class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
+  constructor(props: { children: ReactNode }) {
+    super(props);
+    this.state = { error: null };
+  }
+  static getDerivedStateFromError(error: Error) {
+    return { error };
+  }
+  render() {
+    if (this.state.error) {
+      return (
+        <View style={{ flex: 1, padding: 24, paddingTop: 60, backgroundColor: '#fff' }}>
+          <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#c00', marginBottom: 12 }}>
+            Erro crítico detectado
+          </Text>
+          <ScrollView>
+            <Text style={{ fontSize: 13, color: '#333', fontFamily: 'monospace' }}>
+              {this.state.error.message}{'\n\n'}{this.state.error.stack}
+            </Text>
+          </ScrollView>
+          <TouchableOpacity
+            onPress={() => this.setState({ error: null })}
+            style={{ marginTop: 16, padding: 12, backgroundColor: '#40E0D0', borderRadius: 8 }}
+          >
+            <Text style={{ color: '#fff', fontWeight: 'bold', textAlign: 'center' }}>Tentar novamente</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { ThemeProvider } from '../contexts/ThemeContext';
@@ -68,6 +102,7 @@ export default function RootLayout() {
   }
 
   return (
+    <ErrorBoundary>
     <I18nextProvider i18n={i18nInstance}>
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ThemeProvider>
@@ -103,5 +138,6 @@ export default function RootLayout() {
       </ThemeProvider>
     </GestureHandlerRootView>
     </I18nextProvider>
+    </ErrorBoundary>
   );
 }
