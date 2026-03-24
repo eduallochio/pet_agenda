@@ -334,6 +334,7 @@ ${petsSection || '<p>Nenhum pet cadastrado.</p>'}
   const initials = getInitials(displayName);
 
   return (
+    <View style={[styles.rootWrap, { backgroundColor: colors.background }]}>
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Header */}
       <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
@@ -698,7 +699,7 @@ ${petsSection || '<p>Nenhum pet cadastrado.</p>'}
                 <Ionicons name="close" size={26} color={colors.text.primary} />
               </TouchableOpacity>
             </View>
-            <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
+            <ScrollView style={styles.modalBody} contentContainerStyle={{ paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
 
               {/* ── Aparência ── */}
               <Text style={[styles.modalSectionLabel, { color: colors.text.secondary }]}>{t('profile.settings.appearance')}</Text>
@@ -800,10 +801,12 @@ ${petsSection || '<p>Nenhum pet cadastrado.</p>'}
         </View>
       </Modal>
     </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  rootWrap: { flex: 1 },
   container: { flex: 1 },
   header: {
     flexDirection: 'row',
