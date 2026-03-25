@@ -1,12 +1,14 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, Text, StyleSheet, ViewStyle } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import Animated, { useSharedValue, useAnimatedStyle, withTiming, withSpring } from 'react-native-reanimated';
 import { Theme } from '../constants/Colors';
 import AnimatedButton from './animations/AnimatedButton';
 
 type EmptyStateProps = {
   title: string;
   message: string;
+  hint?: string;
   actionLabel?: string;
   onAction?: () => void;
   style?: ViewStyle;
@@ -15,9 +17,22 @@ type EmptyStateProps = {
   | { icon: keyof typeof MaterialCommunityIcons.glyphMap; iconLib: 'mci' }
 );
 
-const EmptyState = ({ icon, iconLib = 'ionicons', title, message, actionLabel, onAction, style }: EmptyStateProps) => {
+const EmptyState = ({ icon, iconLib = 'ionicons', title, message, hint, actionLabel, onAction, style }: EmptyStateProps) => {
+  const opacity = useSharedValue(0);
+  const scale = useSharedValue(0.85);
+
+  useEffect(() => {
+    opacity.value = withTiming(1, { duration: 400 });
+    scale.value = withSpring(1, { damping: 14, stiffness: 120 });
+  }, []);
+
+  const animStyle = useAnimatedStyle(() => ({
+    opacity: opacity.value,
+    transform: [{ scale: scale.value }],
+  }));
+
   return (
-    <View style={[styles.container, style]}>
+    <Animated.View style={[styles.container, style, animStyle]}>
       <View style={styles.iconCircle}>
         {iconLib === 'mci'
           ? <MaterialCommunityIcons name={icon as keyof typeof MaterialCommunityIcons.glyphMap} size={60} color={Theme.primary} />
@@ -26,12 +41,17 @@ const EmptyState = ({ icon, iconLib = 'ionicons', title, message, actionLabel, o
       </View>
       <Text style={styles.title}>{title}</Text>
       <Text style={styles.message}>{message}</Text>
+      {!!hint && (
+        <View style={styles.hintBox}>
+          <Text style={styles.hintText}>{hint}</Text>
+        </View>
+      )}
       {actionLabel && onAction && (
         <AnimatedButton onPress={onAction} style={styles.actionButton}>
           <Text style={styles.actionButtonText}>{actionLabel}</Text>
         </AnimatedButton>
       )}
-    </View>
+    </Animated.View>
   );
 };
 
@@ -65,6 +85,21 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 24,
     marginBottom: 24,
+  },
+  hintBox: {
+    backgroundColor: Theme.primary + '15',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    marginBottom: 16,
+    maxWidth: 280,
+  },
+  hintText: {
+    fontSize: 13,
+    color: Theme.primary,
+    textAlign: 'center',
+    fontWeight: '600',
+    lineHeight: 18,
   },
   actionButton: {
     backgroundColor: Theme.primary,

@@ -484,6 +484,7 @@ export default function PetDashboard() {
           iconLib="mci"
           title={t('home.noPets')}
           message={t('home.noPetsMsg')}
+          hint={t('home.noPetsHint')}
           actionLabel={t('home.addPet')}
           onAction={() => router.push('/(tabs)/add-pet')}
         />

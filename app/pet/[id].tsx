@@ -477,6 +477,7 @@ export default function PetDetailScreen() {
 			icon="calendar-outline"
 			title={t('petDetail.noReminders')}
 			message={t('petDetail.noRemindersMsg')}
+			hint={t('petDetail.noRemindersHint')}
 			actionLabel={t('petDetail.addReminder')}
 			onAction={() => router.push({ pathname: '/reminder/new', params: { petId: pet.id } })}
 			style={{ paddingVertical: 40 }}

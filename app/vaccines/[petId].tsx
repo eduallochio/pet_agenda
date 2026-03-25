@@ -176,6 +176,7 @@ export default function VaccinationCardScreen() {
 						iconLib="mci"
 						title={t('vaccinationCard.emptyTitle')}
 						message={t('vaccinationCard.emptyMsg')}
+						hint={t('vaccinationCard.emptyHint')}
 						actionLabel={t('vaccinationCard.addVaccine')}
 						onAction={() => router.push({ pathname: '/vaccines/new', params: { petId: petId as string } })}
 					/>
