@@ -487,3 +487,35 @@ export function groupAchievements(unlockedIds: string[]): {
     return { group, achievements, unlockedCount };
   });
 }
+
+export type AchievementProgress = { current: number; target: number } | null;
+
+/**
+ * Retorna o progresso numérico de uma conquista ainda não desbloqueada.
+ * Retorna null para conquistas já desbloqueadas ou sem progresso rastreável.
+ */
+export function getAchievementProgress(
+  achId: string,
+  data: Omit<CheckData, 'unlocked'>
+): AchievementProgress {
+  const { pets, reminders, vaccines, weightRecords, streak } = data;
+  switch (achId) {
+    case 'three_pets':       return { current: Math.min(pets.length, 3), target: 3 };
+    case 'five_pets':        return { current: Math.min(pets.length, 5), target: 5 };
+    case 'ten_pets':         return { current: Math.min(pets.length, 10), target: 10 };
+    case 'five_reminders':   return { current: Math.min(reminders.length, 5), target: 5 };
+    case 'ten_reminders':    return { current: Math.min(reminders.length, 10), target: 10 };
+    case 'health_reminder':  return { current: Math.min(reminders.filter(r => r.category === 'Saúde').length, 3), target: 3 };
+    case 'hygiene_reminder': return { current: Math.min(reminders.filter(r => r.category === 'Higiene').length, 3), target: 3 };
+    case 'vaccine_up_to_date': return { current: Math.min(vaccines.length, 3), target: 3 };
+    case 'ten_vaccines':     return { current: Math.min(vaccines.length, 10), target: 10 };
+    case 'streak_3':         return { current: Math.min(streak.currentStreak, 3), target: 3 };
+    case 'streak_7':         return { current: Math.min(streak.currentStreak, 7), target: 7 };
+    case 'streak_30':        return { current: Math.min(streak.currentStreak, 30), target: 30 };
+    case 'streak_100':       return { current: Math.min(streak.currentStreak, 100), target: 100 };
+    case 'total_30_days':    return { current: Math.min(streak.totalDays, 30), target: 30 };
+    case 'weight_history':   return { current: Math.min(weightRecords.length, 5), target: 5 };
+    case 'master_tutor':     return null; // unlocked.length não disponível aqui
+    default:                 return null;
+  }
+}

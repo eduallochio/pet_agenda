@@ -7,7 +7,7 @@ import Animated, {
   useSharedValue, useAnimatedStyle, withTiming, Easing,
 } from 'react-native-reanimated';
 import { useTheme } from '../hooks/useTheme';
-import { AchievementDef, AchievementGroupDef } from '../hooks/useAchievements';
+import { AchievementDef, AchievementGroupDef, AchievementProgress } from '../hooks/useAchievements';
 import { Achievement } from '../types/pet';
 import { useTranslation } from 'react-i18next';
 
@@ -23,6 +23,8 @@ interface AchievementGroupSectionProps {
   achievements: AchievementDef[];
   unlockedCount: number;
   unlockedAchievements: Achievement[];
+  /** Mapa de id → progresso para conquistas bloqueadas */
+  progressMap?: Record<string, AchievementProgress>;
   /** Começa recolhido? Padrão: false */
   defaultCollapsed?: boolean;
 }
@@ -32,6 +34,7 @@ export default function AchievementGroupSection({
   achievements,
   unlockedCount,
   unlockedAchievements,
+  progressMap = {},
   defaultCollapsed = false,
 }: AchievementGroupSectionProps) {
   const { colors } = useTheme();
@@ -151,9 +154,28 @@ export default function AchievementGroupSection({
                     {new Date(unlocked.unlockedAt).toLocaleDateString()}
                   </Text>
                 )}
-                {!isUnlocked && (
-                  <Text style={[styles.achLockedIcon, { color: colors.text.light }]}>🔒</Text>
-                )}
+                {!isUnlocked && (() => {
+                  const prog = progressMap[ach.id];
+                  if (prog && prog.target > 0) {
+                    const pct = Math.min(100, Math.round((prog.current / prog.target) * 100));
+                    return (
+                      <View style={styles.progressContainer}>
+                        <View style={[styles.progressTrack, { backgroundColor: colors.border }]}>
+                          <View
+                            style={[
+                              styles.progressFill,
+                              { backgroundColor: ach.color, width: `${pct}%` as any },
+                            ]}
+                          />
+                        </View>
+                        <Text style={[styles.progressLabel, { color: colors.text.light }]}>
+                          {prog.current}/{prog.target}
+                        </Text>
+                      </View>
+                    );
+                  }
+                  return <Text style={[styles.achLockedIcon, { color: colors.text.light }]}>🔒</Text>;
+                })()}
               </View>
             );
           })}
@@ -209,4 +231,8 @@ const styles = StyleSheet.create({
   achDesc: { fontSize: 11, textAlign: 'center', lineHeight: 15, color: '#888' },
   achDate: { fontSize: 10, marginTop: 6 },
   achLockedIcon: { fontSize: 14, marginTop: 4 },
+  progressContainer: { width: '100%', marginTop: 8, alignItems: 'center', gap: 3 },
+  progressTrack: { width: '100%', height: 4, borderRadius: 2, overflow: 'hidden' },
+  progressFill: { height: 4, borderRadius: 2 },
+  progressLabel: { fontSize: 10, fontWeight: '600' },
 });

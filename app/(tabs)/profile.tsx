@@ -8,7 +8,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { secureGet } from '../../services/secureStorage';
-import { Pet, UserProfile, Reminder, VaccineRecord, Achievement } from '../../types/pet';
+import { Pet, UserProfile, Reminder, VaccineRecord, Achievement, WeightRecord } from '../../types/pet';
+import { StreakData } from '../../hooks/useStreak';
 import { Theme } from '../../constants/Colors';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import StatCard from '../../components/StatCard';
@@ -17,7 +18,7 @@ import ThemeToggle from '../../components/ThemeToggle';
 import { useTheme } from '../../hooks/useTheme';
 import { useTranslation } from 'react-i18next';
 import { changeLanguage, getInitialLanguage, SUPPORTED_LANGUAGES, SupportedLanguage } from '../../i18n';
-import { ACHIEVEMENTS, groupAchievements, checkAndUnlockAchievements } from '../../hooks/useAchievements';
+import { ACHIEVEMENTS, groupAchievements, checkAndUnlockAchievements, getAchievementProgress, AchievementProgress } from '../../hooks/useAchievements';
 import AchievementGroupSection from '../../components/AchievementGroupSection';
 import {
   CHALLENGES, getCurrentChallenge, loadChallengeState, completeChallenge, autoCompleteDataChallenge,
@@ -56,6 +57,8 @@ export default function ProfileScreen() {
   const [unlockedAchievements, setUnlockedAchievements] = useState<Achievement[]>([]);
   const [challengeCompleted, setChallengeCompleted] = useState(false);
   const [completedChallengeIds, setCompletedChallengeIds] = useState<string[]>([]);
+  const [weightRecords, setWeightRecords] = useState<WeightRecord[]>([]);
+  const [streak, setStreak] = useState<StreakData>({ currentStreak: 0, bestStreak: 0, lastOpenedDate: '', totalDays: 0 });
   const [settingsVisible, setSettingsVisible] = useState(false);
   const [currentLang, setCurrentLang] = useState<SupportedLanguage>('pt-BR');
   const { t } = useTranslation();
@@ -86,18 +89,25 @@ export default function ProfileScreen() {
           const parsedReminders: Reminder[] = rJSON ? JSON.parse(rJSON) : [];
           const parsedVaccines: VaccineRecord[] = vJSON ? JSON.parse(vJSON) : [];
 
+          const parsedWeightRecords: WeightRecord[] = weightJSON ? JSON.parse(weightJSON) : [];
+          const parsedStreak: StreakData = streakJSON
+            ? JSON.parse(streakJSON)
+            : { currentStreak: 0, bestStreak: 0, lastOpenedDate: '', totalDays: 0 };
+
           setPets(parsedPets);
           setProfile(profJSON ? JSON.parse(profJSON) : null);
           setReminders(parsedReminders);
           setVaccines(parsedVaccines);
+          setWeightRecords(parsedWeightRecords);
+          setStreak(parsedStreak);
 
           // Checar e desbloquear conquistas
           await checkAndUnlockAchievements({
             pets: parsedPets,
             reminders: parsedReminders,
             vaccines: parsedVaccines,
-            weightRecords: weightJSON ? JSON.parse(weightJSON) : [],
-            streak: streakJSON ? JSON.parse(streakJSON) : { currentStreak: 0, bestStreak: 0, lastOpenedDate: '', totalDays: 0 },
+            weightRecords: parsedWeightRecords,
+            streak: parsedStreak,
           });
           const achJSON = await AsyncStorage.getItem('achievements');
           setUnlockedAchievements(achJSON ? JSON.parse(achJSON) : []);
@@ -344,6 +354,18 @@ ${petsSection || '<p>Nenhum pet cadastrado.</p>'}
   const unlockedIds = unlockedAchievements.map(a => a.id);
   const totalAchievements = ACHIEVEMENTS.length;
   const unlockedCount = unlockedAchievements.length;
+
+  // Mapa de progresso para conquistas ainda bloqueadas
+  const achievementProgressMap: Record<string, AchievementProgress> = React.useMemo(() => {
+    const progressData = { pets, reminders, vaccines, weightRecords, streak };
+    const map: Record<string, AchievementProgress> = {};
+    for (const ach of ACHIEVEMENTS) {
+      if (!unlockedIds.includes(ach.id)) {
+        map[ach.id] = getAchievementProgress(ach.id, progressData);
+      }
+    }
+    return map;
+  }, [pets, reminders, vaccines, weightRecords, streak, unlockedIds]);
 
   const displayName = profile?.name || t('profile.yourName');
   const initials = getInitials(displayName);
@@ -691,6 +713,7 @@ ${petsSection || '<p>Nenhum pet cadastrado.</p>'}
               achievements={achievements}
               unlockedCount={gc}
               unlockedAchievements={unlockedAchievements}
+              progressMap={achievementProgressMap}
               defaultCollapsed={gc === 0}
             />
           ))}
