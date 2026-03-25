@@ -357,11 +357,8 @@ function buildPassportHtml(data: PassportData): string {
 // ─── QR Code helper ──────────────────────────────────────────────────────────
 
 function buildQrData(pet: Pet): string {
-  const lines: string[] = [`Pet: ${pet.name}`];
-  if (pet.species) lines.push(`Especie: ${pet.species}${pet.breed ? ` - ${pet.breed}` : ''}`);
-  if (pet.dob) lines.push(`Nasc: ${pet.dob}`);
-  lines.push('Pet Agenda');
-  return lines.join('\n');
+  // Apenas o ID interno — nenhum dado pessoal exposto no QR
+  return `pet-agenda://pet/${pet.id}`;
 }
 
 // ─── Component ───────────────────────────────────────────────────────────────
