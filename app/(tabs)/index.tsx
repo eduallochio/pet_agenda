@@ -96,6 +96,7 @@ function SwipePetCard({
   todayReminders,
   overdueVaccines,
   healthScore,
+  birthdayCountdown,
   onPress,
   onDelete,
 }: {

@@ -36,6 +36,25 @@ const SUGGESTIONS: Record<Category, string[]> = {
 	'Outro':     ['Passeio', 'Adestramento', 'Hotel pet', 'Comprar ração'],
 };
 
+type Template = {
+	emoji: string;
+	labelKey: string;
+	category: Category;
+	descriptionKey: string;
+	recurrence: RecurrenceType;
+};
+
+const TEMPLATES: Template[] = [
+	{ emoji: '🛁', labelKey: 'reminder.templates.bath',       category: 'Higiene',   descriptionKey: 'reminder.templates.bathDesc',       recurrence: 'monthly'   },
+	{ emoji: '💊', labelKey: 'reminder.templates.deworming',  category: 'Prevenção', descriptionKey: 'reminder.templates.dewormingDesc',  recurrence: 'quarterly' },
+	{ emoji: '🩺', labelKey: 'reminder.templates.checkup',    category: 'Consulta',  descriptionKey: 'reminder.templates.checkupDesc',    recurrence: 'none'      },
+	{ emoji: '✂️', labelKey: 'reminder.templates.grooming',   category: 'Higiene',   descriptionKey: 'reminder.templates.groomingDesc',   recurrence: 'monthly'   },
+	{ emoji: '🦟', labelKey: 'reminder.templates.flea',       category: 'Prevenção', descriptionKey: 'reminder.templates.fleaDesc',       recurrence: 'monthly'   },
+	{ emoji: '💉', labelKey: 'reminder.templates.vaccine',    category: 'Saúde',     descriptionKey: 'reminder.templates.vaccineDesc',    recurrence: 'none'      },
+	{ emoji: '🦷', labelKey: 'reminder.templates.dental',     category: 'Higiene',   descriptionKey: 'reminder.templates.dentalDesc',     recurrence: 'monthly'   },
+	{ emoji: '🏥', labelKey: 'reminder.templates.return',     category: 'Consulta',  descriptionKey: 'reminder.templates.returnDesc',     recurrence: 'none'      },
+];
+
 export default function ReminderFormScreen() {
 	const router = useRouter();
 	const goBack = useGoBack('/(tabs)');
@@ -235,6 +254,12 @@ export default function ReminderFormScreen() {
 		}
 	};
 
+	const applyTemplate = (tpl: Template) => {
+		setCategory(tpl.category);
+		setDescription(t(tpl.descriptionKey));
+		setRecurrence(tpl.recurrence);
+	};
+
 	return (
 		<SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
 			<Stack.Screen options={{ headerShown: false }} />
@@ -257,6 +282,45 @@ export default function ReminderFormScreen() {
 			</View>
 
 			<ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+
+				{/* Templates rápidos (apenas criação) */}
+				{!isEditing && (
+					<View style={styles.templatesSection}>
+						<Text style={[styles.sectionLabel, { color: colors.text.primary }]}>{t('reminder.templates.title')}</Text>
+						<ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.templatesScroll} contentContainerStyle={styles.templatesContent}>
+							{TEMPLATES.map((tpl) => {
+								const catColor = getCategoryColor(tpl.category as any);
+								const isActive = description === t(tpl.descriptionKey) && category === tpl.category;
+								return (
+									<TouchableOpacity
+										key={tpl.labelKey}
+										style={[
+											styles.templateCard,
+											{
+												backgroundColor: isActive ? catColor.main + '20' : colors.surface,
+												borderColor: isActive ? catColor.main : colors.border,
+											},
+										]}
+										onPress={() => applyTemplate(tpl)}
+										activeOpacity={0.75}
+									>
+										<Text style={styles.templateEmoji}>{tpl.emoji}</Text>
+										<Text style={[styles.templateLabel, { color: isActive ? catColor.main : colors.text.primary }]} numberOfLines={2}>
+											{t(tpl.labelKey)}
+										</Text>
+										{tpl.recurrence !== 'none' && (
+											<View style={[styles.templateRecurrenceBadge, { backgroundColor: catColor.main + '25' }]}>
+												<Text style={[styles.templateRecurrenceText, { color: catColor.main }]}>
+													{t(`reminder.recurrences.${tpl.recurrence}`)}
+												</Text>
+											</View>
+										)}
+									</TouchableOpacity>
+								);
+							})}
+						</ScrollView>
+					</View>
+				)}
 
 				{/* Categoria */}
 				<Text style={[styles.sectionLabel, { color: colors.text.primary }]}>{t('reminder.category')}</Text>
@@ -491,6 +555,22 @@ const styles = StyleSheet.create({
 		...Shadows.primary,
 	},
 	saveButtonText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
+	// Templates
+	templatesSection: { marginBottom: 24 },
+	templatesScroll: { marginHorizontal: -20 },
+	templatesContent: { paddingHorizontal: 20, gap: 10 },
+	templateCard: {
+		width: 90,
+		borderRadius: 14,
+		borderWidth: 1.5,
+		padding: 10,
+		alignItems: 'center',
+		gap: 4,
+	},
+	templateEmoji: { fontSize: 22 },
+	templateLabel: { fontSize: 11, fontWeight: '600', textAlign: 'center' },
+	templateRecurrenceBadge: { borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2, marginTop: 2 },
+	templateRecurrenceText: { fontSize: 9, fontWeight: '700' },
 	// Recorrência
 	recurrenceRow: { flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -4, marginBottom: 12 },
 	recurrenceChip: {
