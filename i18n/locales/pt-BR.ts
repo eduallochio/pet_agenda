@@ -952,4 +952,12 @@ export default {
     nextBooster: 'Reforço: {{date}}',
     lastWeight: 'Último peso: {{weight}} kg ({{date}})',
   },
+
+  // ── Desafio Semanal ────────────────────────────────────────────────────────
+  challenge: {
+    weeklyChallenge: 'Desafio da Semana',
+    done: 'Concluído',
+    days: 'dias',
+    tapToStart: 'Toque para começar',
+  },
 };

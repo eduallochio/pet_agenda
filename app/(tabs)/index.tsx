@@ -31,6 +31,8 @@ import { AppBottomSheetModal } from '../../components/AppBottomSheet';
 import { useTheme } from '../../hooks/useTheme';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { tickStreak, StreakData } from '../../hooks/useStreak';
+import { getCurrentChallenge, loadChallengeState, getWeekKey } from '../../hooks/useChallenges';
+import ChallengeCard from '../../components/ChallengeCard';
 import { useTranslation } from 'react-i18next';
 
 // Calcula idade a partir de DD/MM/YYYY — retorna número de meses e anos para uso com t()
@@ -237,6 +239,8 @@ export default function PetDashboard() {
   const [birthdayModal, setBirthdayModal] = useState<{ name: string; age: number; species: string } | null>(null);
   const [streak, setStreak] = useState<StreakData | null>(null);
   const streakInitialized = useRef(false);
+  const [challengeCompleted, setChallengeCompleted] = useState(false);
+  const [challengeDaysLeft, setChallengeDaysLeft] = useState(7);
 
   // Ref do bottom sheet de filtros
   const filterSheetRef = useRef<BottomSheetModal>(null);
@@ -251,6 +255,20 @@ export default function PetDashboard() {
         AsyncStorage.getItem('reminders'),
         AsyncStorage.getItem('vaccinations'),
       ]);
+
+      // Desafio semanal
+      const { completed } = await loadChallengeState();
+      setChallengeCompleted(completed);
+      const weekKey = getWeekKey();
+      const weekNum = parseInt(weekKey.split('-W')[1]);
+      const year = parseInt(weekKey.split('-W')[0]);
+      // Calcula dia que a semana começa (segunda) e termina (domingo)
+      const jan1 = new Date(year, 0, 1);
+      const weekStart = new Date(jan1.getTime() + (weekNum - 1) * 7 * 86400000);
+      const weekEnd = new Date(weekStart.getTime() + 6 * 86400000);
+      const now = new Date();
+      const msLeft = weekEnd.getTime() - now.getTime();
+      setChallengeDaysLeft(Math.max(1, Math.ceil(msLeft / 86400000)));
       const loadedPets: Pet[] = petsJSON ? JSON.parse(petsJSON) : [];
       setPets(loadedPets);
       setReminders(remindersJSON ? JSON.parse(remindersJSON) : []);
@@ -422,6 +440,13 @@ export default function PetDashboard() {
         reminders={reminders}
         vaccines={vaccines}
         onPress={() => router.push('/calendar')}
+      />
+
+      {/* Desafio Semanal */}
+      <ChallengeCard
+        challenge={getCurrentChallenge()}
+        completed={challengeCompleted}
+        daysLeft={challengeDaysLeft}
       />
 
       {/* Serviços Próximos */}

@@ -952,4 +952,12 @@ export default {
     nextBooster: 'Booster: {{date}}',
     lastWeight: 'Last weight: {{weight}} kg ({{date}})',
   },
+
+  // ── Weekly Challenge ───────────────────────────────────────────────────────
+  challenge: {
+    weeklyChallenge: 'Weekly Challenge',
+    done: 'Done',
+    days: 'days',
+    tapToStart: 'Tap to start',
+  },
 };
