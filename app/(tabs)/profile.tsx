@@ -807,7 +807,7 @@ ${petsSection || '<p>Nenhum pet cadastrado.</p>'}
                   <MaterialCommunityIcons name="paw" size={18} color={Theme.primary} />
                 </View>
                 <Text style={[styles.aboutAppName, { color: colors.text.primary }]}>Pet Agenda</Text>
-                <Text style={[styles.aboutVersion, { color: colors.text.secondary }]}>v1.0.4</Text>
+                <Text style={[styles.aboutVersion, { color: colors.text.secondary }]}>v1.0.5</Text>
               </View>
 
               <View style={{ height: 20 }} />
