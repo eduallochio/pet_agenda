@@ -54,6 +54,24 @@ function calcAgeRaw(dob: string): { type: 'newborn' | 'months' | 'years'; count:
 const SWIPE_THRESHOLD = 80;
 const DELETE_WIDTH = 80;
 
+// ─── Health Score ─────────────────────────────────────────────────────────────
+function calcHealthScore(
+  overdueReminders: number,
+  overdueVaccines: number,
+  upcomingCount: number,
+  hasVaccines: boolean,
+): { score: number; color: string; label: string } {
+  let score = 100;
+  score -= Math.min(overdueReminders, 2) * 20;
+  score -= Math.min(overdueVaccines, 2) * 25;
+  if (upcomingCount > 0) score = Math.min(100, score + 5);
+  if (hasVaccines) score = Math.min(100, score + 5);
+  score = Math.max(0, score);
+  if (score >= 80) return { score, color: '#4CAF50', label: '●' };
+  if (score >= 50) return { score, color: '#FF9800', label: '●' };
+  return { score, color: '#F44336', label: '●' };
+}
+
 // ─── Card com swipe reanimated ────────────────────────────────────────────────
 function SwipePetCard({
   pet,
@@ -62,6 +80,7 @@ function SwipePetCard({
   overdueReminders,
   todayReminders,
   overdueVaccines,
+  healthScore,
   onPress,
   onDelete,
 }: {
@@ -71,6 +90,7 @@ function SwipePetCard({
   overdueReminders: number;
   todayReminders: number;
   overdueVaccines: number;
+  healthScore: { score: number; color: string; label: string };
   onPress: () => void;
   onDelete: () => void;
 }) {
@@ -190,6 +210,10 @@ function SwipePetCard({
                   <Badge variant="info" label={t('common.events') + `: ${upcomingCount}`} small style={styles.badge} />
                 )}
               </View>
+              <View style={styles.healthRow}>
+                <Text style={[styles.healthDot, { color: healthScore.color }]}>●</Text>
+                <Text style={[styles.healthLabel, { color: healthScore.color }]}>{healthScore.score}</Text>
+              </View>
             </View>
 
             <Ionicons name="chevron-forward" size={20} color={colors.text.light} />
@@ -242,9 +266,51 @@ export default function PetDashboard() {
   const streakInitialized = useRef(false);
   const [challengeCompleted, setChallengeCompleted] = useState(false);
   const [challengeDaysLeft, setChallengeDaysLeft] = useState(7);
+  const [fabOpen, setFabOpen] = useState(false);
+  const fabRotation = useSharedValue(0);
+  const miniFabScale = useSharedValue(0);
 
   // Ref do bottom sheet de filtros
   const filterSheetRef = useRef<BottomSheetModal>(null);
+
+  // FAB expandível
+  const fabOpenRef = useRef(false);
+  const toggleFab = () => {
+    const next = !fabOpenRef.current;
+    fabOpenRef.current = next;
+    setFabOpen(next);
+    fabRotation.value = withSpring(next ? 1 : 0, { damping: 12 });
+    miniFabScale.value = withSpring(next ? 1 : 0, { damping: 14 });
+    if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  };
+
+  const fabIconStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${interpolate(fabRotation.value, [0, 1], [0, 45])}deg` }],
+  }));
+
+  const miniFab1Style = useAnimatedStyle(() => ({
+    transform: [{ scale: miniFabScale.value }, { translateY: interpolate(miniFabScale.value, [0, 1], [0, -70]) }],
+    opacity: miniFabScale.value,
+  }));
+
+  const miniFab2Style = useAnimatedStyle(() => ({
+    transform: [{ scale: miniFabScale.value }, { translateY: interpolate(miniFabScale.value, [0, 1], [0, -130]) }],
+    opacity: miniFabScale.value,
+  }));
+
+  const handleReminderFab = () => {
+    toggleFab();
+    if (pets.length === 0) return;
+    if (pets.length === 1) {
+      router.push({ pathname: '/reminder/new', params: { petId: pets[0].id } });
+    } else {
+      Alert.alert(
+        t('common.selectPet'),
+        undefined,
+        pets.map(p => ({ text: p.name, onPress: () => router.push({ pathname: '/reminder/new', params: { petId: p.id } }) })).concat([{ text: t('common.cancel'), style: 'cancel' as const, onPress: () => {} }])
+      );
+    }
+  };
 
   const activeFiltersCount = (selectedSpecies.length > 0 ? 1 : 0) + (sortBy !== 'name' ? 1 : 0);
 
@@ -348,7 +414,9 @@ export default function PetDashboard() {
       if (v.petId !== petId || !v.nextDueDate) return false;
       const d = parseDate(v.nextDueDate); d.setHours(0,0,0,0); return d < today;
     }).length;
-    return { overdueReminders, todayReminders, upcomingCount, overdueVaccines };
+    const hasVaccines = vaccines.some(v => v.petId === petId);
+    const healthScore = calcHealthScore(overdueReminders, overdueVaccines, upcomingCount, hasVaccines);
+    return { overdueReminders, todayReminders, upcomingCount, overdueVaccines, healthScore };
   };
 
   const filteredAndSortedPets = useMemo(() => {
@@ -597,20 +665,56 @@ export default function PetDashboard() {
       {/* Banner AdMob */}
       <AdBanner />
 
-      {/* FAB Adicionar Pet */}
+      {/* FAB Expandível */}
+      {fabOpen && (
+        <TouchableOpacity style={styles.fabOverlay} activeOpacity={1} onPress={toggleFab} />
+      )}
+
+      {/* Mini FAB: Novo Lembrete */}
+      <Animated.View style={[styles.miniFabContainer, miniFab1Style]} pointerEvents={fabOpen ? 'auto' : 'none'}>
+        <TouchableOpacity
+          style={[styles.miniFab, {
+            ...(Platform.OS === 'web'
+              ? { boxShadow: '0 4px 12px rgba(0,0,0,0.2)' }
+              : { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 6, elevation: 6 }),
+          }]}
+          onPress={handleReminderFab}
+          activeOpacity={0.85}
+        >
+          <Ionicons name="alarm-outline" size={20} color={Theme.primary} />
+        </TouchableOpacity>
+        <Text style={styles.miniFabLabel}>{t('reminders.newReminder')}</Text>
+      </Animated.View>
+
+      {/* Mini FAB: Novo Pet */}
+      <Animated.View style={[styles.miniFabContainer, miniFab2Style]} pointerEvents={fabOpen ? 'auto' : 'none'}>
+        <TouchableOpacity
+          style={[styles.miniFab, {
+            ...(Platform.OS === 'web'
+              ? { boxShadow: '0 4px 12px rgba(0,0,0,0.2)' }
+              : { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 6, elevation: 6 }),
+          }]}
+          onPress={() => { toggleFab(); router.push('/(tabs)/add-pet'); }}
+          activeOpacity={0.85}
+        >
+          <Ionicons name="paw-outline" size={20} color={Theme.primary} />
+        </TouchableOpacity>
+        <Text style={styles.miniFabLabel}>{t('common.addPet')}</Text>
+      </Animated.View>
+
+      {/* FAB Principal */}
       <TouchableOpacity
         style={[styles.fab, {
           ...(Platform.OS === 'web'
             ? { boxShadow: '0 6px 16px rgba(64,224,208,0.45)' }
             : { shadowColor: '#40E0D0', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.4, shadowRadius: 8, elevation: 8 }),
         }]}
-        onPress={() => {
-          if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-          router.push('/(tabs)/add-pet');
-        }}
+        onPress={toggleFab}
         activeOpacity={0.85}
       >
-        <Ionicons name="add" size={28} color="#fff" />
+        <Animated.View style={fabIconStyle}>
+          <Ionicons name="add" size={28} color="#fff" />
+        </Animated.View>
       </TouchableOpacity>
 
       {/* BottomSheet de Filtros */}
@@ -753,6 +857,9 @@ const styles = StyleSheet.create({
   petAge: { fontSize: 12, marginBottom: 6 },
   badgesRow: { flexDirection: 'row', flexWrap: 'wrap' },
   badge: { marginRight: 4, marginTop: 2 },
+  healthRow: { flexDirection: 'row', alignItems: 'center', marginTop: 4, gap: 3 },
+  healthDot: { fontSize: 10 },
+  healthLabel: { fontSize: 11, fontWeight: '700' },
 
   // Nearby banner
   nearbyBanner: {
@@ -777,6 +884,27 @@ const styles = StyleSheet.create({
     backgroundColor: Theme.primary,
     justifyContent: 'center', alignItems: 'center',
     ...Shadows.primary,
+  },
+  fabOverlay: {
+    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+  },
+  miniFabContainer: {
+    position: 'absolute', bottom: 28, right: 24,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end',
+  },
+  miniFab: {
+    width: 48, height: 48, borderRadius: 24,
+    backgroundColor: '#fff',
+    justifyContent: 'center', alignItems: 'center',
+  },
+  miniFabLabel: {
+    position: 'absolute', right: 58,
+    fontSize: 13, fontWeight: '600',
+    color: '#fff',
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    paddingHorizontal: 10, paddingVertical: 4,
+    borderRadius: 8,
+    overflow: 'hidden',
   },
 
   // Bottom Sheet conteúdo

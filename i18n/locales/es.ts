@@ -11,6 +11,7 @@ export default {
   common: {
     save: 'Guardar',
     cancel: 'Cancelar',
+    selectPet: 'Seleccionar mascota',
     delete: 'Eliminar',
     edit: 'Editar',
     add: 'Agregar',
