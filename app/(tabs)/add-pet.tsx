@@ -105,9 +105,9 @@ export default function AddPetScreen() {
 
     const newPet: Pet = {
       id: Date.now().toString(),
-      name,
-      species,
-      breed,
+      name: name.trim().slice(0, 60),
+      species: species.trim().slice(0, 40),
+      breed: breed.trim().slice(0, 60),
       dob: formattedDob,
       photoUri: photoUri || undefined,
     };

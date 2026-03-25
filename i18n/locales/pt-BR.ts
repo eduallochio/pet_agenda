@@ -842,6 +842,8 @@ export default {
     permissionGallery: 'Precisamos de permissão para acessar suas fotos.',
     imageError: 'Não foi possível selecionar a imagem.',
     saveError: 'Não foi possível salvar o perfil.',
+    stateInvalid: 'Estado deve ter 2 letras (ex: SP, ES).',
+    cepInvalid: 'CEP inválido. Use o formato 00000-000.',
   },
 
   // ── Friends ────────────────────────────────────────────────────────────────

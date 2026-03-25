@@ -842,6 +842,8 @@ export default {
     permissionGallery: 'We need permission to access your photos.',
     imageError: 'Could not select the image.',
     saveError: 'Could not save the profile.',
+    stateInvalid: 'State must be 2 letters (e.g. CA, NY).',
+    cepInvalid: 'Invalid ZIP Code. Use format 00000-000.',
   },
 
   // ── Friends ────────────────────────────────────────────────────────────────

@@ -128,14 +128,22 @@ export default function EditProfileScreen() {
       setPhoneError(t('editProfile.phoneInvalid')); valid = false;
     } else setPhoneError('');
 
+    if (state && !/^[A-Za-z]{2}$/.test(state.trim())) {
+      Alert.alert(t('common.error'), t('editProfile.stateInvalid')); valid = false;
+    }
+
+    if (cep && !/^\d{5}-\d{3}$/.test(cep.trim())) {
+      Alert.alert(t('common.error'), t('editProfile.cepInvalid')); valid = false;
+    }
+
     if (!valid) return;
 
     const newProfile: UserProfile = {
-      name: name.trim(),
-      bio: bio.trim(),
+      name: name.trim().slice(0, 60),
+      bio: bio.trim().slice(0, 200),
       phone: phone.trim(),
-      city: city.trim(),
-      state: state.trim(),
+      city: city.trim().slice(0, 60),
+      state: state.trim().toUpperCase().slice(0, 2),
       cep: cep.trim(),
       birthDate: birthDate.trim(),
       experience,
