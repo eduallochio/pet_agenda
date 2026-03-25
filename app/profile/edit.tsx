@@ -6,6 +6,7 @@ import {
 import { useRouter, Stack } from 'expo-router';
 import { useGoBack } from '../../hooks/useGoBack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { secureGet, secureSet } from '../../services/secureStorage';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import { UserProfile } from '../../types/pet';
@@ -48,7 +49,7 @@ export default function EditProfileScreen() {
   const [phoneError, setPhoneError] = useState('');
 
   useEffect(() => {
-    AsyncStorage.getItem('userProfile').then(json => {
+    secureGet('userProfile').then(json => {
       if (!json) return;
       const p: UserProfile = JSON.parse(json);
       setName(p.name || '');
@@ -142,7 +143,7 @@ export default function EditProfileScreen() {
     };
 
     try {
-      await AsyncStorage.setItem('userProfile', JSON.stringify(newProfile));
+      await secureSet('userProfile', JSON.stringify(newProfile));
       setShowSuccess(true);
       setTimeout(() => { try { goBack(); } catch {} }, 1800);
     } catch {

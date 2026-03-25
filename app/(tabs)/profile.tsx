@@ -7,6 +7,7 @@ import { Shadows } from '../../constants/Shadows';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { secureGet } from '../../services/secureStorage';
 import { Pet, UserProfile, Reminder, VaccineRecord, Achievement } from '../../types/pet';
 import { Theme } from '../../constants/Colors';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -73,7 +74,7 @@ export default function ProfileScreen() {
         try {
           const [pJSON, profJSON, rJSON, vJSON, weightJSON, streakJSON] = await Promise.all([
             AsyncStorage.getItem('pets'),
-            AsyncStorage.getItem('userProfile'),
+            secureGet('userProfile'),
             AsyncStorage.getItem('reminders'),
             AsyncStorage.getItem('vaccinations'),
             AsyncStorage.getItem('weightRecords'),
@@ -200,7 +201,7 @@ export default function ProfileScreen() {
       AsyncStorage.getItem('pets'),
       AsyncStorage.getItem('reminders'),
       AsyncStorage.getItem('vaccinations'),
-      AsyncStorage.getItem('userProfile'),
+      secureGet('userProfile'),
     ]);
     return {
       profile: profJSON ? JSON.parse(profJSON) : null,

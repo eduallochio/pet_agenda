@@ -6,6 +6,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { secureGet, secureSet } from '../../services/secureStorage';
 import { useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
@@ -43,17 +44,17 @@ export default function EmergencyContactsScreen() {
 
 	const load = async () => {
 		try {
-			const json = await AsyncStorage.getItem(STORAGE_KEY);
+			const json = await secureGet(STORAGE_KEY);
 			const all: EmergencyContact[] = json ? JSON.parse(json) : [];
 			setContacts(all.filter(c => c.petId === petId));
 		} catch { }
 	};
 
 	const save = async (updated: EmergencyContact[]) => {
-		const json = await AsyncStorage.getItem(STORAGE_KEY);
+		const json = await secureGet(STORAGE_KEY);
 		const all: EmergencyContact[] = json ? JSON.parse(json) : [];
 		const others = all.filter(c => c.petId !== petId);
-		await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify([...others, ...updated]));
+		await secureSet(STORAGE_KEY, JSON.stringify([...others, ...updated]));
 		setContacts(updated);
 	};
 

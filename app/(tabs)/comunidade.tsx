@@ -8,6 +8,7 @@ import { Shadows } from '../../constants/Shadows';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { secureGet } from '../../services/secureStorage';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
 import { Theme } from '../../constants/Colors';
@@ -226,7 +227,7 @@ export default function CommunityScreen() {
         AsyncStorage.getItem('achievements'),
         AsyncStorage.getItem('weeklyChallenge'),
         AsyncStorage.getItem('challengeHistory'),
-        AsyncStorage.getItem('userProfile'),
+        secureGet('userProfile'),
         AsyncStorage.getItem('pets'),
         AsyncStorage.getItem('reminders'),
         AsyncStorage.getItem('vaccinations'),

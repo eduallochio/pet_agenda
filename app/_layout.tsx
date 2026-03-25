@@ -46,6 +46,7 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | 
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { ThemeProvider } from '../contexts/ThemeContext';
 import { initI18n } from '../i18n';
+import { migrateToSecureStore } from '../services/secureStorage';
 
 // Suprimir warnings conhecidos do React Native Web em desenvolvimento
 if (__DEV__ && Platform.OS === 'web') {
@@ -88,6 +89,7 @@ export default function RootLayout() {
 
   useEffect(() => {
     initI18n().then(setI18nInstance);
+    migrateToSecureStore().catch(() => {});
   }, []);
 
   // Notificação de reengajamento: agenda ao abrir o app
