@@ -51,6 +51,21 @@ function calcAgeRaw(dob: string): { type: 'newborn' | 'months' | 'years'; count:
   return { type: 'years', count: Math.floor(months / 12) };
 }
 
+// Calcula dias até o próximo aniversário — retorna 0 se hoje, null se sem dob
+function calcBirthdayCountdown(dob: string): number | null {
+  if (!dob) return null;
+  const parts = dob.split('/');
+  if (parts.length !== 3) return null;
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  const day = parseInt(parts[0]);
+  const month = parseInt(parts[1]) - 1;
+  let next = new Date(now.getFullYear(), month, day);
+  next.setHours(0, 0, 0, 0);
+  if (next < now) next = new Date(now.getFullYear() + 1, month, day);
+  return Math.round((next.getTime() - now.getTime()) / 86400000);
+}
+
 const SWIPE_THRESHOLD = 80;
 const DELETE_WIDTH = 80;
 
@@ -91,6 +106,7 @@ function SwipePetCard({
   todayReminders: number;
   overdueVaccines: number;
   healthScore: { score: number; color: string; label: string };
+  birthdayCountdown: number | null;
   onPress: () => void;
   onDelete: () => void;
 }) {
@@ -213,6 +229,13 @@ function SwipePetCard({
               <View style={styles.healthRow}>
                 <Text style={[styles.healthDot, { color: healthScore.color }]}>●</Text>
                 <Text style={[styles.healthLabel, { color: healthScore.color }]}>{healthScore.score}</Text>
+                {birthdayCountdown !== null && birthdayCountdown <= 7 && (
+                  <View style={styles.birthdayChip}>
+                    <Text style={styles.birthdayChipText}>
+                      {birthdayCountdown === 0 ? '🎂' : `🎂 ${birthdayCountdown}d`}
+                    </Text>
+                  </View>
+                )}
               </View>
             </View>
 
@@ -416,7 +439,9 @@ export default function PetDashboard() {
     }).length;
     const hasVaccines = vaccines.some(v => v.petId === petId);
     const healthScore = calcHealthScore(overdueReminders, overdueVaccines, upcomingCount, hasVaccines);
-    return { overdueReminders, todayReminders, upcomingCount, overdueVaccines, healthScore };
+    const pet = pets.find(p => p.id === petId);
+    const birthdayCountdown = pet?.dob ? calcBirthdayCountdown(pet.dob) : null;
+    return { overdueReminders, todayReminders, upcomingCount, overdueVaccines, healthScore, birthdayCountdown };
   };
 
   const filteredAndSortedPets = useMemo(() => {
@@ -866,6 +891,14 @@ const styles = StyleSheet.create({
   healthRow: { flexDirection: 'row', alignItems: 'center', marginTop: 4, gap: 3 },
   healthDot: { fontSize: 10 },
   healthLabel: { fontSize: 11, fontWeight: '700' },
+  birthdayChip: {
+    backgroundColor: '#FF6B9D18',
+    borderRadius: 8,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    marginLeft: 4,
+  },
+  birthdayChipText: { fontSize: 11, fontWeight: '700' },
 
   // Nearby banner
   nearbyBanner: {
