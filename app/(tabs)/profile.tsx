@@ -287,13 +287,24 @@ ${petsSection || '<p>Nenhum pet cadastrado.</p>'}
       Alert.alert('Export', t('profile.settings.exportWebUnsupported'));
       return;
     }
+    // Aviso de privacidade antes de exportar
     Alert.alert(
-      t('profile.settings.exportData'),
-      t('profile.settings.exportChoose'),
+      t('profile.settings.exportPrivacyTitle'),
+      t('profile.settings.exportPrivacyMsg'),
       [
         { text: t('common.cancel'), style: 'cancel' },
-        { text: 'PDF', onPress: exportAsPDF },
-        { text: 'JSON (Backup)', onPress: exportAsJSON },
+        {
+          text: t('profile.settings.exportContinue'),
+          onPress: () => Alert.alert(
+            t('profile.settings.exportData'),
+            t('profile.settings.exportChoose'),
+            [
+              { text: t('common.cancel'), style: 'cancel' },
+              { text: 'PDF', onPress: exportAsPDF },
+              { text: 'JSON (Backup)', onPress: exportAsJSON },
+            ]
+          ),
+        },
       ]
     );
   };
