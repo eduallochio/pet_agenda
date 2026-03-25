@@ -33,6 +33,7 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { tickStreak, StreakData } from '../../hooks/useStreak';
 import { getCurrentChallenge, loadChallengeState, getWeekKey } from '../../hooks/useChallenges';
 import ChallengeCard from '../../components/ChallengeCard';
+import UpcomingVaccinesCard from '../../components/UpcomingVaccinesCard';
 import { useTranslation } from 'react-i18next';
 
 // Calcula idade a partir de DD/MM/YYYY — retorna número de meses e anos para uso com t()
@@ -448,6 +449,9 @@ export default function PetDashboard() {
         completed={challengeCompleted}
         daysLeft={challengeDaysLeft}
       />
+
+      {/* Vacinas próximas / vencidas */}
+      <UpcomingVaccinesCard pets={pets} vaccines={vaccines} />
 
       {/* Serviços Próximos */}
       <TouchableOpacity

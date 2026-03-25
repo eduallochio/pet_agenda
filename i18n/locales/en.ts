@@ -953,6 +953,18 @@ export default {
     lastWeight: 'Last weight: {{weight}} kg ({{date}})',
   },
 
+  // ── Vaccine Card ──────────────────────────────────────────────────────────
+  vaccineCard: {
+    label: 'Attention',
+    title: 'Vaccines in the Next 30 Days',
+    titleOverdue: 'Overdue Vaccines!',
+    vaccine: 'vaccine',
+    vaccines: 'vaccines',
+    overdue: 'overdue',
+    morePets: 'pets',
+    cta: 'View vaccines',
+  },
+
   // ── Achievement Unlocked ──────────────────────────────────────────────────
   achievement: {
     unlocked: 'Achievement Unlocked!',

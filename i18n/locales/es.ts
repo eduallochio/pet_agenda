@@ -953,6 +953,18 @@ export default {
     lastWeight: 'Último peso: {{weight}} kg ({{date}})',
   },
 
+  // ── Tarjeta de Vacunas ────────────────────────────────────────────────────
+  vaccineCard: {
+    label: 'Atención',
+    title: 'Vacunas en los Próximos 30 Días',
+    titleOverdue: '¡Vacunas Vencidas!',
+    vaccine: 'vacuna',
+    vaccines: 'vacunas',
+    overdue: 'vencida',
+    morePets: 'mascotas',
+    cta: 'Ver vacunas',
+  },
+
   // ── Logro Desbloqueado ────────────────────────────────────────────────────
   achievement: {
     unlocked: '¡Logro Desbloqueado!',
