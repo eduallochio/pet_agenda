@@ -11,6 +11,7 @@ import { Theme } from '../../constants/Colors';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import AnimatedButton from '../../components/animations/AnimatedButton';
 import SuccessAnimation from '../../components/animations/SuccessAnimation';
+import AchievementUnlockModal from '../../components/AchievementUnlockModal';
 import DatePickerInput from '../../components/DatePickerInput';
 import ValidatedInput from '../../components/ValidatedInput';
 import BreedAutocomplete from '../../components/BreedAutocomplete';
@@ -47,6 +48,7 @@ export default function AddPetScreen() {
   const [dob, setDob] = useState<Date | null>(null);
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [unlockedAchievementId, setUnlockedAchievementId] = useState<string | null>(null);
 
   const { validateAll, getFieldError, touchField, clearAllErrors } = useFormValidation({
     name:    { required: true, minLength: 2, maxLength: 50 },
@@ -131,14 +133,14 @@ export default function AddPetScreen() {
         } catch { /* notif opcional */ }
       }
 
-      // Verificar conquistas
+      // Verificar conquistas e capturar novas
       const [remJSON, vacJSON, weightJSON, streakJSON] = await Promise.all([
         AsyncStorage.getItem('reminders'),
         AsyncStorage.getItem('vaccinations'),
         AsyncStorage.getItem('weightRecords'),
         AsyncStorage.getItem('streakData'),
       ]);
-      await checkAndUnlockAchievements({
+      const newlyUnlocked = await checkAndUnlockAchievements({
         pets: existingPets,
         reminders: remJSON ? JSON.parse(remJSON) : [],
         vaccines: vacJSON ? JSON.parse(vacJSON) : [],
@@ -147,6 +149,10 @@ export default function AddPetScreen() {
       });
 
       await autoCompleteChallenge('add_pet');
+
+      if (newlyUnlocked.length > 0) {
+        setUnlockedAchievementId(newlyUnlocked[0]);
+      }
 
       setShowSuccess(true);
       setTimeout(() => {
@@ -288,6 +294,11 @@ export default function AddPetScreen() {
       </ScrollView>
 
       <SuccessAnimation visible={showSuccess} onAnimationEnd={() => setShowSuccess(false)} />
+
+      <AchievementUnlockModal
+        achievementId={unlockedAchievementId}
+        onClose={() => setUnlockedAchievementId(null)}
+      />
     </SafeAreaView>
   );
 }

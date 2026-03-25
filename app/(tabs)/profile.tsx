@@ -20,6 +20,7 @@ import { useTranslation } from 'react-i18next';
 import { changeLanguage, getInitialLanguage, SUPPORTED_LANGUAGES, SupportedLanguage } from '../../i18n';
 import { ACHIEVEMENTS, groupAchievements, checkAndUnlockAchievements, getAchievementProgress, AchievementProgress } from '../../hooks/useAchievements';
 import AchievementGroupSection from '../../components/AchievementGroupSection';
+import AchievementUnlockModal from '../../components/AchievementUnlockModal';
 import {
   CHALLENGES, getCurrentChallenge, loadChallengeState, completeChallenge, autoCompleteDataChallenge,
 } from '../../hooks/useChallenges';
@@ -59,6 +60,7 @@ export default function ProfileScreen() {
   const [completedChallengeIds, setCompletedChallengeIds] = useState<string[]>([]);
   const [weightRecords, setWeightRecords] = useState<WeightRecord[]>([]);
   const [streak, setStreak] = useState<StreakData>({ currentStreak: 0, bestStreak: 0, lastOpenedDate: '', totalDays: 0 });
+  const [unlockedAchievementId, setUnlockedAchievementId] = useState<string | null>(null);
   const [settingsVisible, setSettingsVisible] = useState(false);
   const [currentLang, setCurrentLang] = useState<SupportedLanguage>('pt-BR');
   const { t } = useTranslation();
@@ -102,13 +104,16 @@ export default function ProfileScreen() {
           setStreak(parsedStreak);
 
           // Checar e desbloquear conquistas
-          await checkAndUnlockAchievements({
+          const newlyUnlocked = await checkAndUnlockAchievements({
             pets: parsedPets,
             reminders: parsedReminders,
             vaccines: parsedVaccines,
             weightRecords: parsedWeightRecords,
             streak: parsedStreak,
           });
+          if (newlyUnlocked.length > 0) {
+            setUnlockedAchievementId(newlyUnlocked[0]);
+          }
           const achJSON = await AsyncStorage.getItem('achievements');
           setUnlockedAchievements(achJSON ? JSON.parse(achJSON) : []);
 
@@ -838,6 +843,11 @@ ${petsSection || '<p>Nenhum pet cadastrado.</p>'}
           </View>
         </View>
       </Modal>
+
+      <AchievementUnlockModal
+        achievementId={unlockedAchievementId}
+        onClose={() => setUnlockedAchievementId(null)}
+      />
     </SafeAreaView>
     </View>
   );

@@ -953,6 +953,12 @@ export default {
     lastWeight: 'Last weight: {{weight}} kg ({{date}})',
   },
 
+  // ── Achievement Unlocked ──────────────────────────────────────────────────
+  achievement: {
+    unlocked: 'Achievement Unlocked!',
+    awesome: 'Awesome! 🎉',
+  },
+
   // ── Weekly Challenge ───────────────────────────────────────────────────────
   challenge: {
     weeklyChallenge: 'Weekly Challenge',

@@ -953,6 +953,12 @@ export default {
     lastWeight: 'Último peso: {{weight}} kg ({{date}})',
   },
 
+  // ── Conquista Desbloqueada ─────────────────────────────────────────────────
+  achievement: {
+    unlocked: 'Conquista Desbloqueada!',
+    awesome: 'Incrível! 🎉',
+  },
+
   // ── Desafio Semanal ────────────────────────────────────────────────────────
   challenge: {
     weeklyChallenge: 'Desafio da Semana',
