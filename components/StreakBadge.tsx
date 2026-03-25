@@ -5,6 +5,14 @@ import { useTheme } from '../hooks/useTheme';
 import { useTranslation } from 'react-i18next';
 import { toggleVacationMode } from '../hooks/useStreak';
 
+const MILESTONES = [7, 14, 30, 60, 100];
+function getNextMilestone(streak: number): { target: number; progress: number } {
+  const next = MILESTONES.find(m => m > streak) ?? MILESTONES[MILESTONES.length - 1];
+  const prev = MILESTONES[MILESTONES.indexOf(next) - 1] ?? 0;
+  const progress = Math.min(1, (streak - prev) / (next - prev));
+  return { target: next, progress };
+}
+
 type Props = {
   streak: number;
   best: number;
@@ -20,6 +28,7 @@ export default function StreakBadge({ streak, best, vacationMode, onVacationTogg
 
   const color = vacationMode ? '#40B0E0' : streak >= 7 ? '#FF6B00' : streak >= 3 ? '#FF9500' : '#FFB800';
   const isRecord = !vacationMode && streak >= best && streak > 1;
+  const { target, progress } = getNextMilestone(streak);
 
   const handleLongPress = () => {
     const nextMode = !vacationMode;
@@ -65,6 +74,14 @@ export default function StreakBadge({ streak, best, vacationMode, onVacationTogg
           <Text style={styles.recordText}>{t('streak.record')}</Text>
         </View>
       )}
+      {!vacationMode && (
+        <View style={styles.progressWrapper}>
+          <View style={[styles.progressTrack, { backgroundColor: color + '30' }]}>
+            <View style={[styles.progressFill, { backgroundColor: color, width: `${Math.round(progress * 100)}%` as any }]} />
+          </View>
+          <Text style={[styles.targetLabel, { color }]}>{target}</Text>
+        </View>
+      )}
     </TouchableOpacity>
   );
 }
@@ -88,4 +105,8 @@ const styles = StyleSheet.create({
     marginLeft: 2,
   },
   recordText: { fontSize: 9, fontWeight: '800', color: '#fff', letterSpacing: 0.5 },
+  progressWrapper: { flexDirection: 'row', alignItems: 'center', gap: 3, marginLeft: 2 },
+  progressTrack: { width: 28, height: 4, borderRadius: 2, overflow: 'hidden' },
+  progressFill: { height: 4, borderRadius: 2 },
+  targetLabel: { fontSize: 9, fontWeight: '700' },
 });

@@ -364,7 +364,6 @@ export default function PetDashboard() {
       setReminders(remindersJSON ? JSON.parse(remindersJSON) : []);
       setVaccines(vaccinesJSON ? JSON.parse(vaccinesJSON) : []);
 
-      const now = new Date();
       const todayStr = `${now.getFullYear()}-${now.getMonth()}-${now.getDate()}`;
       const shownDate = await AsyncStorage.getItem('birthdayShownDate');
       for (const p of loadedPets) {
