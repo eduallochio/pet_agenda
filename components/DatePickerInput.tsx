@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Platform, TextInput } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Platform, TextInput, Modal } from 'react-native';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import { Theme } from '../constants/Colors';
@@ -125,40 +125,57 @@ const DatePickerInput = ({
         <Ionicons name="chevron-down" size={20} color={colors.text.secondary} />
       </TouchableOpacity>
 
-      {show && (
-        <>
-          {Platform.OS === 'ios' && (
-            <View style={[styles.iosPickerContainer, { backgroundColor: colors.surface }]}>
-              <View style={[styles.iosPickerHeader, { borderBottomColor: colors.border }]}>
-                <TouchableOpacity onPress={() => setShow(false)}>
-                  <Text style={[styles.iosPickerButton, { color: Theme.primary }]}>Cancelar</Text>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => setShow(false)}>
-                  <Text style={[styles.iosPickerButton, styles.iosPickerDone, { color: Theme.primary }]}>Confirmar</Text>
-                </TouchableOpacity>
-              </View>
-              <DateTimePicker
-                value={toSafeDate(value) || new Date()}
-                mode="date"
-                display="spinner"
-                onChange={handleDateChange}
-                minimumDate={minimumDate}
-                maximumDate={maximumDate}
-                locale="pt-BR"
-              />
-            </View>
-          )}
-          {Platform.OS === 'android' && (
+      {/* iOS: picker inline abaixo do botão */}
+      {show && Platform.OS === 'ios' && (
+        <View style={[styles.iosPickerContainer, { backgroundColor: colors.surface }]}>
+          <View style={[styles.iosPickerHeader, { borderBottomColor: colors.border }]}>
+            <TouchableOpacity onPress={() => setShow(false)}>
+              <Text style={[styles.iosPickerButton, { color: Theme.primary }]}>Cancelar</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setShow(false)}>
+              <Text style={[styles.iosPickerButton, styles.iosPickerDone, { color: Theme.primary }]}>Confirmar</Text>
+            </TouchableOpacity>
+          </View>
+          <DateTimePicker
+            value={toSafeDate(value) || new Date()}
+            mode="date"
+            display="spinner"
+            onChange={handleDateChange}
+            minimumDate={minimumDate}
+            maximumDate={maximumDate}
+            locale="pt-BR"
+          />
+        </View>
+      )}
+
+      {/* Android: picker em Modal para garantir que apareça acima do ScrollView */}
+      {show && Platform.OS === 'android' && (
+        <Modal
+          transparent
+          animationType="fade"
+          visible={show}
+          onRequestClose={() => setShow(false)}
+        >
+          <TouchableOpacity
+            style={styles.modalOverlay}
+            activeOpacity={1}
+            onPress={() => setShow(false)}
+          >
             <DateTimePicker
               value={toSafeDate(value) || new Date()}
               mode="date"
               display="default"
-              onChange={handleDateChange}
+              onChange={(event, selectedDate) => {
+                setShow(false);
+                if (selectedDate && event.type === 'set') {
+                  onChange(selectedDate);
+                }
+              }}
               minimumDate={minimumDate}
               maximumDate={maximumDate}
             />
-          )}
-        </>
+          </TouchableOpacity>
+        </Modal>
       )}
     </View>
   );
@@ -206,6 +223,12 @@ const styles = StyleSheet.create({
   },
   iosPickerDone: {
     fontWeight: 'bold',
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.3)',
   },
 });
 
