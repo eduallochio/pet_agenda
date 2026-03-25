@@ -30,6 +30,9 @@ const SPECIES_OPTIONS: { label: string; icon: MCIName; value: string }[] = [
   { label: 'Hamster',  icon: 'rodent',  value: 'Hamster' },
   { label: 'Peixe',    icon: 'fish',    value: 'Peixe' },
   { label: 'Réptil',   icon: 'snake',   value: 'Réptil' },
+  { label: 'Cobaia',   icon: 'rodent',  value: 'Cobaia' },
+  { label: 'Chinchila', icon: 'rodent', value: 'Chinchila' },
+  { label: 'Furão',    icon: 'paw',     value: 'Furão' },
   { label: 'Outro',    icon: 'paw',     value: 'Outro' },
 ];
 

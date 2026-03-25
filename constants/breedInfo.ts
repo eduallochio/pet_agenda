@@ -1,6 +1,6 @@
 export type BreedInfo = {
   name: string;
-  species: 'Cachorro' | 'Gato' | 'Pássaro' | 'Coelho' | 'Hamster' | 'Peixe' | 'Réptil';
+  species: 'Cachorro' | 'Gato' | 'Pássaro' | 'Coelho' | 'Hamster' | 'Peixe' | 'Réptil' | 'Cobaia' | 'Chinchila' | 'Furão';
   origin: string;
   size: 'Pequeno' | 'Médio' | 'Grande' | 'Gigante';
   lifespan: string; // ex: "12-15 anos"
@@ -355,6 +355,158 @@ const BREEDS: BreedInfo[] = [
   { name: 'Iguana Verde', species: 'Réptil', origin: 'América Central e do Sul', size: 'Grande', lifespan: '10–15 anos', temperament: ['Territorial', 'Calmo quando adulto', 'Curioso'], characteristics: 'Grande lagarto verde com crista dorsal. Pode atingir 1,5–2m.', care: ['Terrário enorme ou quarto dedicado', 'UV-B obrigatório', 'Dieta 100% vegetal', 'Banhos frequentes'], curiosity: 'Iguanas podem soltar a cauda como defesa — ela regenera parcialmente.', emoji: '🦎' },
   { name: 'Tartaruga-de-orelha-vermelha', species: 'Réptil', origin: 'América do Norte', size: 'Médio', lifespan: '20–40 anos', temperament: ['Ativo', 'Territorial', 'Curioso'], characteristics: 'Marca vermelha atrás dos olhos, semi-aquática. A mais popular como pet.', care: ['Aquaterrário', 'Filtro potente', 'Área de basking com UV-B', 'Alimentação variada'], curiosity: 'Podem viver mais de 40 anos — muitos acabam abandonados quando crescem demais.', emoji: '🐢' },
   { name: 'Corn Snake (Cobra do Milho)', species: 'Réptil', origin: 'América do Norte', size: 'Médio', lifespan: '15–20 anos', temperament: ['Dócil', 'Calmo', 'Curioso'], characteristics: 'Cobra não-peçonhenta, padrão xadrez colorido. Ideal para iniciantes com répteis.', care: ['Terrário com tampa segura', 'Temperatura 24–30°C', 'Esconderijos', 'Roedores congelados/descongelados'], curiosity: 'É recomendada para quem quer começar com cobras — praticamente nunca morde.', emoji: '🐍' },
+
+  // ── Cachorros (raças populares no Brasil) ────────────────────────────────────
+  {
+    name: 'SRD (Vira-lata)',
+    species: 'Cachorro',
+    origin: 'Brasil',
+    size: 'Médio',
+    lifespan: '13–18 anos',
+    temperament: ['Resiliente', 'Adaptável', 'Leal', 'Inteligente'],
+    characteristics: 'Mistura de raças, pelagem e porte variados. Extremamente resistente geneticamente.',
+    care: ['Vacinação em dia', 'Vermifugação regular', 'Exercício diário', 'Alimentação equilibrada'],
+    curiosity: 'Estudos mostram que vira-latas têm maior expectativa de vida e menos doenças hereditárias que raças puras.',
+    emoji: '🐕',
+  },
+  {
+    name: 'Pitbull (APBT)',
+    species: 'Cachorro',
+    origin: 'EUA',
+    size: 'Médio',
+    lifespan: '12–16 anos',
+    temperament: ['Leal', 'Corajoso', 'Afetuoso', 'Energético'],
+    characteristics: 'Corpo musculoso e compacto, cabeça larga, pelo curto. Extremamente forte para o seu tamanho.',
+    care: ['Socialização desde filhote', 'Exercício diário intenso', 'Treinamento positivo', 'Escovação semanal'],
+    curiosity: 'Apesar da reputação, o APBT foi historicamente chamado de "babá dog" por ser gentil com crianças.',
+    emoji: '🐕',
+  },
+  {
+    name: 'Akita',
+    species: 'Cachorro',
+    origin: 'Japão',
+    size: 'Grande',
+    lifespan: '10–13 anos',
+    temperament: ['Leal', 'Digno', 'Corajoso', 'Reservado'],
+    characteristics: 'Corpo robusto, cauda enrolada, pelagem densa dupla, expressão nobre e serena.',
+    care: ['Socialização precoce', 'Exercício diário moderado', 'Escovação intensa na muda', 'Treinamento firme e consistente'],
+    curiosity: 'Hachiko, o akita mais famoso do mundo, esperou seu dono na estação de trem por 9 anos após sua morte.',
+    emoji: '🐕',
+  },
+  {
+    name: 'Cocker Spaniel',
+    species: 'Cachorro',
+    origin: 'Inglaterra',
+    size: 'Médio',
+    lifespan: '12–15 anos',
+    temperament: ['Alegre', 'Afetuoso', 'Dócil', 'Ativo'],
+    characteristics: 'Orelhas longas e sedosas, olhos expressivos e amendoados, pelo ondulado e abundante.',
+    care: ['Escovação diária', 'Limpeza das orelhas semanal', 'Banhos regulares', 'Exercício moderado diário'],
+    curiosity: 'É a raça que inspirou a famosa cena do espaguete no filme "A Dama e o Vagabundo" da Disney.',
+    emoji: '🐕',
+  },
+  {
+    name: 'Chow Chow',
+    species: 'Cachorro',
+    origin: 'China',
+    size: 'Grande',
+    lifespan: '9–15 anos',
+    temperament: ['Independente', 'Leal', 'Reservado', 'Protetor'],
+    characteristics: 'Língua azul-escura única, juba ao redor da cabeça, pelagem densa. Andar característico.',
+    care: ['Escovação frequente', 'Evitar calor excessivo', 'Socialização precoce', 'Exercício moderado'],
+    curiosity: 'São uma das raças mais antigas do mundo — registros de 2.000 anos na China como cão de guarda imperial.',
+    emoji: '🦁',
+  },
+  {
+    name: 'Dobermann',
+    species: 'Cachorro',
+    origin: 'Alemanha',
+    size: 'Grande',
+    lifespan: '10–13 anos',
+    temperament: ['Inteligente', 'Alerta', 'Leal', 'Energético'],
+    characteristics: 'Corpo elegante e musculoso, pelo curto e brilhante, postura atlética e imponente.',
+    care: ['Exercício diário intenso', 'Estimulação mental', 'Treinamento profissional', 'Monitorar coração — propenso à cardiomiopatia'],
+    curiosity: 'Foi criado por Louis Dobermann, cobrador de impostos alemão que queria proteção em suas rondas.',
+    emoji: '🐕',
+  },
+  {
+    name: 'São Bernardo',
+    species: 'Cachorro',
+    origin: 'Suíça',
+    size: 'Gigante',
+    lifespan: '8–10 anos',
+    temperament: ['Gentil', 'Paciente', 'Amigável', 'Calmo'],
+    characteristics: 'Porte gigantesco, pelagem densa, cabeça larga e expressão bondosa. Baba bastante.',
+    care: ['Espaço amplo', 'Exercício moderado', 'Escovação frequente', 'Monitorar articulações e peso'],
+    curiosity: 'Os famosos barris de conhaque que esses cães supostamente carregavam nunca foram reais — são lenda.',
+    emoji: '🐕',
+  },
+  {
+    name: 'Shar Pei',
+    species: 'Cachorro',
+    origin: 'China',
+    size: 'Médio',
+    lifespan: '8–12 anos',
+    temperament: ['Calmo', 'Leal', 'Independente', 'Protetor'],
+    characteristics: 'Inconfundíveis pregas de pele por todo o corpo, focinho de hipopótamo, pelo curto e áspero.',
+    care: ['Limpeza das pregas diária', 'Monitorar olhos — propenso ao entrópio', 'Exercício moderado', 'Veterinário regular'],
+    curiosity: 'Quase extinto na China comunista — sobreviveu graças a criadores de Hong Kong nos anos 1970.',
+    emoji: '🐕',
+  },
+
+  // ── Gatos (raças populares no Brasil) ───────────────────────────────────────
+  {
+    name: 'SRD - Gato de Rua',
+    species: 'Gato',
+    origin: 'Brasil',
+    size: 'Médio',
+    lifespan: '12–20 anos',
+    temperament: ['Independente', 'Adaptável', 'Resiliente', 'Curioso'],
+    characteristics: 'Mistura de raças, pelagem e cores variadas. Geneticamente mais resistente que raças puras.',
+    care: ['Vacinação e vermifugação', 'Castração', 'Enriquecimento ambiental', 'Alimentação de qualidade'],
+    curiosity: 'Gatos SRD castrados e vacinados vivem em média mais que gatos de raça pura.',
+    emoji: '🐱',
+  },
+  {
+    name: 'Angorá Turco',
+    species: 'Gato',
+    origin: 'Turquia',
+    size: 'Médio',
+    lifespan: '12–18 anos',
+    temperament: ['Ativo', 'Inteligente', 'Afetuoso', 'Curioso'],
+    characteristics: 'Pelo longo e sedoso sem subpelo, corpo esguio e elegante, olhos amendoados.',
+    care: ['Escovação semanal', 'Brinquedos interativos', 'Companhia frequente', 'Evitar isolamento'],
+    curiosity: 'É uma das raças mais antigas da Europa — chegou do Oriente Médio no século XVII.',
+    emoji: '🐱',
+  },
+  {
+    name: 'Pelo Curto Brasileiro',
+    species: 'Gato',
+    origin: 'Brasil',
+    size: 'Médio',
+    lifespan: '14–20 anos',
+    temperament: ['Ativo', 'Sociável', 'Independente', 'Adaptável'],
+    characteristics: 'Pelo curto e liso, corpo ágil e musculoso. Grande variedade de cores e padrões.',
+    care: ['Escovação quinzenal', 'Castração recomendada', 'Brinquedos e arranhadores', 'Alimentação balanceada'],
+    curiosity: 'É a raça brasileira reconhecida pela ABGA — descendente dos gatos trazidos pelos portugueses no século XVI.',
+    emoji: '🐱',
+  },
+
+  // ── Cobaia (Porquinho-da-índia) ──────────────────────────────────────────────
+  { name: 'Americano (Short Hair)', species: 'Cobaia', origin: 'América do Sul', size: 'Pequeno', lifespan: '4–8 anos', temperament: ['Dócil', 'Sociável', 'Curioso'], characteristics: 'Pelo curto e liso, corpo robusto, sem cauda. A raça mais comum como pet.', care: ['Viveiro espaçoso', 'Companhia de outro cobaia', 'Feno à vontade', 'Vitamina C diária'], curiosity: 'Apesar do nome, não são da Índia — são originários dos Andes sul-americanos.', emoji: '🐹' },
+  { name: 'Abissínio', species: 'Cobaia', origin: 'América do Sul', size: 'Pequeno', lifespan: '4–8 anos', temperament: ['Brincalhão', 'Ativo', 'Vocal'], characteristics: 'Pelo com redemoinhos (rosetas) em todo o corpo. Aparência sempre "bagunçada".', care: ['Escovação semanal', 'Espaço para correr', 'Vitamina C diária', 'Companhia essencial'], curiosity: 'Os redemoinhos do pelo são chamados de rosetas — cada cobaia tem um padrão único.', emoji: '🐹' },
+  { name: 'Peruano', species: 'Cobaia', origin: 'Peru', size: 'Pequeno', lifespan: '4–8 anos', temperament: ['Calmo', 'Dócil', 'Afetuoso'], characteristics: 'Pelo longo (até 50cm) que cobre todo o corpo. Parece um tapete ambulante.', care: ['Escovação diária obrigatória', 'Tosa regular', 'Vitamina C', 'Espaço limpo e seco'], curiosity: 'Seu pelo pode crescer continuamente — sem cuidados adequados, chega a arrastar no chão.', emoji: '🐹' },
+  { name: 'Teddy', species: 'Cobaia', origin: 'EUA', size: 'Pequeno', lifespan: '4–8 anos', temperament: ['Dócil', 'Tranquilo', 'Sociável'], characteristics: 'Pelo curto, denso e crespo — textura aveludada. Nariz arrebitado característico.', care: ['Escovação semanal', 'Limpeza das orelhas', 'Vitamina C diária', 'Companhia essencial'], curiosity: 'Seu pelo "crespo" é resultado de uma mutação genética surgida espontaneamente.', emoji: '🐹' },
+
+  // ── Chinchila ────────────────────────────────────────────────────────────────
+  { name: 'Chinchila Padrão (Cinza)', species: 'Chinchila', origin: 'Chile / Andes', size: 'Pequeno', lifespan: '10–20 anos', temperament: ['Ativo', 'Curioso', 'Tímido', 'Noturno'], characteristics: 'Pelo cinza-azulado extremamente denso e macio. Orelhas grandes e arredondadas.', care: ['Banho de areia especial (não água)', 'Temperatura abaixo de 25°C', 'Gaiola alta para pular', 'Feno de qualidade'], curiosity: 'Têm o pelo mais denso entre os mamíferos terrestres — 60 a 80 fios por folículo.', emoji: '🐭' },
+  { name: 'Chinchila Beige', species: 'Chinchila', origin: 'Criação seletiva', size: 'Pequeno', lifespan: '10–20 anos', temperament: ['Ativo', 'Sociável', 'Curioso'], characteristics: 'Coloração bege-creme resultado de mutação genética. Olhos vermelhos ou negros.', care: ['Banho de areia', 'Ambiente fresco e seco', 'Dieta à base de feno', 'Companhia de outra chinchila'], curiosity: 'A mutação beige surgiu em cativeiro nos anos 1950 — não existe na natureza.', emoji: '🐭' },
+  { name: 'Chinchila Branca (White)', species: 'Chinchila', origin: 'Criação seletiva', size: 'Pequeno', lifespan: '10–18 anos', temperament: ['Dócil', 'Curioso', 'Ativo'], characteristics: 'Pelagem branca pura. Pode ter manchas escuras (mosaic) ou ser completamente branca.', care: ['Banho de areia', 'Temperatura controlada', 'Feno ilimitado', 'Evitar umidade'], curiosity: 'Chinchilas brancas homozigóticas (white-white) não sobrevivem — a combinação é letal no embrião.', emoji: '🐭' },
+
+  // ── Furão ────────────────────────────────────────────────────────────────────
+  { name: 'Furão Doméstico', species: 'Furão', origin: 'Europa', size: 'Pequeno', lifespan: '6–10 anos', temperament: ['Brincalhão', 'Curioso', 'Ativo', 'Sociável'], characteristics: 'Corpo alongado e flexível, focinho pontudo, pelo variado. Dorme até 18h por dia.', care: ['Gaiola grande com andares', 'Solto por ao menos 4h/dia', 'Vacinação obrigatória', 'Castração recomendada'], curiosity: 'São domesticados há mais de 2.500 anos — usados para caçar coelhos em tocas na Europa medieval.', emoji: '🦦' },
+  { name: 'Furão Albino', species: 'Furão', origin: 'Europa', size: 'Pequeno', lifespan: '6–10 anos', temperament: ['Dócil', 'Brincalhão', 'Curioso'], characteristics: 'Pelagem branca ou creme, olhos vermelhos ou rosados. Resultado de ausência de pigmentação.', care: ['Proteção da luz solar forte', 'Vacinação', 'Castração', 'Brinquedos e interação diária'], curiosity: 'Furões albinos têm maior risco de surdez congênita associada à falta de pigmentação.', emoji: '🦦' },
+  { name: 'Furão Sable', species: 'Furão', origin: 'Europa', size: 'Pequeno', lifespan: '6–10 anos', temperament: ['Energético', 'Brincalhão', 'Social'], characteristics: 'Coloração mais comum — marrom escuro (sable) com máscara e patas mais escuras.', care: ['Interação diária obrigatória', 'Gaiola segura', 'Veterinário com experiência em furões', 'Dieta proteica'], curiosity: 'O cheiro característico dos furões vem de glândulas sebáceas — a castração reduz significativamente o odor.', emoji: '🦦' },
 ];
 
 /** Retorna raças filtradas por espécie para autocomplete. */
