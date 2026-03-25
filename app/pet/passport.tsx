@@ -17,6 +17,7 @@ import { useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
+import { requestBiometricAuth } from '../../services/biometricAuth';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
 import { useGoBack } from '../../hooks/useGoBack';
@@ -424,6 +425,8 @@ export default function PetPassportScreen() {
 
   const handleExport = async () => {
     if (!pet) return;
+    const authed = await requestBiometricAuth(t('passport.exportBiometricPrompt'));
+    if (!authed) return;
     setExporting(true);
     try {
       const now = new Date();

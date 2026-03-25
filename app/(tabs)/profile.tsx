@@ -25,6 +25,7 @@ import {
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { Share } from 'react-native';
+import { requestBiometricAuth } from '../../services/biometricAuth';
 
 type MCIName = keyof typeof MaterialCommunityIcons.glyphMap;
 
@@ -282,11 +283,13 @@ ${petsSection || '<p>Nenhum pet cadastrado.</p>'}
     }
   };
 
-  const handleExportData = () => {
+  const handleExportData = async () => {
     if (Platform.OS === 'web') {
       Alert.alert('Export', t('profile.settings.exportWebUnsupported'));
       return;
     }
+    const authed = await requestBiometricAuth(t('profile.settings.exportBiometricPrompt'));
+    if (!authed) return;
     // Aviso de privacidade antes de exportar
     Alert.alert(
       t('profile.settings.exportPrivacyTitle'),

@@ -404,6 +404,7 @@ export default {
       exportPrivacyTitle: 'Aviso de Privacidade',
       exportPrivacyMsg: 'O arquivo exportado contém dados pessoais (perfil, pets, vacinas, lembretes). Compartilhe somente com pessoas de confiança.',
       exportContinue: 'Continuar',
+      exportBiometricPrompt: 'Confirme sua identidade para exportar os dados',
       exportWebUnsupported: 'Exportação disponível somente no app mobile.',
       about: 'SOBRE',
       version: 'Versão',
@@ -928,6 +929,7 @@ export default {
     export: 'Exportar PDF',
     exporting: 'Gerando PDF...',
     shareError: 'Não foi possível exportar o passaporte.',
+    exportBiometricPrompt: 'Confirme sua identidade para exportar o passaporte',
     generatedAt: 'Gerado em',
     sections: {
       info: 'Informações',

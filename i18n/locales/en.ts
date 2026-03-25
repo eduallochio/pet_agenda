@@ -404,6 +404,7 @@ export default {
       exportPrivacyTitle: 'Privacy Notice',
       exportPrivacyMsg: 'The exported file contains personal data (profile, pets, vaccines, reminders). Only share with trusted people.',
       exportContinue: 'Continue',
+      exportBiometricPrompt: 'Confirm your identity to export data',
       exportWebUnsupported: 'Export is only available in the mobile app.',
       about: 'ABOUT',
       version: 'Version',
@@ -928,6 +929,7 @@ export default {
     export: 'Export PDF',
     exporting: 'Generating PDF...',
     shareError: 'Could not export the passport.',
+    exportBiometricPrompt: 'Confirm your identity to export the passport',
     generatedAt: 'Generated on',
     sections: {
       info: 'Information',
