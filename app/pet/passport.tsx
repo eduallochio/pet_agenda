@@ -10,6 +10,7 @@ import {
   Image,
   Platform,
 } from 'react-native';
+import QRCode from 'react-native-qrcode-svg';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, Stack } from 'expo-router';
 import { useFocusEffect } from 'expo-router';
@@ -332,14 +333,11 @@ function buildPassportHtml(data: PassportData): string {
         <span style="font-size:22px;">📱</span>
         <h3 style="font-size:17px;font-weight:700;color:#F57F17;">QR Code de Identificação</h3>
       </div>
-      <div style="padding:20px 24px;display:flex;align-items:center;gap:24px;">
-        <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(`Pet: ${pet.name}\nEspecie: ${pet.species || ''}${pet.breed ? ` - ${pet.breed}` : ''}\nNasc: ${pet.dob || ''}\nPet Agenda`)}&color=00897B&bgcolor=ffffff&qzone=1" alt="QR Code" style="width:160px;height:160px;border-radius:8px;border:2px solid #eee;" />
-        <div>
-          <p style="font-size:18px;font-weight:700;color:#222;margin-bottom:6px;">${pet.name}</p>
-          ${pet.species ? `<p style="font-size:14px;color:#555;margin-bottom:4px;">${pet.species}${pet.breed ? ` · ${pet.breed}` : ''}</p>` : ''}
-          ${pet.dob ? `<p style="font-size:14px;color:#555;margin-bottom:4px;">Nascimento: ${pet.dob}</p>` : ''}
-          <p style="font-size:12px;color:#999;margin-top:10px;font-style:italic;">Escaneie para ver as informações do pet</p>
-        </div>
+      <div style="padding:20px 24px;">
+        <p style="font-size:18px;font-weight:700;color:#222;margin-bottom:6px;">${pet.name}</p>
+        ${pet.species ? `<p style="font-size:14px;color:#555;margin-bottom:4px;">${pet.species}${pet.breed ? ` · ${pet.breed}` : ''}</p>` : ''}
+        ${pet.dob ? `<p style="font-size:14px;color:#555;margin-bottom:4px;">Nascimento: ${pet.dob}</p>` : ''}
+        <p style="font-size:12px;color:#999;margin-top:10px;font-style:italic;">Use o aplicativo Pet Agenda para escanear o QR Code de identificação.</p>
       </div>
     </div>
 
@@ -358,13 +356,12 @@ function buildPassportHtml(data: PassportData): string {
 
 // ─── QR Code helper ──────────────────────────────────────────────────────────
 
-function buildQrUrl(pet: Pet): string {
+function buildQrData(pet: Pet): string {
   const lines: string[] = [`Pet: ${pet.name}`];
   if (pet.species) lines.push(`Especie: ${pet.species}${pet.breed ? ` - ${pet.breed}` : ''}`);
   if (pet.dob) lines.push(`Nasc: ${pet.dob}`);
   lines.push('Pet Agenda');
-  const data = encodeURIComponent(lines.join('\n'));
-  return `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${data}&color=00897B&bgcolor=ffffff&qzone=1`;
+  return lines.join('\n');
 }
 
 // ─── Component ───────────────────────────────────────────────────────────────
@@ -690,10 +687,11 @@ export default function PetPassportScreen() {
           colors={colors}
         >
           <View style={styles.qrContainer}>
-            <Image
-              source={{ uri: buildQrUrl(pet) }}
-              style={styles.qrImage}
-              resizeMode="contain"
+            <QRCode
+              value={buildQrData(pet)}
+              size={200}
+              color="#00897B"
+              backgroundColor="#ffffff"
             />
             <View style={styles.qrInfo}>
               <Text style={[styles.qrPetName, { color: colors.text.primary }]}>{pet.name}</Text>
