@@ -5,6 +5,7 @@ export type StreakData = {
   bestStreak: number;
   lastOpenedDate: string; // YYYY-MM-DD
   totalDays: number;
+  vacationMode?: boolean;
 };
 
 function todayStr(): string {
@@ -41,6 +42,9 @@ export async function tickStreak(): Promise<StreakData> {
     } else if (prev.lastOpenedDate === '') {
       // Primeiro uso
       currentStreak = 1;
+    } else if (prev.vacationMode) {
+      // Modo férias ativo — mantém streak sem quebrar
+      currentStreak = prev.currentStreak;
     } else {
       // Quebrou a sequência
       currentStreak = 1;
@@ -49,7 +53,21 @@ export async function tickStreak(): Promise<StreakData> {
     const bestStreak = Math.max(currentStreak, prev.bestStreak);
     const totalDays = prev.totalDays + 1;
 
-    const updated: StreakData = { currentStreak, bestStreak, lastOpenedDate: today, totalDays };
+    const updated: StreakData = { ...prev, currentStreak, bestStreak, lastOpenedDate: today, totalDays };
+    await AsyncStorage.setItem('streakData', JSON.stringify(updated));
+    return updated;
+  } catch {
+    return { currentStreak: 0, bestStreak: 0, lastOpenedDate: '', totalDays: 0 };
+  }
+}
+
+export async function toggleVacationMode(): Promise<StreakData> {
+  try {
+    const json = await AsyncStorage.getItem('streakData');
+    const prev: StreakData = json
+      ? JSON.parse(json)
+      : { currentStreak: 0, bestStreak: 0, lastOpenedDate: '', totalDays: 0 };
+    const updated: StreakData = { ...prev, vacationMode: !prev.vacationMode };
     await AsyncStorage.setItem('streakData', JSON.stringify(updated));
     return updated;
   } catch {

@@ -351,6 +351,11 @@ export default {
     day: 'dia',
     days: 'dias',
     record: 'RECORDE',
+    vacation: 'FÉRIAS',
+    vacationOn: 'Ativar modo férias?',
+    vacationOnMsg: 'Seu streak ficará pausado enquanto você viaja. Nenhum dia será perdido! 🏖️',
+    vacationOff: 'Desativar modo férias?',
+    vacationOffMsg: 'Seu streak voltará a contar normalmente a partir de hoje.',
   },
 
   today: {

@@ -609,8 +609,13 @@ export default function PetDashboard() {
           </View>
         </View>
         <View style={styles.headerRight}>
-          {!!streak && streak.currentStreak > 0 && (
-            <StreakBadge streak={streak.currentStreak} best={streak.bestStreak} />
+          {(!!streak && (streak.currentStreak > 0 || streak.vacationMode)) && (
+            <StreakBadge
+              streak={streak.currentStreak}
+              best={streak.bestStreak}
+              vacationMode={streak.vacationMode}
+              onVacationToggle={(updated) => setStreak(updated)}
+            />
           )}
           <TouchableOpacity
             style={[

@@ -351,6 +351,11 @@ export default {
     day: 'day',
     days: 'days',
     record: 'RECORD',
+    vacation: 'VACATION',
+    vacationOn: 'Enable vacation mode?',
+    vacationOnMsg: 'Your streak will be paused while you travel. No days will be lost! 🏖️',
+    vacationOff: 'Disable vacation mode?',
+    vacationOffMsg: 'Your streak will start counting normally again from today.',
   },
 
   today: {

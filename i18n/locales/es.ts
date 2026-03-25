@@ -351,6 +351,11 @@ export default {
     day: 'día',
     days: 'días',
     record: 'RÉCORD',
+    vacation: 'VACACIONES',
+    vacationOn: '¿Activar modo vacaciones?',
+    vacationOnMsg: 'Tu racha quedará pausada mientras viajas. ¡No perderás ningún día! 🏖️',
+    vacationOff: '¿Desactivar modo vacaciones?',
+    vacationOffMsg: 'Tu racha volverá a contar normalmente a partir de hoy.',
   },
 
   today: {
