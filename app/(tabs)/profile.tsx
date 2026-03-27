@@ -28,6 +28,8 @@ import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { Share } from 'react-native';
 import { requestBiometricAuth } from '../../services/biometricAuth';
+import { supabase } from '../../services/supabase';
+import { uploadToSupabase, downloadFromSupabase } from '../../services/syncService';
 
 type MCIName = keyof typeof MaterialCommunityIcons.glyphMap;
 
@@ -63,11 +65,82 @@ export default function ProfileScreen() {
   const [unlockedAchievementId, setUnlockedAchievementId] = useState<string | null>(null);
   const [settingsVisible, setSettingsVisible] = useState(false);
   const [currentLang, setCurrentLang] = useState<SupportedLanguage>('pt-BR');
+  const [authUser, setAuthUser] = useState<{ email: string } | null>(null);
+  const [syncLoading, setSyncLoading] = useState(false);
   const { t } = useTranslation();
 
   useEffect(() => {
     getInitialLanguage().then(setCurrentLang);
   }, []);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      setAuthUser(data.user ? { email: data.user.email ?? '' } : null);
+    });
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setAuthUser(session?.user ? { email: session.user.email ?? '' } : null);
+    });
+    return () => listener.subscription.unsubscribe();
+  }, []);
+
+  const handleBackup = async () => {
+    if (!authUser) {
+      router.push('/auth/login');
+      return;
+    }
+    setSyncLoading(true);
+    try {
+      await uploadToSupabase();
+      Alert.alert('✅ Backup realizado', 'Seus dados foram salvos na nuvem com sucesso.');
+    } catch (e: any) {
+      Alert.alert(t('common.error'), e.message || 'Erro ao fazer backup.');
+    } finally {
+      setSyncLoading(false);
+    }
+  };
+
+  const handleRestore = async () => {
+    if (!authUser) {
+      router.push('/auth/login');
+      return;
+    }
+    Alert.alert(
+      'Restaurar dados',
+      'Os dados locais serão substituídos pelos dados da nuvem. Deseja continuar?',
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        {
+          text: 'Restaurar',
+          style: 'destructive',
+          onPress: async () => {
+            setSyncLoading(true);
+            try {
+              await downloadFromSupabase();
+              Alert.alert('✅ Dados restaurados', 'Seus dados foram restaurados da nuvem.');
+            } catch (e: any) {
+              Alert.alert(t('common.error'), e.message || 'Erro ao restaurar dados.');
+            } finally {
+              setSyncLoading(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleLogout = async () => {
+    Alert.alert('Sair da conta', 'Deseja desconectar da conta de backup?', [
+      { text: t('common.cancel'), style: 'cancel' },
+      {
+        text: 'Sair',
+        style: 'destructive',
+        onPress: async () => {
+          await supabase.auth.signOut();
+          setAuthUser(null);
+        },
+      },
+    ]);
+  };
 
   const handleChangeLanguage = (lang: SupportedLanguage) => {
     setCurrentLang(lang);
@@ -812,6 +885,52 @@ ${petsSection || '<p>Nenhum pet cadastrado.</p>'}
                 <Ionicons name="chevron-forward" size={18} color={colors.text.light} />
               </TouchableOpacity>
 
+              {/* ── Backup na Nuvem ── */}
+              <Text style={[styles.modalSectionLabel, { color: colors.text.secondary, marginTop: 20 }]}>Backup na nuvem</Text>
+
+              {authUser ? (
+                <View style={[styles.modalItem, { backgroundColor: colors.background, flexDirection: 'column', alignItems: 'flex-start', gap: 10 }]}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <Ionicons name="cloud-done-outline" size={16} color={Theme.primary} />
+                    <Text style={{ color: colors.text.secondary, fontSize: 12 }} numberOfLines={1}>{authUser.email}</Text>
+                  </View>
+                  <View style={{ flexDirection: 'row', gap: 8, width: '100%' }}>
+                    <TouchableOpacity
+                      style={[styles.syncBtn, { backgroundColor: Theme.primary + '18', flex: 1 }]}
+                      onPress={() => { setSettingsVisible(false); setTimeout(handleBackup, 400); }}
+                      disabled={syncLoading}
+                    >
+                      <Ionicons name="cloud-upload-outline" size={16} color={Theme.primary} />
+                      <Text style={[styles.syncBtnText, { color: Theme.primary }]}>
+                        {syncLoading ? 'Salvando...' : 'Fazer backup'}
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.syncBtn, { backgroundColor: '#FF980018', flex: 1 }]}
+                      onPress={() => { setSettingsVisible(false); setTimeout(handleRestore, 400); }}
+                      disabled={syncLoading}
+                    >
+                      <Ionicons name="cloud-download-outline" size={16} color="#FF9800" />
+                      <Text style={[styles.syncBtnText, { color: '#FF9800' }]}>Restaurar</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <TouchableOpacity onPress={handleLogout}>
+                    <Text style={{ color: colors.text.secondary, fontSize: 11 }}>Sair da conta</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <TouchableOpacity
+                  style={[styles.modalItem, { backgroundColor: colors.background }]}
+                  onPress={() => { setSettingsVisible(false); setTimeout(() => router.push('/auth/login'), 400); }}
+                >
+                  <View style={[styles.modalItemIcon, { backgroundColor: Theme.primary + '18' }]}>
+                    <Ionicons name="cloud-outline" size={20} color={Theme.primary} />
+                  </View>
+                  <Text style={[styles.modalItemText, { color: colors.text.primary }]}>Entrar para fazer backup</Text>
+                  <Ionicons name="chevron-forward" size={18} color={colors.text.light} />
+                </TouchableOpacity>
+              )}
+
               {/* ── Zona de Perigo ── */}
               <Text style={[styles.modalSectionLabel, { color: colors.text.secondary, marginTop: 20 }]}>{t('profile.settings.danger')}</Text>
               <TouchableOpacity
@@ -1007,6 +1126,8 @@ const styles = StyleSheet.create({
   modalSectionLabel: { fontSize: 11, fontWeight: '700', letterSpacing: 1, marginBottom: 12 },
   modalItem: { flexDirection: 'row', alignItems: 'center', padding: 14, borderRadius: 12 },
   modalItemText: { flex: 1, fontSize: 15, fontWeight: '500', marginLeft: 12 },
+  syncBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, borderRadius: 10, paddingVertical: 8, paddingHorizontal: 12, justifyContent: 'center' },
+  syncBtnText: { fontSize: 13, fontWeight: '600' },
   langRow: { flexDirection: 'row', gap: 8, marginBottom: 4 },
   langChip: { flex: 1, alignItems: 'center', paddingVertical: 10, paddingHorizontal: 4, borderRadius: 10, borderWidth: 1.5, gap: 4 },
   langFlag: { fontSize: 18 },

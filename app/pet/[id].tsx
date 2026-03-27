@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, FlatList, 
 import { useLocalSearchParams, Stack, useFocusEffect, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { syncReminders } from '../../services/syncService';
 import { autoCompleteChallenge } from '../../hooks/useChallenges';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Pet, Reminder } from '../../types/pet';
@@ -168,7 +169,7 @@ export default function PetDetailScreen() {
 					? { ...r, completed: nowDone, completedAt: nowDone ? new Date().toISOString() : undefined, notificationIds: newNotificationIds }
 					: r
 			);
-			await AsyncStorage.setItem('reminders', JSON.stringify(updated));
+			await syncReminders(updated);
 			setReminders(prev => prev.map(r =>
 				r.id === reminder.id
 					? { ...r, completed: nowDone, completedAt: nowDone ? new Date().toISOString() : undefined, notificationIds: newNotificationIds }

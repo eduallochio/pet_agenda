@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, Alert, Platform, ScrollView }
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { useGoBack } from '../../hooks/useGoBack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { syncReminders } from '../../services/syncService';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Reminder, Pet, RecurrenceType } from '../../types/pet';
 import { Theme, getCategoryColor } from '../../constants/Colors';
@@ -124,7 +125,7 @@ export default function ReminderFormScreen() {
 							} catch { /* ignore */ }
 						}
 						all = all.filter(r => r.id !== reminderId);
-						await AsyncStorage.setItem('reminders', JSON.stringify(all));
+						await syncReminders(all);
 						goBack();
 					} catch {
 						Alert.alert(t('common.error'), t('reminder.deleteError'));
@@ -228,7 +229,7 @@ export default function ReminderFormScreen() {
 				}
 			}
 
-			await AsyncStorage.setItem('reminders', JSON.stringify(all));
+			await syncReminders(all);
 
 			// Verificar conquistas
 			const [petsJ, vacJ, weightJ, streakJ] = await Promise.all([

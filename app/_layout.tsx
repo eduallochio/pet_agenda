@@ -101,6 +101,13 @@ export default function RootLayout() {
     }
   }, []);
 
+  // Sync de download ao abrir o app (se logado)
+  useEffect(() => {
+    import('../services/syncService').then(({ downloadFromSupabase }) => {
+      downloadFromSupabase().catch(() => {});
+    });
+  }, []);
+
   if (!loaded || !i18nInstance) {
     return null;
   }

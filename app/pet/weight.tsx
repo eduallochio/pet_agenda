@@ -6,6 +6,7 @@ import {
 import { Stack, useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { syncWeightRecords } from '../../services/syncService';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
 import { Theme } from '../../constants/Colors';
@@ -191,7 +192,7 @@ export default function WeightScreen() {
       };
       const isFirst = all.filter(r => r.petId === petId).length === 0;
       all.push(newRecord);
-      await AsyncStorage.setItem('weightRecords', JSON.stringify(all));
+      await syncWeightRecords(all);
       setWeight('');
       setNote('');
       setDate(new Date());
@@ -226,7 +227,7 @@ export default function WeightScreen() {
           try {
             const json = await AsyncStorage.getItem('weightRecords');
             const all: WeightRecord[] = json ? JSON.parse(json) : [];
-            await AsyncStorage.setItem('weightRecords', JSON.stringify(all.filter(r => r.id !== record.id)));
+            await syncWeightRecords(all.filter(r => r.id !== record.id));
             load();
           } catch { /* silent */ }
         }

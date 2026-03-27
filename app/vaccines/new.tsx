@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { syncVaccinations } from '../../services/syncService';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { useGoBack } from '../../hooks/useGoBack';
 import React, { useState, useEffect } from 'react';
@@ -90,7 +91,7 @@ export default function NewVaccineScreen() {
 							await NS.cancelNotifications(toDelete.notificationIds);
 						}
 						records = records.filter(v => v.id !== vaccineId);
-						await AsyncStorage.setItem('vaccinations', JSON.stringify(records));
+						await syncVaccinations(records);
 						goBack();
 					} catch {
 						Alert.alert(t('common.error'), t('vaccine.deleteError'));
@@ -173,7 +174,7 @@ export default function NewVaccineScreen() {
 				});
 			}
 
-			await AsyncStorage.setItem('vaccinations', JSON.stringify(records));
+			await syncVaccinations(records);
 
 			// Verificar conquistas
 			const [petsJ, remJ, weightJ, streakJ] = await Promise.all([

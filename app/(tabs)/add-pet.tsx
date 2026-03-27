@@ -2,6 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { Text, TouchableOpacity, StyleSheet, Alert, View, Image, Platform, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { syncPets } from '../../services/syncService';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useGoBack } from '../../hooks/useGoBack';
 import * as ImagePicker from 'expo-image-picker';
@@ -123,7 +124,7 @@ export default function AddPetScreen() {
       const isFirstPet = existingPets.length === 0;
 
       existingPets.push(newPet);
-      await AsyncStorage.setItem('pets', JSON.stringify(existingPets));
+      await syncPets(existingPets);
 
       // Agendar notificação de aniversário
       if (Platform.OS !== 'web' && newPet.dob) {

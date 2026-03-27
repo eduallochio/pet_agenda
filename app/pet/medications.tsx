@@ -6,6 +6,7 @@ import {
 import { Stack, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { syncMedications } from '../../services/syncService';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
 import { useGoBack } from '../../hooks/useGoBack';
@@ -94,7 +95,7 @@ export default function MedicationsScreen() {
       };
 
       all.push(newMed);
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(all));
+      await syncMedications(all);
       setMedications(all.filter(m => m.petId === petId));
       setModalVisible(false);
       setForm(EMPTY_FORM);
@@ -116,7 +117,7 @@ export default function MedicationsScreen() {
               const json = await AsyncStorage.getItem(STORAGE_KEY);
               const all: MedicationRecord[] = json ? JSON.parse(json) : [];
               const updated = all.map(m => m.id === id ? { ...m, active: false } : m);
-              await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+              await syncMedications(updated);
               setMedications(updated.filter(m => m.petId === petId));
             } catch {
               Alert.alert(t('common.error'), t('medications.saveError'));
@@ -141,7 +142,7 @@ export default function MedicationsScreen() {
               const json = await AsyncStorage.getItem(STORAGE_KEY);
               const all: MedicationRecord[] = json ? JSON.parse(json) : [];
               const updated = all.filter(m => m.id !== id);
-              await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+              await syncMedications(updated);
               setMedications(updated.filter(m => m.petId === petId));
             } catch {
               Alert.alert(t('common.error'), t('medications.saveError'));

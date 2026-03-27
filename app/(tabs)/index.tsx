@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { syncPets } from '../../services/syncService';
 import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useState, useMemo, useRef } from 'react';
 import {
@@ -401,7 +402,7 @@ export default function PetDashboard() {
   const handleDeletePet = async (petId: string) => {
     try {
       const updated = pets.filter(p => p.id !== petId);
-      await AsyncStorage.setItem('pets', JSON.stringify(updated));
+      await syncPets(updated);
       setPets(updated);
       if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch {
