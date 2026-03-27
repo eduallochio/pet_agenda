@@ -101,10 +101,15 @@ export default function RootLayout() {
     }
   }, []);
 
-  // Sync de download ao abrir o app (se logado)
+  // Sync de download ao abrir o app — só executa se houver sessão ativa
   useEffect(() => {
-    import('../services/syncService').then(({ downloadFromSupabase }) => {
-      downloadFromSupabase().catch(() => {});
+    import('../services/supabase').then(({ supabase }) => {
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (!session) return;
+        import('../services/syncService').then(({ downloadFromSupabase }) => {
+          downloadFromSupabase().catch(() => {});
+        });
+      });
     });
   }, []);
 
