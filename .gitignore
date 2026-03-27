@@ -43,6 +43,9 @@ app-example
 # documentation
 doc/
 
+# banco de dados / credenciais locais
+banco/
+
 .vscode/settings.json
 .vscode/tasks.json
 .vscode/launch.json
@@ -50,3 +53,4 @@ doc/
 .claude/settings.local.json
 
 .idea/
+.env
