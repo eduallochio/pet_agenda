@@ -689,8 +689,8 @@ export default {
       description: 'Register all your pets\' vaccines and easily track the next booster date.',
     },
     slide3: {
-      title: 'Pet Community',
-      description: 'Connect with other owners, share tips, help lost pets and unlock achievements.',
+      title: 'Backup & Health Score',
+      description: 'Securely back up your data to the cloud. Already have an account? Go to Profile → Settings → Cloud Backup to sign in again.',
     },
     slide4: {
       title: 'Achievements & Challenges',

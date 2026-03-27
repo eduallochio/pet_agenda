@@ -66,6 +66,8 @@ export default function ProfileScreen() {
   const [settingsVisible, setSettingsVisible] = useState(false);
   const [currentLang, setCurrentLang] = useState<SupportedLanguage>('pt-BR');
   const [authUser, setAuthUser] = useState<{ email: string } | null>(null);
+  const [hadAccount, setHadAccount] = useState(false);
+  const [lastEmail, setLastEmail] = useState<string | null>(null);
   const [syncLoading, setSyncLoading] = useState(false);
   const { t } = useTranslation();
 
@@ -74,11 +76,33 @@ export default function ProfileScreen() {
   }, []);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      setAuthUser(data.user ? { email: data.user.email ?? '' } : null);
+    // Carrega flag de conta prévia do storage
+    AsyncStorage.multiGet(['hadAccount', 'lastEmail']).then(([[, had], [, email]]) => {
+      if (had === '1') setHadAccount(true);
+      if (email) setLastEmail(email);
     });
+
+    supabase.auth.getUser().then(({ data }) => {
+      if (data.user) {
+        const email = data.user.email ?? '';
+        setAuthUser({ email });
+        // Persiste que já teve conta
+        AsyncStorage.multiSet([['hadAccount', '1'], ['lastEmail', email]]);
+        setHadAccount(true);
+        setLastEmail(email);
+      }
+    });
+
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setAuthUser(session?.user ? { email: session.user.email ?? '' } : null);
+      if (session?.user) {
+        const email = session.user.email ?? '';
+        setAuthUser({ email });
+        AsyncStorage.multiSet([['hadAccount', '1'], ['lastEmail', email]]);
+        setHadAccount(true);
+        setLastEmail(email);
+      } else {
+        setAuthUser(null);
+      }
     });
     return () => listener.subscription.unsubscribe();
   }, []);
@@ -889,6 +913,7 @@ ${petsSection || '<p>Nenhum pet cadastrado.</p>'}
               <Text style={[styles.modalSectionLabel, { color: colors.text.secondary, marginTop: 20 }]}>Backup na nuvem</Text>
 
               {authUser ? (
+                /* Estado 1: logado */
                 <View style={[styles.modalItem, { backgroundColor: colors.background, flexDirection: 'column', alignItems: 'flex-start', gap: 10 }]}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                     <Ionicons name="cloud-done-outline" size={16} color={Theme.primary} />
@@ -918,7 +943,31 @@ ${petsSection || '<p>Nenhum pet cadastrado.</p>'}
                     <Text style={{ color: colors.text.secondary, fontSize: 11 }}>Sair da conta</Text>
                   </TouchableOpacity>
                 </View>
+              ) : hadAccount ? (
+                /* Estado 2: já teve conta mas está deslogado */
+                <View style={[styles.modalItem, { backgroundColor: colors.background, flexDirection: 'column', alignItems: 'flex-start', gap: 6 }]}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 2 }}>
+                    <Ionicons name="cloud-offline-outline" size={16} color="#FF9800" />
+                    <Text style={{ color: '#FF9800', fontSize: 12, fontWeight: '600' }}>Desconectado</Text>
+                  </View>
+                  {lastEmail ? (
+                    <Text style={{ color: colors.text.secondary, fontSize: 11 }} numberOfLines={1}>
+                      Última conta: {lastEmail}
+                    </Text>
+                  ) : null}
+                  <Text style={{ color: colors.text.secondary, fontSize: 11, lineHeight: 16 }}>
+                    Seus dados locais estão seguros. Entre novamente para sincronizar com a nuvem.
+                  </Text>
+                  <TouchableOpacity
+                    style={[styles.syncBtn, { backgroundColor: Theme.primary + '18', marginTop: 4 }]}
+                    onPress={() => { setSettingsVisible(false); setTimeout(() => router.push('/auth/login'), 400); }}
+                  >
+                    <Ionicons name="log-in-outline" size={16} color={Theme.primary} />
+                    <Text style={[styles.syncBtnText, { color: Theme.primary }]}>Entrar novamente</Text>
+                  </TouchableOpacity>
+                </View>
               ) : (
+                /* Estado 3: nunca criou conta */
                 <TouchableOpacity
                   style={[styles.modalItem, { backgroundColor: colors.background }]}
                   onPress={() => { setSettingsVisible(false); setTimeout(() => router.push('/auth/login'), 400); }}
@@ -926,7 +975,10 @@ ${petsSection || '<p>Nenhum pet cadastrado.</p>'}
                   <View style={[styles.modalItemIcon, { backgroundColor: Theme.primary + '18' }]}>
                     <Ionicons name="cloud-outline" size={20} color={Theme.primary} />
                   </View>
-                  <Text style={[styles.modalItemText, { color: colors.text.primary }]}>Entrar para fazer backup</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.modalItemText, { color: colors.text.primary }]}>Criar conta gratuita</Text>
+                    <Text style={{ color: colors.text.secondary, fontSize: 11, marginTop: 2 }}>Faça backup dos seus dados na nuvem</Text>
+                  </View>
                   <Ionicons name="chevron-forward" size={18} color={colors.text.light} />
                 </TouchableOpacity>
               )}

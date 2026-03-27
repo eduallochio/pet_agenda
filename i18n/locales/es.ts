@@ -689,8 +689,8 @@ export default {
       description: 'Registra todas las vacunas de tus mascotas y sigue fácilmente la fecha del próximo refuerzo.',
     },
     slide3: {
-      title: 'Comunidad Pet',
-      description: 'Conéctate con otros tutores, comparte consejos, ayuda a mascotas perdidas y desbloquea logros.',
+      title: 'Backup & Salud al Día',
+      description: 'Guarda tus datos en la nube de forma segura. ¿Ya tienes cuenta? Ve a Perfil → Configuración → Backup en la nube para volver a entrar.',
     },
     slide4: {
       title: 'Logros & Desafíos',

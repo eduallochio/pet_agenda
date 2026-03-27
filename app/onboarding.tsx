@@ -18,7 +18,7 @@ const SLIDE_ICONS: { icon: MCIName; color: string }[] = [
   { icon: 'paw',           color: '#40E0D0' },
   { icon: 'calendar-check',color: '#FF9800' },
   { icon: 'needle',        color: '#4CAF50' },
-  { icon: 'account-group', color: '#9C27B0' },
+  { icon: 'cloud-sync',    color: '#2196F3' },
   { icon: 'trophy',        color: '#FF6B9D' },
 ];
 
