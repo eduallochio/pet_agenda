@@ -846,27 +846,29 @@ ${petsSection || '<p>Nenhum pet cadastrado.</p>'}
               <ThemeToggle />
 
               {/* ── Idioma ── */}
-              <Text style={[styles.modalSectionLabel, { color: colors.text.secondary, marginTop: 20 }]}>{t('profile.settings.language')}</Text>
-              <View style={styles.langRow}>
-                {([
-                  { lang: 'pt-BR', label: 'Português', flag: '🇧🇷' },
-                  { lang: 'en',    label: 'English',   flag: '🇺🇸' },
-                  { lang: 'es',    label: 'Español',   flag: '🇪🇸' },
-                ] as { lang: SupportedLanguage; label: string; flag: string }[]).map(({ lang, label, flag }) => {
-                  const active = currentLang === lang;
-                  return (
-                    <TouchableOpacity
-                      key={lang}
-                      style={[styles.langChip, { borderColor: active ? colors.primary : colors.border, backgroundColor: active ? colors.primary + '18' : colors.background }]}
-                      onPress={() => handleChangeLanguage(lang)}
-                    >
-                      <Text style={styles.langFlag}>{flag}</Text>
-                      <Text style={[styles.langChipText, { color: active ? colors.primary : colors.text.secondary, fontWeight: active ? '700' : '400' }]}>
-                        {label}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
+              <View style={[styles.langRow, { backgroundColor: colors.surface }]}>
+                <View style={styles.langLeft}>
+                  <Ionicons name="language-outline" size={20} color={colors.text.primary} />
+                  <Text style={[styles.langTitle, { color: colors.text.primary }]}>{t('profile.settings.language')}</Text>
+                </View>
+                <View style={[styles.langBtnGroup, { backgroundColor: colors.background }]}>
+                  {([
+                    { lang: 'pt-BR', flag: '🇧🇷' },
+                    { lang: 'en',    flag: '🇺🇸' },
+                    { lang: 'es',    flag: '🇪🇸' },
+                  ] as { lang: SupportedLanguage; flag: string }[]).map(({ lang, flag }) => {
+                    const active = currentLang === lang;
+                    return (
+                      <TouchableOpacity
+                        key={lang}
+                        style={[styles.langBtn, active && { backgroundColor: colors.surface }]}
+                        onPress={() => handleChangeLanguage(lang)}
+                      >
+                        <Text style={[styles.langFlag, { opacity: active ? 1 : 0.45 }]}>{flag}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
               </View>
 
               {/* ── Notificações ── */}
@@ -1043,79 +1045,79 @@ const styles = StyleSheet.create({
   // Profile card
   profileCard: {
     alignItems: 'center',
-    paddingVertical: 28,
+    paddingVertical: 20,
     paddingHorizontal: 20,
     borderBottomWidth: 1,
   },
   userAvatar: {
-    width: 96, height: 96, borderRadius: 48,
-    marginBottom: 12, justifyContent: 'center', alignItems: 'center', overflow: 'hidden',
+    width: 80, height: 80, borderRadius: 40,
+    marginBottom: 10, justifyContent: 'center', alignItems: 'center', overflow: 'hidden',
   },
-  avatarImage: { width: 96, height: 96, borderRadius: 48 },
-  avatarInitials: { fontSize: 34, fontWeight: 'bold', color: '#fff' },
-  userName: { fontSize: 22, fontWeight: 'bold', marginBottom: 4 },
-  userBio: { fontSize: 14, marginBottom: 14, textAlign: 'center' },
+  avatarImage: { width: 80, height: 80, borderRadius: 40 },
+  avatarInitials: { fontSize: 28, fontWeight: 'bold', color: '#fff' },
+  userName: { fontSize: 20, fontWeight: '800', marginBottom: 4 },
+  userBio: { fontSize: 13, marginBottom: 12, textAlign: 'center' },
   editBtn: {
     flexDirection: 'row', alignItems: 'center',
-    borderWidth: 1.5, borderRadius: 20, paddingHorizontal: 16, paddingVertical: 6,
+    borderWidth: 1.5, borderRadius: 20, paddingHorizontal: 14, paddingVertical: 5,
   },
-  editBtnText: { fontSize: 13, fontWeight: '600', marginLeft: 5 },
+  editBtnText: { fontSize: 12, fontWeight: '600', marginLeft: 4 },
   expBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
-    paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, marginBottom: 6,
+    paddingHorizontal: 10, paddingVertical: 3, borderRadius: 20, marginBottom: 5,
   },
-  expBadgeText: { fontSize: 12, fontWeight: '700' },
-  profileMetaRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
-  profileMetaText: { fontSize: 13 },
+  expBadgeText: { fontSize: 11, fontWeight: '700' },
+  profileMetaRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 5 },
+  profileMetaText: { fontSize: 12 },
 
   // Sections
-  section: { paddingHorizontal: 20, marginTop: 24 },
-  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
-  sectionTitle: { fontSize: 18, fontWeight: '700', marginBottom: 14 },
-  addBtn: { width: 30, height: 30, borderRadius: 15, justifyContent: 'center', alignItems: 'center' },
+  section: { paddingHorizontal: 16, marginTop: 20 },
+  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  sectionTitle: { fontSize: 15, fontWeight: '700', marginBottom: 12 },
+  addBtn: { width: 28, height: 28, borderRadius: 14, justifyContent: 'center', alignItems: 'center' },
   statsRow: { flexDirection: 'row', marginHorizontal: -4, gap: 4 },
 
   // Urgency
-  urgencyCard: { borderWidth: 1, borderRadius: 16, overflow: 'hidden' },
-  urgencyRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 10 },
-  urgencyDot: { width: 8, height: 8, borderRadius: 4, marginRight: 10 },
-  urgencyText: { fontSize: 14 },
+  urgencyCard: { borderWidth: 1, borderRadius: 14, overflow: 'hidden' },
+  urgencyRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 9 },
+  urgencyDot: { width: 7, height: 7, borderRadius: 4, marginRight: 9 },
+  urgencyText: { fontSize: 13 },
   urgencyAction: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    paddingVertical: 12, borderTopWidth: 1,
+    paddingVertical: 10, borderTopWidth: 1,
   },
-  urgencyActionText: { fontSize: 14, fontWeight: '600', marginRight: 4 },
+  urgencyActionText: { fontSize: 13, fontWeight: '600', marginRight: 4 },
 
   // Pets
   emptyCard: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1.5, borderStyle: 'dashed', borderRadius: 14, paddingVertical: 20,
+    borderWidth: 1.5, borderStyle: 'dashed', borderRadius: 14, paddingVertical: 18,
   },
-  emptyCardText: { fontSize: 14, marginLeft: 10 },
-  horizontalList: { paddingVertical: 4, paddingRight: 20 },
-  petItem: { alignItems: 'center', marginRight: 16, width: 68 },
-  petAvatarWrapper: { position: 'relative', marginBottom: 6 },
+  emptyCardText: { fontSize: 13, marginLeft: 10 },
+  horizontalList: { paddingVertical: 4, paddingRight: 16 },
+  petItem: { alignItems: 'center', marginRight: 14, width: 60 },
+  petAvatarWrapper: { position: 'relative', marginBottom: 5 },
   urgencyBadge: {
     position: 'absolute', top: 0, right: 0,
-    width: 12, height: 12, borderRadius: 6, borderWidth: 2, borderColor: '#fff',
+    width: 11, height: 11, borderRadius: 6, borderWidth: 2, borderColor: '#fff',
   },
-  petName: { fontSize: 12, fontWeight: '600', textAlign: 'center' },
-  petSpecies: { fontSize: 11, textAlign: 'center', marginTop: 2 },
+  petName: { fontSize: 11, fontWeight: '600', textAlign: 'center' },
+  petSpecies: { fontSize: 10, textAlign: 'center', marginTop: 1 },
 
   // Challenge
-  challengeCard: { borderRadius: 16, padding: 18, borderWidth: 1.5, marginBottom: 12 },
-  challengeTop: { flexDirection: 'row', alignItems: 'center', marginBottom: 14 },
+  challengeCard: { borderRadius: 14, padding: 14, borderWidth: 1.5, marginBottom: 10 },
+  challengeTop: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
   challengeIconCircle: {
-    width: 56, height: 56, borderRadius: 28,
-    justifyContent: 'center', alignItems: 'center', marginRight: 12,
+    width: 44, height: 44, borderRadius: 22,
+    justifyContent: 'center', alignItems: 'center', marginRight: 10,
   },
   challengeDoneBadge: {
     flexDirection: 'row', alignItems: 'center',
-    paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12,
+    paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10,
   },
-  challengeDoneBadgeText: { color: '#fff', fontSize: 11, fontWeight: '700', marginLeft: 4 },
-  challengeTitle: { fontSize: 18, fontWeight: '800', marginBottom: 6 },
-  challengeDesc: { fontSize: 14, lineHeight: 20, marginBottom: 12 },
+  challengeDoneBadgeText: { color: '#fff', fontSize: 10, fontWeight: '700', marginLeft: 3 },
+  challengeTitle: { fontSize: 15, fontWeight: '800', marginBottom: 5 },
+  challengeDesc: { fontSize: 13, lineHeight: 18, marginBottom: 10 },
   tipBox: {
     flexDirection: 'row', alignItems: 'flex-start',
     padding: 12, borderRadius: 10, borderWidth: 1, marginBottom: 14,
@@ -1180,10 +1182,12 @@ const styles = StyleSheet.create({
   modalItemText: { flex: 1, fontSize: 15, fontWeight: '500', marginLeft: 12 },
   syncBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, borderRadius: 10, paddingVertical: 8, paddingHorizontal: 12, justifyContent: 'center' },
   syncBtnText: { fontSize: 13, fontWeight: '600' },
-  langRow: { flexDirection: 'row', gap: 8, marginBottom: 4 },
-  langChip: { flex: 1, alignItems: 'center', paddingVertical: 10, paddingHorizontal: 4, borderRadius: 10, borderWidth: 1.5, gap: 4 },
+  langRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12, paddingHorizontal: 16, borderRadius: 12, marginBottom: 4 },
+  langLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  langTitle: { fontSize: 15, fontWeight: '500' },
+  langBtnGroup: { flexDirection: 'row', borderRadius: 8, padding: 3, gap: 2 },
+  langBtn: { width: 32, height: 32, borderRadius: 7, alignItems: 'center', justifyContent: 'center' },
   langFlag: { fontSize: 18 },
-  langChipText: { fontSize: 12 },
 
   // Modal items com ícone
   modalItemIcon: {

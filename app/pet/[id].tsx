@@ -7,7 +7,7 @@ import { syncReminders } from '../../services/syncService';
 import { autoCompleteChallenge } from '../../hooks/useChallenges';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Pet, Reminder } from '../../types/pet';
-import { Theme, getCategoryColor } from '../../constants/Colors';
+import { Theme, getCategoryColor, getSpeciesColor } from '../../constants/Colors';
 import { Shadows } from '../../constants/Shadows';
 import Badge from '../../components/Badge';
 import PetAvatar from '../../components/PetAvatar';
@@ -311,118 +311,149 @@ export default function PetDetailScreen() {
 		);
 	};
 
+	const speciesColor = getSpeciesColor(pet.species);
+
+	const calcAge = (dob: string): string => {
+		if (!dob) return '';
+		const parts = dob.split('/');
+		if (parts.length !== 3) return '';
+		const birth = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+		const today = new Date();
+		const years = today.getFullYear() - birth.getFullYear();
+		const hadBirthday = today.getMonth() > birth.getMonth() ||
+			(today.getMonth() === birth.getMonth() && today.getDate() >= birth.getDate());
+		const age = hadBirthday ? years : years - 1;
+		if (age <= 0) {
+			const months = (today.getFullYear() - birth.getFullYear()) * 12 + (today.getMonth() - birth.getMonth());
+			return months <= 1 ? '1 mês' : `${months} meses`;
+		}
+		return age === 1 ? '1 ano' : `${age} anos`;
+	};
+
+	const activeReminders = reminders.filter(r => !r.completed).length;
+
 	const listHeader = (
 		<>
-			{/* Pet info card */}
-			<View style={[styles.petCard, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-				<PetAvatar species={pet.species} photoUri={pet.photoUri} size="xlarge" />
-				<View style={styles.petInfo}>
+			{/* Pet info card com banner de cor da espécie */}
+			<View style={[styles.petCard, { backgroundColor: colors.surface }]}>
+				{/* Banner colorido no topo */}
+				<View style={[styles.petCardBanner, { backgroundColor: speciesColor + '28' }]} />
+
+				<View style={styles.petCardBody}>
+					{/* Avatar centralizado com borda colorida */}
+					<View style={[styles.petAvatarWrapper, { borderColor: speciesColor, shadowColor: speciesColor }]}>
+						<PetAvatar species={pet.species} photoUri={pet.photoUri} size="xlarge" />
+					</View>
+
+					{/* Info */}
 					<Text style={[styles.petName, { color: colors.text.primary }]}>{pet.name}</Text>
-					{!!(pet.species || pet.breed) && (
-						<View style={styles.petMetaRow}>
-							<Ionicons name="paw-outline" size={13} color={colors.text.light} style={{ marginRight: 4 }} />
-							<Text style={[styles.petMeta, { color: colors.text.secondary }]}>
-								{[pet.species, pet.breed].filter(Boolean).join(' · ')}
-							</Text>
-						</View>
-					)}
-					{!!pet.dob && (
-						<View style={styles.petMetaRow}>
-							<Ionicons name="calendar-outline" size={13} color={colors.text.light} style={{ marginRight: 4 }} />
-							<Text style={[styles.petMeta, { color: colors.text.secondary }]}>
-								{pet.dob}
-							</Text>
-						</View>
-					)}
+
+					<View style={styles.petTagsRow}>
+						{!!(pet.species || pet.breed) && (
+							<View style={[styles.petTag, { backgroundColor: speciesColor + '18' }]}>
+								<Ionicons name="paw" size={11} color={speciesColor} />
+								<Text style={[styles.petTagText, { color: speciesColor }]}>
+									{[pet.species, pet.breed].filter(Boolean).join(' · ')}
+								</Text>
+							</View>
+						)}
+						{!!pet.dob && (
+							<View style={[styles.petTag, { backgroundColor: colors.background }]}>
+								<Ionicons name="calendar-outline" size={11} color={colors.text.secondary} />
+								<Text style={[styles.petTagText, { color: colors.text.secondary }]}>
+									{calcAge(pet.dob)}
+								</Text>
+							</View>
+						)}
+						{activeReminders > 0 && (
+							<View style={[styles.petTag, { backgroundColor: Theme.primary + '18' }]}>
+								<Ionicons name="notifications" size={11} color={Theme.primary} />
+								<Text style={[styles.petTagText, { color: Theme.primary }]}>
+									{activeReminders} lembrete{activeReminders !== 1 ? 's' : ''}
+								</Text>
+							</View>
+						)}
+					</View>
+
 					{!!pet.breed && (
 						<TouchableOpacity
 							onPress={() => router.push({ pathname: "/breed-info", params: { breed: pet.breed, species: pet.species } } as any)}
 							style={styles.breedLink}
 						>
-							<Ionicons name="information-circle-outline" size={14} color={Theme.primary} style={{ marginRight: 4 }} />
+							<Ionicons name="information-circle-outline" size={13} color={Theme.primary} />
 							<Text style={[styles.breedLinkText, { color: Theme.primary }]}>Ver info da raça</Text>
 						</TouchableOpacity>
 					)}
 				</View>
 			</View>
 
-			{/* Action buttons — grid 2 linhas */}
+			{/* Grid de ações — 2 colunas uniformes */}
 			<View style={[styles.actionsSection, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-				{/* Linha 1: Vacinas (destaque) + Peso */}
+				{/* Linha 1: 2 botões grandes */}
 				<View style={styles.actionsRow}>
-					<TouchableOpacity
-						style={[styles.actionBtnPrimary, { backgroundColor: Theme.primary, shadowColor: Theme.primary }]}
-						onPress={() => router.push({ pathname: '/vaccines/[petId]', params: { petId: pet.id } })}
-						activeOpacity={0.8}
-					>
-						<MaterialCommunityIcons name="needle" size={20} color="#fff" />
-						<Text style={styles.actionBtnPrimaryText}>{t('petDetail.vaccines')}</Text>
-						<Ionicons name="chevron-forward" size={16} color="#fff" />
-					</TouchableOpacity>
-					<TouchableOpacity
-						style={[styles.actionBtnSecondary, { backgroundColor: '#9C27B0' + '15', borderColor: '#9C27B0' + '40' }]}
-						onPress={() => router.push({ pathname: '/pet/weight', params: { id: pet.id, name: pet.name, species: pet.species } } as any)}
-						activeOpacity={0.8}
-					>
-						<MaterialCommunityIcons name="scale-bathroom" size={20} color="#9C27B0" />
-						<Text style={[styles.actionBtnSecondaryText, { color: '#9C27B0' }]}>{t('petDetail.weight')}</Text>
-					</TouchableOpacity>
+					{[
+						{ color: Theme.primary,  icon: 'needle',          iconLib: 'mci', label: t('petDetail.vaccines'),  onPress: () => router.push({ pathname: '/vaccines/[petId]', params: { petId: pet.id } }) },
+						{ color: '#9C27B0',       icon: 'scale-bathroom',  iconLib: 'mci', label: t('petDetail.weight'),    onPress: () => router.push({ pathname: '/pet/weight', params: { id: pet.id, name: pet.name, species: pet.species } } as any) },
+					].map(btn => (
+						<TouchableOpacity
+							key={btn.label}
+							style={[styles.actionBtnLarge, { backgroundColor: btn.color + '15', borderColor: btn.color + '35' }]}
+							onPress={btn.onPress}
+							activeOpacity={0.75}
+						>
+							<View style={[styles.actionBtnIconCircle, { backgroundColor: btn.color + '22' }]}>
+								{btn.iconLib === 'mci'
+									? <MaterialCommunityIcons name={btn.icon as any} size={22} color={btn.color} />
+									: <Ionicons name={btn.icon as any} size={22} color={btn.color} />}
+							</View>
+							<Text style={[styles.actionBtnLargeText, { color: btn.color }]}>{btn.label}</Text>
+						</TouchableOpacity>
+					))}
 				</View>
-				{/* Linha 2: Documentos, Diário, Medicamentos */}
+
+				{/* Linha 2: 4 botões compactos */}
 				<View style={styles.actionsRow}>
-					<TouchableOpacity
-						style={[styles.actionBtnTertiary, { backgroundColor: '#607D8B' + '15', borderColor: '#607D8B' + '40' }]}
-						onPress={() => router.push({ pathname: '/pet/documents', params: { petId: pet.id } } as any)}
-						activeOpacity={0.8}
-					>
-						<Ionicons name="document-text-outline" size={18} color="#607D8B" />
-						<Text style={[styles.actionBtnTertiaryText, { color: '#607D8B' }]}>{t('petDetail.documents')}</Text>
-					</TouchableOpacity>
-					<TouchableOpacity
-						style={[styles.actionBtnTertiary, { backgroundColor: '#00897B' + '15', borderColor: '#00897B' + '40' }]}
-						onPress={() => router.push({ pathname: '/pet/diary', params: { petId: pet.id } } as any)}
-						activeOpacity={0.8}
-					>
-						<Ionicons name="journal-outline" size={18} color="#00897B" />
-						<Text style={[styles.actionBtnTertiaryText, { color: '#00897B' }]}>{t('petDetail.diary')}</Text>
-					</TouchableOpacity>
-					<TouchableOpacity
-						style={[styles.actionBtnTertiary, { backgroundColor: '#E91E63' + '15', borderColor: '#E91E63' + '40' }]}
-						onPress={() => router.push({ pathname: '/pet/medications', params: { petId: pet.id } } as any)}
-						activeOpacity={0.8}
-					>
-						<Ionicons name="medical-outline" size={18} color="#E91E63" />
-						<Text style={[styles.actionBtnTertiaryText, { color: '#E91E63' }]}>{t('medications.title')}</Text>
-					</TouchableOpacity>
+					{[
+						{ color: '#607D8B', icon: 'document-text-outline', iconLib: 'ion', label: t('petDetail.documents'),        onPress: () => router.push({ pathname: '/pet/documents', params: { petId: pet.id } } as any) },
+						{ color: '#00897B', icon: 'journal-outline',        iconLib: 'ion', label: t('petDetail.diary'),            onPress: () => router.push({ pathname: '/pet/diary', params: { petId: pet.id } } as any) },
+						{ color: '#E91E63', icon: 'medical-outline',        iconLib: 'ion', label: t('medications.title'),          onPress: () => router.push({ pathname: '/pet/medications', params: { petId: pet.id } } as any) },
+						{ color: '#FF5722', icon: 'images-outline',         iconLib: 'ion', label: t('petDetail.photos'),           onPress: () => router.push({ pathname: '/pet/photos', params: { petId: pet.id, petName: pet.name } } as any) },
+					].map(btn => (
+						<TouchableOpacity
+							key={btn.label}
+							style={[styles.actionBtnSmall, { backgroundColor: btn.color + '15', borderColor: btn.color + '30' }]}
+							onPress={btn.onPress}
+							activeOpacity={0.75}
+						>
+							<Ionicons name={btn.icon as any} size={20} color={btn.color} />
+							<Text style={[styles.actionBtnSmallText, { color: btn.color }]}>{btn.label}</Text>
+						</TouchableOpacity>
+					))}
 				</View>
-				{/* Linha 3: Fotos, Alimentação, Contatos Emergência */}
+
+				{/* Linha 3: 2 botões compactos */}
 				<View style={styles.actionsRow}>
-					<TouchableOpacity
-						style={[styles.actionBtnTertiary, { backgroundColor: '#FF5722' + '15', borderColor: '#FF5722' + '40' }]}
-						onPress={() => router.push({ pathname: '/pet/photos', params: { petId: pet.id, petName: pet.name } } as any)}
-						activeOpacity={0.8}
-					>
-						<Ionicons name="images-outline" size={18} color="#FF5722" />
-						<Text style={[styles.actionBtnTertiaryText, { color: '#FF5722' }]}>{t('petDetail.photos')}</Text>
-					</TouchableOpacity>
-					<TouchableOpacity
-						style={[styles.actionBtnTertiary, { backgroundColor: '#8BC34A' + '15', borderColor: '#8BC34A' + '40' }]}
-						onPress={() => router.push({ pathname: '/pet/feeding', params: { petId: pet.id, petName: pet.name } } as any)}
-						activeOpacity={0.8}
-					>
-						<MaterialCommunityIcons name="food-variant" size={18} color="#8BC34A" />
-						<Text style={[styles.actionBtnTertiaryText, { color: '#8BC34A' }]}>{t('petDetail.feeding')}</Text>
-					</TouchableOpacity>
-					<TouchableOpacity
-						style={[styles.actionBtnTertiary, { backgroundColor: '#2196F3' + '15', borderColor: '#2196F3' + '40' }]}
-						onPress={() => router.push({ pathname: '/pet/emergency-contacts', params: { petId: pet.id, petName: pet.name } } as any)}
-						activeOpacity={0.8}
-					>
-						<Ionicons name="call-outline" size={18} color="#2196F3" />
-						<Text style={[styles.actionBtnTertiaryText, { color: '#2196F3' }]}>{t('petDetail.emergencyContacts')}</Text>
-					</TouchableOpacity>
+					{[
+						{ color: '#8BC34A', icon: 'food-variant',  iconLib: 'mci', label: t('petDetail.feeding'),          onPress: () => router.push({ pathname: '/pet/feeding', params: { petId: pet.id, petName: pet.name } } as any) },
+						{ color: '#2196F3', icon: 'call-outline',  iconLib: 'ion', label: t('petDetail.emergencyContacts'), onPress: () => router.push({ pathname: '/pet/emergency-contacts', params: { petId: pet.id, petName: pet.name } } as any) },
+					].map(btn => (
+						<TouchableOpacity
+							key={btn.label}
+							style={[styles.actionBtnLarge, { backgroundColor: btn.color + '15', borderColor: btn.color + '35' }]}
+							onPress={btn.onPress}
+							activeOpacity={0.75}
+						>
+							<View style={[styles.actionBtnIconCircle, { backgroundColor: btn.color + '22' }]}>
+								{btn.iconLib === 'mci'
+									? <MaterialCommunityIcons name={btn.icon as any} size={22} color={btn.color} />
+									: <Ionicons name={btn.icon as any} size={22} color={btn.color} />}
+							</View>
+							<Text style={[styles.actionBtnLargeText, { color: btn.color }]}>{btn.label}</Text>
+						</TouchableOpacity>
+					))}
 				</View>
-				{/* Botão Emergência — destaque vermelho */}
+
+				{/* Botão Emergência */}
 				<TouchableOpacity
 					style={styles.emergencyBtn}
 					onPress={() => setShowEmergency(true)}
@@ -502,7 +533,7 @@ export default function PetDetailScreen() {
 						style={styles.headerBtn}
 						onPress={() => router.push({ pathname: '/pet/passport', params: { petId: pet.id } } as any)}
 					>
-						<Ionicons name="ribbon-outline" size={24} color="#FFB800" />
+						<Ionicons name="ribbon-outline" size={24} color={getSpeciesColor(pet.species)} />
 					</TouchableOpacity>
 					<TouchableOpacity style={styles.headerBtn} onPress={sharePet}>
 						<Ionicons name="share-social-outline" size={24} color={Theme.primary} />
@@ -553,17 +584,34 @@ const styles = StyleSheet.create({
 	headerTitle: { flex: 1, fontSize: 20, fontWeight: 'bold', textAlign: 'center' },
 	// Pet card
 	petCard: {
-		flexDirection: 'row',
-		alignItems: 'center',
-		padding: 20,
-		borderBottomWidth: 1,
+		overflow: 'hidden',
+		marginBottom: 8,
 	},
-	petInfo: { flex: 1, marginLeft: 16 },
-	petName: { fontSize: 22, fontWeight: 'bold', marginBottom: 6 },
-	petMetaRow: { flexDirection: 'row', alignItems: 'center', marginTop: 3 },
-	breedLink: { flexDirection: 'row', alignItems: 'center', marginTop: 6 },
+	petCardBanner: {
+		height: 64,
+		width: '100%',
+	},
+	petCardBody: {
+		alignItems: 'center',
+		paddingHorizontal: 20,
+		paddingBottom: 20,
+		marginTop: -40,
+	},
+	petAvatarWrapper: {
+		borderWidth: 3,
+		borderRadius: 60,
+		marginBottom: 12,
+		...Platform.select({
+			default: { shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 6 },
+			web: {},
+		}),
+	},
+	petName: { fontSize: 22, fontWeight: '800', marginBottom: 8, textAlign: 'center' },
+	petTagsRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 6, marginBottom: 6 },
+	petTag: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
+	petTagText: { fontSize: 12, fontWeight: '600' },
+	breedLink: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 },
 	breedLinkText: { fontSize: 13, fontWeight: '600' },
-	petMeta: { fontSize: 14 },
 	// Action buttons grid
 	actionsSection: {
 		padding: 12,
@@ -574,56 +622,43 @@ const styles = StyleSheet.create({
 		flexDirection: 'row',
 		gap: 8,
 	},
-	// Botão principal (Vacinas) — linha cheia, destaque
-	actionBtnPrimary: {
+	// Botão grande (2 colunas)
+	actionBtnLarge: {
 		flex: 1,
-		flexDirection: 'row',
+		flexDirection: 'column',
 		alignItems: 'center',
 		justifyContent: 'center',
 		gap: 8,
 		paddingVertical: 14,
-		paddingHorizontal: 16,
-		borderRadius: 14,
-		...Platform.select({ default: { shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.25, shadowRadius: 6, elevation: 4 }, web: {} }),
-	},
-	actionBtnPrimaryText: {
-		flex: 1,
-		color: '#fff',
-		fontSize: 15,
-		fontWeight: '700',
-		textAlign: 'center',
-	},
-	// Botão secundário (Peso) — meia largura, estilo outline
-	actionBtnSecondary: {
-		flex: 1,
-		flexDirection: 'column',
-		alignItems: 'center',
-		justifyContent: 'center',
-		gap: 6,
-		paddingVertical: 12,
-		paddingHorizontal: 8,
 		borderRadius: 14,
 		borderWidth: 1.5,
 	},
-	actionBtnSecondaryText: {
+	actionBtnIconCircle: {
+		width: 44,
+		height: 44,
+		borderRadius: 22,
+		alignItems: 'center',
+		justifyContent: 'center',
+	},
+	actionBtnLargeText: {
 		fontSize: 13,
-		fontWeight: '600',
+		fontWeight: '700',
 		textAlign: 'center',
 	},
-	// Botão terciário (Documentos, Diário, Med) — 1/3 largura, compacto
-	actionBtnTertiary: {
+	// Botão pequeno (4 colunas)
+	actionBtnSmall: {
 		flex: 1,
 		flexDirection: 'column',
 		alignItems: 'center',
 		justifyContent: 'center',
-		gap: 4,
+		gap: 5,
 		paddingVertical: 10,
 		paddingHorizontal: 4,
 		borderRadius: 12,
 		borderWidth: 1.5,
 	},
-	actionBtnTertiaryText: {
-		fontSize: 11,
+	actionBtnSmallText: {
+		fontSize: 10,
 		fontWeight: '600',
 		textAlign: 'center',
 	},

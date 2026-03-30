@@ -16,7 +16,7 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import * as Haptics from 'expo-haptics';
 import { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { Pet, Reminder, VaccineRecord } from '../../types/pet';
-import { Theme } from '../../constants/Colors';
+import { Theme, getSpeciesColor } from '../../constants/Colors';
 import Badge from '../../components/Badge';
 import PetAvatar from '../../components/PetAvatar';
 import FadeIn from '../../components/animations/FadeIn';
@@ -200,48 +200,55 @@ function SwipePetCard({
           <Animated.View
             style={[
               styles.petCard,
-              { backgroundColor: colors.surface },
+              { backgroundColor: colors.surface, borderLeftColor: getSpeciesColor(pet.species) },
               cardStyle,
             ]}
           >
-            <PetAvatar species={pet.species} photoUri={pet.photoUri} size="medium" />
+            <PetAvatar species={pet.species} photoUri={pet.photoUri} size="large" />
 
             <View style={styles.petInfo}>
-              <Text style={[styles.petName, { color: colors.text.primary }]}>{pet.name}</Text>
-              <Text style={[styles.petMeta, { color: colors.text.secondary }]}>
-                {[pet.species, pet.breed].filter(Boolean).join(' · ')}
+              {/* Nome + health score em linha */}
+              <View style={styles.petNameRow}>
+                <Text style={[styles.petName, { color: colors.text.primary }]} numberOfLines={1}>{pet.name}</Text>
+                <View style={[styles.healthBadge, { backgroundColor: healthScore.color + '18' }]}>
+                  <Text style={[styles.healthBadgeText, { color: healthScore.color }]}>● {healthScore.score}</Text>
+                </View>
+              </View>
+
+              {/* Espécie · Raça + Idade em linha */}
+              <Text style={[styles.petMeta, { color: colors.text.secondary }]} numberOfLines={1}>
+                {[pet.species, pet.breed].filter(Boolean).join(' · ')}{age ? `  ·  ${age}` : ''}
               </Text>
-              {!!age && (
-                <Text style={[styles.petAge, { color: colors.text.light }]}>{age}</Text>
+
+              {/* Badges de alerta */}
+              {(overdueReminders > 0 || todayReminders > 0 || overdueVaccines > 0 || upcomingCount > 0) && (
+                <View style={styles.badgesRow}>
+                  {overdueReminders > 0 && (
+                    <Badge variant="danger" label={t('home.overdue', { count: overdueReminders })} small style={styles.badge} />
+                  )}
+                  {todayReminders > 0 && (
+                    <Badge variant="warning" label={t('home.today', { count: todayReminders })} small style={styles.badge} />
+                  )}
+                  {overdueVaccines > 0 && (
+                    <Badge variant="danger" label={t('home.overdueVaccine', { count: overdueVaccines })} small style={styles.badge} />
+                  )}
+                  {upcomingCount > 0 && overdueReminders === 0 && todayReminders === 0 && (
+                    <Badge variant="info" label={t('common.events') + `: ${upcomingCount}`} small style={styles.badge} />
+                  )}
+                </View>
               )}
-              <View style={styles.badgesRow}>
-                {overdueReminders > 0 && (
-                  <Badge variant="danger" label={t('home.overdue', { count: overdueReminders })} small style={styles.badge} />
-                )}
-                {todayReminders > 0 && (
-                  <Badge variant="warning" label={t('home.today', { count: todayReminders })} small style={styles.badge} />
-                )}
-                {overdueVaccines > 0 && (
-                  <Badge variant="danger" label={t('home.overdueVaccine', { count: overdueVaccines })} small style={styles.badge} />
-                )}
-                {upcomingCount > 0 && overdueReminders === 0 && todayReminders === 0 && (
-                  <Badge variant="info" label={t('common.events') + `: ${upcomingCount}`} small style={styles.badge} />
-                )}
-              </View>
-              <View style={styles.healthRow}>
-                <Text style={[styles.healthDot, { color: healthScore.color }]}>●</Text>
-                <Text style={[styles.healthLabel, { color: healthScore.color }]}>{healthScore.score}</Text>
-                {birthdayCountdown !== null && birthdayCountdown <= 7 && (
-                  <View style={styles.birthdayChip}>
-                    <Text style={styles.birthdayChipText}>
-                      {birthdayCountdown === 0 ? '🎂' : `🎂 ${birthdayCountdown}d`}
-                    </Text>
-                  </View>
-                )}
-              </View>
+
+              {/* Aniversário */}
+              {birthdayCountdown !== null && birthdayCountdown <= 7 && (
+                <View style={styles.birthdayChip}>
+                  <Text style={styles.birthdayChipText}>
+                    {birthdayCountdown === 0 ? '🎂 Hoje!' : `🎂 ${birthdayCountdown}d`}
+                  </Text>
+                </View>
+              )}
             </View>
 
-            <Ionicons name="chevron-forward" size={20} color={colors.text.light} />
+            <Ionicons name="chevron-forward" size={18} color={colors.text.light} />
           </Animated.View>
         </GestureDetector>
       </View>
@@ -869,7 +876,7 @@ const styles = StyleSheet.create({
   emptyFiltered: { flex: 1, justifyContent: 'center', padding: 20 },
 
   // Swipe card
-  swipeContainer: { marginBottom: 12, borderRadius: 16, overflow: 'hidden' },
+  swipeContainer: { marginBottom: 10, borderRadius: 16, overflow: 'hidden' },
   deleteBackground: {
     position: 'absolute', right: 0, top: 0, bottom: 0,
     width: DELETE_WIDTH,
@@ -880,42 +887,43 @@ const styles = StyleSheet.create({
   deleteBackgroundText: { color: '#fff', fontSize: 11, fontWeight: '700', marginTop: 2 },
   petCard: {
     flexDirection: 'row', alignItems: 'center',
-    padding: 16, borderRadius: 16,
+    paddingVertical: 12, paddingRight: 12, paddingLeft: 14,
+    borderRadius: 16, borderLeftWidth: 4,
     ...Shadows.small,
   },
-  petInfo: { flex: 1, marginLeft: 14 },
-  petName: { fontSize: 17, fontWeight: '700', marginBottom: 3 },
-  petMeta: { fontSize: 13, marginBottom: 2 },
-  petAge: { fontSize: 12, marginBottom: 6 },
-  badgesRow: { flexDirection: 'row', flexWrap: 'wrap' },
+  petInfo: { flex: 1, marginLeft: 12 },
+  petNameRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 3 },
+  petName: { fontSize: 16, fontWeight: '700', flex: 1, marginRight: 8 },
+  healthBadge: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 10 },
+  healthBadgeText: { fontSize: 11, fontWeight: '700' },
+  petMeta: { fontSize: 12, marginBottom: 5 },
+  badgesRow: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: 4 },
   badge: { marginRight: 4, marginTop: 2 },
-  healthRow: { flexDirection: 'row', alignItems: 'center', marginTop: 4, gap: 3 },
-  healthDot: { fontSize: 10 },
-  healthLabel: { fontSize: 11, fontWeight: '700' },
   birthdayChip: {
-    backgroundColor: '#FF6B9D18',
+    alignSelf: 'flex-start',
+    backgroundColor: '#FF6B9D22',
     borderRadius: 8,
-    paddingHorizontal: 5,
-    paddingVertical: 1,
-    marginLeft: 4,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    marginTop: 2,
   },
-  birthdayChipText: { fontSize: 11, fontWeight: '700' },
+  birthdayChipText: { fontSize: 11, fontWeight: '700', color: '#FF6B9D' },
 
   // Nearby banner
   nearbyBanner: {
     flexDirection: 'row', alignItems: 'center',
-    marginHorizontal: 20, marginBottom: 10,
-    borderRadius: 16, borderWidth: 1,
-    paddingHorizontal: 14, paddingVertical: 11, gap: 12,
+    marginHorizontal: 20, marginBottom: 8,
+    borderRadius: 14, borderWidth: 1,
+    paddingHorizontal: 12, paddingVertical: 9, gap: 10,
   },
   nearbyIconCircle: {
-    width: 40, height: 40, borderRadius: 12,
+    width: 36, height: 36, borderRadius: 10,
     backgroundColor: Theme.primary + '18',
     justifyContent: 'center', alignItems: 'center',
   },
   nearbyText: { flex: 1 },
-  nearbyTitle: { fontSize: 14, fontWeight: '700', marginBottom: 1 },
-  nearbySubtitle: { fontSize: 12 },
+  nearbyTitle: { fontSize: 13, fontWeight: '700', marginBottom: 1 },
+  nearbySubtitle: { fontSize: 11 },
 
   // FAB
   fab: {

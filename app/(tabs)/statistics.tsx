@@ -715,34 +715,34 @@ const styles = StyleSheet.create({
   bigCardGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginHorizontal: -5,
+    marginHorizontal: -4,
     marginBottom: 4,
   },
   bigCard: {
     width: '46%',
     margin: '2%',
-    borderRadius: 16,
-    padding: 16,
+    borderRadius: 14,
+    padding: 12,
     alignItems: 'center',
     ...Shadows.small,
   },
   bigCardIcon: {
-    width: 52, height: 52, borderRadius: 16,
+    width: 44, height: 44, borderRadius: 12,
     justifyContent: 'center', alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 8,
   },
-  bigCardValue: { fontSize: 32, fontWeight: '800', lineHeight: 36 },
-  bigCardLabel: { fontSize: 12, fontWeight: '600', marginTop: 2, marginBottom: 8 },
+  bigCardValue: { fontSize: 26, fontWeight: '800', lineHeight: 30 },
+  bigCardLabel: { fontSize: 11, fontWeight: '600', marginTop: 2, marginBottom: 6 },
   bigCardSub: {
-    paddingHorizontal: 10, paddingVertical: 3, borderRadius: 10,
+    paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8,
   },
-  bigCardSubText: { fontSize: 11, fontWeight: '700' },
+  bigCardSubText: { fontSize: 10, fontWeight: '700' },
 
   // Section card
   card: {
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 10,
     ...Shadows.small,
   },
 
@@ -751,13 +751,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginBottom: 16,
+    marginBottom: 14,
   },
   sectionHeaderIcon: {
-    width: 28, height: 28, borderRadius: 8,
+    width: 26, height: 26, borderRadius: 8,
     justifyContent: 'center', alignItems: 'center',
   },
-  sectionHeaderText: { fontSize: 15, fontWeight: '700' },
+  sectionHeaderText: { fontSize: 14, fontWeight: '700' },
 
   // Health rows
   healthRow: {
