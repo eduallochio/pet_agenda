@@ -101,6 +101,45 @@ export default function RootLayout() {
     }
   }, []);
 
+  // Salvar notificações recebidas no histórico
+  useEffect(() => {
+    if (Platform.OS === 'web') return;
+    let receivedSub: any;
+    let responseSub: any;
+    import('expo-notifications').then(Notifications => {
+      import('../services/notificationHistory').then(({ addToHistory }) => {
+        receivedSub = Notifications.addNotificationReceivedListener(notification => {
+          const { title, body, data } = notification.request.content;
+          if (!title) return;
+          addToHistory({
+            type: (data?.type as any) ?? 'reminder',
+            title: title ?? '',
+            body: body ?? '',
+            petId: data?.petId as string | undefined,
+            reminderId: data?.reminderId as string | undefined,
+            vaccineId: data?.vaccineId as string | undefined,
+          }).catch(() => {});
+        });
+        responseSub = Notifications.addNotificationResponseReceivedListener(response => {
+          const { title, body, data } = response.notification.request.content;
+          if (!title) return;
+          addToHistory({
+            type: (data?.type as any) ?? 'reminder',
+            title: title ?? '',
+            body: body ?? '',
+            petId: data?.petId as string | undefined,
+            reminderId: data?.reminderId as string | undefined,
+            vaccineId: data?.vaccineId as string | undefined,
+          }).catch(() => {});
+        });
+      });
+    });
+    return () => {
+      receivedSub?.remove?.();
+      responseSub?.remove?.();
+    };
+  }, []);
+
   // Sync de download ao abrir o app — só executa se houver sessão ativa
   useEffect(() => {
     import('../services/supabase').then(({ supabase }) => {

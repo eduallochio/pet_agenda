@@ -159,6 +159,7 @@ export default function PetDetailScreen() {
 							reminder.description,
 							reminderDate,
 							reminder.category,
+							foundPet.id,
 						);
 					}
 				}

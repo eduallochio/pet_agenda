@@ -5,6 +5,7 @@ export default {
     community: 'Comunidad',
     profile: 'Perfil',
     addPet: 'Nueva Mascota',
+    notifications: 'Notificaciones',
   },
 
   // ── Común ─────────────────────────────────────────────────────────────────

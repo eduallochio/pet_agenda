@@ -180,7 +180,7 @@ export default function ReminderFormScreen() {
 					const NS = await import('../../services/notificationService');
 					notificationIds = await NS.scheduleReminderNotification(
 						reminderId || Date.now().toString(),
-						petName, description, date, category
+						petName, description, date, category, petId
 					);
 				} catch { /* notif opcional */ }
 			}
@@ -220,7 +220,7 @@ export default function ReminderFormScreen() {
 							try {
 								const NS = await import('../../services/notificationService');
 								recurNotifIds = await NS.scheduleReminderNotification(
-									Date.now().toString() + i, petName, description, nextDate, category
+									Date.now().toString() + i, petName, description, nextDate, category, petId
 								);
 							} catch { /* ignore */ }
 						}

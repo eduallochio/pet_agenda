@@ -132,6 +132,7 @@ export async function scheduleReminderNotification(
   description: string,
   date: Date,
   category: string,
+  petId?: string,
 ): Promise<string[]> {
   try {
     const hasPermission = await requestNotificationPermissions();
@@ -158,7 +159,7 @@ export async function scheduleReminderNotification(
         content: {
           title,
           body,
-          data: { reminderId, type: 'reminder', daysUntil: 1 },
+          data: { reminderId, petId, type: 'reminder', daysUntil: 1 },
           sound: true,
           priority: Notifications.AndroidNotificationPriority.HIGH,
         },
@@ -181,7 +182,7 @@ export async function scheduleReminderNotification(
         content: {
           title,
           body,
-          data: { reminderId, type: 'reminder', daysUntil: 0 },
+          data: { reminderId, petId, type: 'reminder', daysUntil: 0 },
           sound: true,
           priority: Notifications.AndroidNotificationPriority.MAX,
         },

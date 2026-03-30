@@ -1,6 +1,6 @@
 import { Tabs } from 'expo-router';
 import React, { useState } from 'react';
-import { View, StyleSheet, Platform } from 'react-native';
+import { View, StyleSheet, Platform, Text } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -10,9 +10,30 @@ import { useFocusEffect } from 'expo-router';
 import { useCallback } from 'react';
 import { Reminder, VaccineRecord } from '../../types/pet';
 import { useTranslation } from 'react-i18next';
+import { getUnreadCount } from '../../services/notificationHistory';
 
 function UrgencyDot({ color }: { color: string }) {
   return <View style={[styles.dot, { backgroundColor: color }]} />;
+}
+
+function NotifTabIcon({ color, size, focused }: { color: string; size: number; focused: boolean }) {
+  const [unread, setUnread] = useState(0);
+  const { colors } = useTheme();
+
+  useFocusEffect(useCallback(() => {
+    getUnreadCount().then(setUnread);
+  }, []));
+
+  return (
+    <View style={styles.iconWrapper}>
+      <Ionicons name={focused ? 'notifications' : 'notifications-outline'} size={size} color={color} />
+      {unread > 0 && (
+        <View style={[styles.badge, { backgroundColor: '#FF3B30' }]}>
+          <Text style={styles.badgeText}>{unread > 99 ? '99+' : unread}</Text>
+        </View>
+      )}
+    </View>
+  );
 }
 
 function PetsTabIcon({ color, size, focused }: { color: string; size: number; focused: boolean }) {
@@ -133,6 +154,15 @@ export default function TabLayout() {
         options={{ href: null }}
       />
       <Tabs.Screen
+        name="notifications"
+        options={{
+          title: t('tabs.notifications') ?? 'Notificações',
+          tabBarIcon: ({ color, size, focused }) => (
+            <NotifTabIcon color={color} size={size} focused={focused} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="profile"
         options={{
           title: t('tabs.profile'),
@@ -160,5 +190,24 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     borderWidth: 1.5,
     borderColor: '#fff',
+  },
+  badge: {
+    position: 'absolute',
+    top: -4,
+    right: -8,
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 3,
+    borderWidth: 1.5,
+    borderColor: '#fff',
+  },
+  badgeText: {
+    color: '#fff',
+    fontSize: 9,
+    fontWeight: '700',
+    lineHeight: 11,
   },
 });
