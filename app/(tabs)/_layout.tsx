@@ -18,7 +18,6 @@ function UrgencyDot({ color }: { color: string }) {
 
 function NotifTabIcon({ color, size, focused }: { color: string; size: number; focused: boolean }) {
   const [unread, setUnread] = useState(0);
-  const { colors } = useTheme();
 
   useFocusEffect(useCallback(() => {
     getUnreadCount().then(setUnread);

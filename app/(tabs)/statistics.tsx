@@ -5,7 +5,7 @@ import {
 import { Shadows } from '../../constants/Shadows';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useFocusEffect, router } from 'expo-router';
+import { useFocusEffect } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Pet, Reminder, VaccineRecord } from '../../types/pet';
 import { Theme, getCategoryColor } from '../../constants/Colors';
@@ -393,19 +393,6 @@ export default function StatisticsScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Header */}
-      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="chevron-back" size={26} color={colors.text.primary} />
-        </TouchableOpacity>
-        <View style={styles.headerCenter}>
-          <Text style={[styles.headerTitle, { color: colors.text.primary }]}>{t('statistics.title')}</Text>
-          <Text style={[styles.headerSub, { color: colors.text.secondary }]}>
-            {t('statistics.subtitle')}
-          </Text>
-        </View>
-        <View style={{ width: 40 }} />
-      </View>
 
       {/* ── Filtro global por pet ── */}
       {pets.length > 1 && (
@@ -670,19 +657,6 @@ export default function StatisticsScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-
-  // Header
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-  },
-  backBtn: { width: 40, height: 40, justifyContent: 'center' },
-  headerCenter: { flex: 1, alignItems: 'center' },
-  headerTitle: { fontSize: 17, fontWeight: '700' },
-  headerSub: { fontSize: 12, marginTop: 1 },
 
   scroll: { padding: 16, paddingBottom: 40 },
 
