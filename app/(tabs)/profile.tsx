@@ -491,12 +491,6 @@ ${petsSection || '<p>Nenhum pet cadastrado.</p>'}
           >
             <Ionicons name="calendar-outline" size={24} color={colors.text.primary} />
           </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.headerBtn}
-            onPress={() => router.push('/(tabs)/statistics')}
-          >
-            <MaterialCommunityIcons name="chart-bar" size={24} color={colors.text.primary} />
-          </TouchableOpacity>
           <TouchableOpacity style={styles.headerBtn} onPress={() => setSettingsVisible(true)}>
             <Ionicons name="settings-outline" size={24} color={colors.text.primary} />
           </TouchableOpacity>
