@@ -56,5 +56,5 @@ banco/
 .env
 pencil
 
-# screenshots temporarios
-*.png
+# screenshots temporarios na raiz
+/*.png
