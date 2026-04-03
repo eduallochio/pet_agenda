@@ -185,6 +185,7 @@ export default function RootLayout() {
               <Stack.Screen name="pet/feeding" />
               <Stack.Screen name="pet/emergency-contacts" />
               <Stack.Screen name="nearby" />
+              <Stack.Screen name="conquistas" />
               <Stack.Screen name="+not-found" options={{ headerShown: true }} />
             </Stack>
             <StatusBar style="auto" />
