@@ -1,13 +1,13 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { syncPets } from '../../services/syncService';
+import { secureGet } from '../../services/secureStorage';
 import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useState, useMemo, useRef } from 'react';
 import {
   Alert, FlatList, Platform,
-  StyleSheet, Text, TouchableOpacity, View,
+  StyleSheet, Text, TextInput, TouchableOpacity, View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Shadows } from '../../constants/Shadows';
 import Animated, {
   useSharedValue, useAnimatedStyle, withSpring, withTiming,
   runOnJS, interpolate, Extrapolation,
@@ -17,24 +17,14 @@ import * as Haptics from 'expo-haptics';
 import { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { Pet, Reminder, VaccineRecord } from '../../types/pet';
 import { Theme, getSpeciesColor } from '../../constants/Colors';
-import Badge from '../../components/Badge';
 import PetAvatar from '../../components/PetAvatar';
 import FadeIn from '../../components/animations/FadeIn';
 import EmptyState from '../../components/EmptyState';
 import { SkeletonCard } from '../../components/Skeleton';
-import SearchBar from '../../components/SearchBar';
-import BirthdayBanner from '../../components/BirthdayBanner';
 import AdBanner from '../../components/AdBanner';
-import TodayWidget from '../../components/TodayWidget';
-import BirthdayModal from '../../components/BirthdayModal';
-import StreakBadge from '../../components/StreakBadge';
 import { AppBottomSheetModal } from '../../components/AppBottomSheet';
 import { useTheme } from '../../hooks/useTheme';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { tickStreak, StreakData } from '../../hooks/useStreak';
-import { getCurrentChallenge, loadChallengeState, getWeekKey } from '../../hooks/useChallenges';
-import ChallengeCard from '../../components/ChallengeCard';
-import UpcomingVaccinesCard from '../../components/UpcomingVaccinesCard';
+import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 
 // Calcula idade a partir de DD/MM/YYYY — retorna número de meses e anos para uso com t()
@@ -177,6 +167,8 @@ function SwipePetCard({
         : t('age.years', { count: ageRaw.count })
     : '';
 
+  const speciesColor = getSpeciesColor(pet.species);
+
   return (
     <FadeIn delay={index * 60}>
       <View style={styles.swipeContainer}>
@@ -200,50 +192,81 @@ function SwipePetCard({
           <Animated.View
             style={[
               styles.petCard,
-              { backgroundColor: colors.surface, borderLeftColor: getSpeciesColor(pet.species) },
+              { backgroundColor: colors.surface, borderColor: colors.border },
               cardStyle,
             ]}
           >
-            <PetAvatar species={pet.species} photoUri={pet.photoUri} size="large" />
+            {/* Avatar circular com cor da espécie */}
+            <View style={[styles.petAvatarCircle, { backgroundColor: speciesColor + '22' }]}>
+              {pet.photoUri ? (
+                <PetAvatar species={pet.species} photoUri={pet.photoUri} size="large" />
+              ) : (
+                <Ionicons
+                  name={pet.species === 'Gato' ? 'logo-octocat' : pet.species === 'Pássaro' ? 'leaf-outline' : 'paw'}
+                  size={28}
+                  color={speciesColor}
+                />
+              )}
+            </View>
 
             <View style={styles.petInfo}>
               {/* Nome + health score em linha */}
               <View style={styles.petNameRow}>
                 <Text style={[styles.petName, { color: colors.text.primary }]} numberOfLines={1}>{pet.name}</Text>
                 <View style={[styles.healthBadge, { backgroundColor: healthScore.color + '18' }]}>
-                  <Text style={[styles.healthBadgeText, { color: healthScore.color }]}>● {healthScore.score}</Text>
+                  <View style={[styles.healthDot, { backgroundColor: healthScore.color }]} />
+                  <Text style={[styles.healthBadgeText, { color: healthScore.color }]}>{healthScore.score}</Text>
                 </View>
               </View>
 
               {/* Espécie · Raça + Idade em linha */}
               <Text style={[styles.petMeta, { color: colors.text.secondary }]} numberOfLines={1}>
-                {[pet.species, pet.breed].filter(Boolean).join(' · ')}{age ? `  ·  ${age}` : ''}
+                {[pet.species, pet.breed].filter(Boolean).join(' · ')}{age ? ` · ${age}` : ''}
               </Text>
 
-              {/* Badges de alerta */}
-              {(overdueReminders > 0 || todayReminders > 0 || overdueVaccines > 0 || upcomingCount > 0) && (
+              {/* Badges de alerta com ícones */}
+              {(overdueReminders > 0 || todayReminders > 0 || overdueVaccines > 0 || upcomingCount > 0 ||
+                (birthdayCountdown !== null && birthdayCountdown <= 7)) && (
                 <View style={styles.badgesRow}>
                   {overdueReminders > 0 && (
-                    <Badge variant="danger" label={t('home.overdue', { count: overdueReminders })} small style={styles.badge} />
+                    <View style={[styles.iconBadge, { backgroundColor: '#F4433618' }]}>
+                      <Ionicons name="warning-outline" size={10} color="#F44336" />
+                      <Text style={[styles.iconBadgeText, { color: '#F44336' }]}>
+                        {t('home.overdue', { count: overdueReminders })}
+                      </Text>
+                    </View>
                   )}
                   {todayReminders > 0 && (
-                    <Badge variant="warning" label={t('home.today', { count: todayReminders })} small style={styles.badge} />
+                    <View style={[styles.iconBadge, { backgroundColor: '#FF980018' }]}>
+                      <Ionicons name="alarm-outline" size={10} color="#FF9800" />
+                      <Text style={[styles.iconBadgeText, { color: '#FF9800' }]}>
+                        {t('home.today', { count: todayReminders })}
+                      </Text>
+                    </View>
                   )}
                   {overdueVaccines > 0 && (
-                    <Badge variant="danger" label={t('home.overdueVaccine', { count: overdueVaccines })} small style={styles.badge} />
+                    <View style={[styles.iconBadge, { backgroundColor: '#F4433618' }]}>
+                      <Ionicons name="medical-outline" size={10} color="#F44336" />
+                      <Text style={[styles.iconBadgeText, { color: '#F44336' }]}>
+                        {t('home.overdueVaccine', { count: overdueVaccines })}
+                      </Text>
+                    </View>
                   )}
                   {upcomingCount > 0 && overdueReminders === 0 && todayReminders === 0 && (
-                    <Badge variant="info" label={t('common.events') + `: ${upcomingCount}`} small style={styles.badge} />
+                    <View style={[styles.iconBadge, { backgroundColor: '#2196F318' }]}>
+                      <Ionicons name="calendar-outline" size={10} color="#2196F3" />
+                      <Text style={[styles.iconBadgeText, { color: '#2196F3' }]}>
+                        {upcomingCount} {t('home.upcoming', { defaultValue: 'próximos' })}
+                      </Text>
+                    </View>
                   )}
-                </View>
-              )}
-
-              {/* Aniversário */}
-              {birthdayCountdown !== null && birthdayCountdown <= 7 && (
-                <View style={styles.birthdayChip}>
-                  <Text style={styles.birthdayChipText}>
-                    {birthdayCountdown === 0 ? '🎂 Hoje!' : `🎂 ${birthdayCountdown}d`}
-                  </Text>
+                  {birthdayCountdown !== null && birthdayCountdown <= 7 && (
+                    <View style={[styles.iconBadge, { backgroundColor: '#FF6B9D22' }]}>
+                      <Text style={[styles.iconBadgeText, { color: '#FF6B9D' }]}>
+                        {birthdayCountdown === 0 ? '🎂 Hoje!' : `🎂 ${birthdayCountdown}d`}
+                      </Text>
+                    </View>
+                  )}
                 </View>
               )}
             </View>
@@ -288,16 +311,11 @@ export default function PetDashboard() {
   const [pets, setPets] = useState<Pet[]>([]);
   const [reminders, setReminders] = useState<Reminder[]>([]);
   const [vaccines, setVaccines] = useState<VaccineRecord[]>([]);
+  const [userName, setUserName] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSpecies, setSelectedSpecies] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState<'name' | 'species' | 'events'>('name');
-  const [birthdayPet, setBirthdayPet] = useState<{ name: string; age: number; species: string } | null>(null);
-  const [birthdayModal, setBirthdayModal] = useState<{ name: string; age: number; species: string } | null>(null);
-  const [streak, setStreak] = useState<StreakData | null>(null);
-  const streakInitialized = useRef(false);
-  const [challengeCompleted, setChallengeCompleted] = useState(false);
-  const [challengeDaysLeft, setChallengeDaysLeft] = useState(7);
   const [fabOpen, setFabOpen] = useState(false);
   const fabRotation = useSharedValue(0);
   const miniFabScale = useSharedValue(0);
@@ -349,47 +367,20 @@ export default function PetDashboard() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [petsJSON, remindersJSON, vaccinesJSON] = await Promise.all([
+      const [petsJSON, remindersJSON, vaccinesJSON, profileJSON] = await Promise.all([
         AsyncStorage.getItem('pets'),
         AsyncStorage.getItem('reminders'),
         AsyncStorage.getItem('vaccinations'),
+        secureGet('userProfile'),
       ]);
 
-      // Desafio semanal
-      const { completed } = await loadChallengeState();
-      setChallengeCompleted(completed);
-      const weekKey = getWeekKey();
-      const weekNum = parseInt(weekKey.split('-W')[1]);
-      const year = parseInt(weekKey.split('-W')[0]);
-      // Calcula dia que a semana começa (segunda) e termina (domingo)
-      const jan1 = new Date(year, 0, 1);
-      const weekStart = new Date(jan1.getTime() + (weekNum - 1) * 7 * 86400000);
-      const weekEnd = new Date(weekStart.getTime() + 6 * 86400000);
-      const now = new Date();
-      const msLeft = weekEnd.getTime() - now.getTime();
-      setChallengeDaysLeft(Math.max(1, Math.ceil(msLeft / 86400000)));
       const loadedPets: Pet[] = petsJSON ? JSON.parse(petsJSON) : [];
       setPets(loadedPets);
       setReminders(remindersJSON ? JSON.parse(remindersJSON) : []);
       setVaccines(vaccinesJSON ? JSON.parse(vaccinesJSON) : []);
-
-      const todayStr = `${now.getFullYear()}-${now.getMonth()}-${now.getDate()}`;
-      const shownDate = await AsyncStorage.getItem('birthdayShownDate');
-      for (const p of loadedPets) {
-        if (!p.dob) continue;
-        const parts = p.dob.split('/');
-        if (parts.length !== 3) continue;
-        const day = parseInt(parts[0]);
-        const mon = parseInt(parts[1]) - 1;
-        if (day === now.getDate() && mon === now.getMonth()) {
-          const age = now.getFullYear() - parseInt(parts[2]);
-          setBirthdayPet({ name: p.name, age, species: p.species });
-          if (shownDate !== todayStr) {
-            setBirthdayModal({ name: p.name, age, species: p.species });
-            await AsyncStorage.setItem('birthdayShownDate', todayStr);
-          }
-          break;
-        }
+      if (profileJSON) {
+        const profile = JSON.parse(profileJSON);
+        setUserName(profile?.name || '');
       }
     } catch (e) {
       console.error('Erro ao carregar dados', e);
@@ -400,10 +391,6 @@ export default function PetDashboard() {
 
   useFocusEffect(useCallback(() => {
     loadData();
-    if (!streakInitialized.current) {
-      streakInitialized.current = true;
-      tickStreak().then(setStreak);
-    }
   }, []));
 
   const handleDeletePet = async (petId: string) => {
@@ -500,7 +487,11 @@ export default function PetDashboard() {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
         <View style={styles.header}>
-          <Text style={[styles.headerTitle, { color: colors.text.primary }]}>{t('home.title')}</Text>
+          <View style={styles.headerLeft}>
+            <Text style={[styles.greetingText, { color: colors.text.primary }]}>
+              {t('home.greeting', { defaultValue: 'Olá' })}{userName ? `, ${userName}` : ''} 👋
+            </Text>
+          </View>
         </View>
         <View style={{ padding: 20 }}>
           <SkeletonCard /><SkeletonCard /><SkeletonCard />
@@ -525,37 +516,49 @@ export default function PetDashboard() {
     );
   }
 
+  // Contadores para summary card
+  const totalReminders = reminders.filter(r => !r.completed).length;
+  const totalVaccines = vaccines.filter(v => {
+    if (!v.nextDueDate) return false;
+    const today = new Date(); today.setHours(0,0,0,0);
+    const parts = v.nextDueDate.split('/');
+    if (parts.length === 3) {
+      const d = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+      d.setHours(0,0,0,0);
+      return d <= new Date(today.getTime() + 30 * 86400000);
+    }
+    return false;
+  }).length;
+  const totalConsultas = reminders.filter(r => !r.completed && r.category === 'Consulta').length;
+
   const listHeader = (
     <>
-      {/* Banner de aniversário */}
-      {!!birthdayPet && (
-        <BirthdayBanner
-          petName={birthdayPet.name}
-          age={birthdayPet.age}
-          species={birthdayPet.species}
-          onDismiss={() => setBirthdayPet(null)}
-        />
-      )}
+      {/* Summary Stats Card */}
+      <View style={[styles.summaryCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <View style={styles.statItem}>
+          <View style={[styles.statIconWrap, { backgroundColor: '#FFF3E0' }]}>
+            <Ionicons name="alarm-outline" size={20} color="#FF9800" />
+          </View>
+          <Text style={[styles.statNum, { color: colors.text.primary }]}>{totalReminders}</Text>
+          <Text style={[styles.statLabel, { color: colors.text.secondary }]}>{t('home.reminders', { defaultValue: 'Lembretes' })}</Text>
+        </View>
+        <View style={styles.statItem}>
+          <View style={[styles.statIconWrap, { backgroundColor: '#E8F5E9' }]}>
+            <Ionicons name="medkit-outline" size={20} color="#4CAF50" />
+          </View>
+          <Text style={[styles.statNum, { color: colors.text.primary }]}>{totalVaccines}</Text>
+          <Text style={[styles.statLabel, { color: colors.text.secondary }]}>{t('home.vaccines', { defaultValue: 'Vacina' })}</Text>
+        </View>
+        <View style={styles.statItem}>
+          <View style={[styles.statIconWrap, { backgroundColor: '#E3F2FD' }]}>
+            <Ionicons name="calendar-outline" size={20} color="#2196F3" />
+          </View>
+          <Text style={[styles.statNum, { color: colors.text.primary }]}>{totalConsultas}</Text>
+          <Text style={[styles.statLabel, { color: colors.text.secondary }]}>{t('home.consultations', { defaultValue: 'Consultas' })}</Text>
+        </View>
+      </View>
 
-      {/* Widget Hoje */}
-      <TodayWidget
-        pets={pets}
-        reminders={reminders}
-        vaccines={vaccines}
-        onPress={() => router.push('/calendar')}
-      />
-
-      {/* Desafio Semanal */}
-      <ChallengeCard
-        challenge={getCurrentChallenge()}
-        completed={challengeCompleted}
-        daysLeft={challengeDaysLeft}
-      />
-
-      {/* Vacinas próximas / vencidas */}
-      <UpcomingVaccinesCard pets={pets} vaccines={vaccines} />
-
-      {/* Serviços Próximos */}
+      {/* Banner Serviços Próximos */}
       <TouchableOpacity
         style={[styles.nearbyBanner, { backgroundColor: colors.surface, borderColor: colors.border }]}
         onPress={() => {
@@ -568,19 +571,46 @@ export default function PetDashboard() {
           <Ionicons name="map-outline" size={22} color={Theme.primary} />
         </View>
         <View style={styles.nearbyText}>
-          <Text style={[styles.nearbyTitle, { color: colors.text.primary }]}>{t('home.nearbyServices')}</Text>
-          <Text style={[styles.nearbySubtitle, { color: colors.text.secondary }]}>{t('home.nearbyServicesDesc')}</Text>
+          <Text style={[styles.nearbyTitle, { color: colors.text.primary }]}>{t('home.nearbyServices', { defaultValue: 'Serviços Próximos' })}</Text>
+          <Text style={[styles.nearbySubtitle, { color: colors.text.secondary }]}>{t('home.nearbyServicesDesc', { defaultValue: 'Vets, pet shops e mais perto de você' })}</Text>
         </View>
         <Ionicons name="chevron-forward" size={18} color={colors.text.light} />
       </TouchableOpacity>
 
-      {/* Barra de busca */}
-      <View style={styles.searchRow}>
-        <SearchBar
+      {/* Barra de busca pill-shaped integrada */}
+      <View style={[styles.searchPill, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <Ionicons name="search" size={20} color="#999999" />
+        <TextInput
+          style={[styles.searchInput, { color: colors.text.primary }]}
           value={searchQuery}
           onChangeText={setSearchQuery}
-          placeholder={t('home.searchPlaceholder')}
+          placeholder={t('home.searchPlaceholder', { defaultValue: 'Buscar pets...' })}
+          placeholderTextColor="#999999"
+          returnKeyType="search"
         />
+        <TouchableOpacity
+          style={[
+            styles.searchFilterBtn,
+            { backgroundColor: '#F2F3F0' },
+            activeFiltersCount > 0 && { backgroundColor: Theme.primary + '15' },
+          ]}
+          onPress={openFilterSheet}
+        >
+          <Ionicons name="options-outline" size={18} color={activeFiltersCount > 0 ? Theme.primary : '#666666'} />
+          {activeFiltersCount > 0 && (
+            <View style={styles.filterBadge}>
+              <Text style={styles.filterBadgeText}>{activeFiltersCount}</Text>
+            </View>
+          )}
+        </TouchableOpacity>
+      </View>
+
+      {/* Seção "Meus Pets" / "Ver todos" */}
+      <View style={styles.sectionRow}>
+        <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>{t('home.title')}</Text>
+        <TouchableOpacity onPress={() => {}}>
+          <Text style={[styles.sectionLink, { color: colors.text.secondary }]}>{t('home.viewAll', { defaultValue: 'Ver todos' })}</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Chips de filtro ativos */}
@@ -633,51 +663,28 @@ export default function PetDashboard() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Header fixo */}
+      {/* Header com saudação */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <Text style={[styles.headerTitle, { color: colors.text.primary }]}>{t('home.title')}</Text>
-          <View style={styles.counterBadge}>
-            <Text style={styles.counterText}>{pets.length}</Text>
-          </View>
+          <Text style={[styles.greetingText, { color: colors.text.primary }]}>
+            {t('home.greeting', { defaultValue: 'Olá' })}{userName ? `, ${userName}` : ''} 👋
+          </Text>
+          <Text style={[styles.greetingSubtitle, { color: colors.text.secondary }]}>
+            {t('home.greetingSubtitle', { defaultValue: 'Seus pets estão bem!' })}
+          </Text>
         </View>
         <View style={styles.headerRight}>
-          {(!!streak && (streak.currentStreak > 0 || streak.vacationMode)) && (
-            <StreakBadge
-              streak={streak.currentStreak}
-              best={streak.bestStreak}
-              vacationMode={streak.vacationMode}
-              onVacationToggle={(updated) => setStreak(updated)}
-            />
-          )}
           <TouchableOpacity
-            style={[
-              styles.filterBtn,
-              { backgroundColor: colors.surface, borderColor: colors.border },
-              activeFiltersCount > 0 && { borderColor: Theme.primary, backgroundColor: Theme.primary + '15' },
-            ]}
-            onPress={openFilterSheet}
+            style={styles.bellBtn}
+            onPress={() => router.push('/(tabs)/notifications')}
           >
-            <Ionicons name="options-outline" size={18} color={activeFiltersCount > 0 ? Theme.primary : colors.text.secondary} />
-            {activeFiltersCount > 0 && (
-              <View style={styles.filterBadge}>
-                <Text style={styles.filterBadgeText}>{activeFiltersCount}</Text>
-              </View>
-            )}
+            <Ionicons name="notifications-outline" size={24} color={colors.text.primary} />
           </TouchableOpacity>
+          <View style={[styles.avatarCircle, { backgroundColor: '#E0E0E0' }]}>
+            <Ionicons name="person" size={20} color="#999999" />
+          </View>
         </View>
       </View>
-
-      {/* Modal de aniversário */}
-      {!!birthdayModal && (
-        <BirthdayModal
-          visible={!!birthdayModal}
-          petName={birthdayModal.name}
-          age={birthdayModal.age}
-          species={birthdayModal.species}
-          onClose={() => setBirthdayModal(null)}
-        />
-      )}
 
       {/* FlatList que rola toda a tela */}
       <FlatList
@@ -722,7 +729,7 @@ export default function PetDashboard() {
         >
           <Ionicons name="alarm-outline" size={20} color={Theme.primary} />
         </TouchableOpacity>
-        <Text style={styles.miniFabLabel}>{t('reminders.newReminder')}</Text>
+        <Text style={styles.miniFabLabel}>{t('reminders.newReminder', { defaultValue: 'Novo Lembrete' })}</Text>
       </Animated.View>
 
       {/* Mini FAB: Novo Pet */}
@@ -738,21 +745,21 @@ export default function PetDashboard() {
         >
           <Ionicons name="paw-outline" size={20} color={Theme.primary} />
         </TouchableOpacity>
-        <Text style={styles.miniFabLabel}>{t('common.addPet')}</Text>
+        <Text style={styles.miniFabLabel}>{t('common.addPet', { defaultValue: 'Novo Pet' })}</Text>
       </Animated.View>
 
       {/* FAB Principal */}
       <TouchableOpacity
         style={[styles.fab, {
           ...(Platform.OS === 'web'
-            ? { boxShadow: '0 6px 16px rgba(64,224,208,0.45)' }
-            : { shadowColor: '#40E0D0', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.4, shadowRadius: 8, elevation: 8 }),
+            ? { boxShadow: '0 4px 16px rgba(64,224,208,0.4)' }
+            : { shadowColor: '#40E0D0', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 16, elevation: 8 }),
         }]}
         onPress={toggleFab}
         activeOpacity={0.85}
       >
         <Animated.View style={fabIconStyle}>
-          <Ionicons name="add" size={28} color="#fff" />
+          <Ionicons name="add" size={24} color="#fff" />
         </Animated.View>
       </TouchableOpacity>
 
@@ -821,7 +828,7 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   containerEmpty: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
 
-  // Header
+  // Header - novo design com saudação
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -830,37 +837,86 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     paddingBottom: 8,
   },
-  headerLeft: { flexDirection: 'row', alignItems: 'center' },
-  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  headerTitle: { fontSize: 28, fontWeight: 'bold', marginRight: 10 },
-  counterBadge: {
-    backgroundColor: Theme.primary,
-    width: 32, height: 32, borderRadius: 16,
+  headerLeft: { flex: 1 },
+  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  greetingText: { fontSize: 22, fontWeight: '700' },
+  greetingSubtitle: { fontSize: 14, marginTop: 2 },
+  bellBtn: { padding: 4 },
+  avatarCircle: {
+    width: 40, height: 40, borderRadius: 20,
     justifyContent: 'center', alignItems: 'center',
   },
-  counterText: { color: '#fff', fontSize: 14, fontWeight: 'bold' },
 
-  // Filter button
-  filterBtn: {
-    width: 38, height: 38, borderRadius: 12,
-    borderWidth: 1.5,
+  // Summary Stats Card
+  summaryCard: {
+    flexDirection: 'row',
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 16,
+    gap: 12,
+    marginBottom: 8,
+    justifyContent: 'space-between',
+  },
+  statItem: { flex: 1, alignItems: 'center', gap: 6, paddingVertical: 12, paddingHorizontal: 8 },
+  statIconWrap: {
+    width: 36, height: 36, borderRadius: 10,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  statNum: { fontSize: 20, fontWeight: '700' },
+  statLabel: { fontSize: 11 },
+
+  // Section header
+  sectionRow: {
+    flexDirection: 'row', alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  sectionTitle: { fontSize: 16, fontWeight: '700' },
+  sectionLink: { fontSize: 14 },
+
+  // Serviços Próximos banner
+  nearbyBanner: {
+    flexDirection: 'row', alignItems: 'center',
+    borderRadius: 14, borderWidth: 1,
+    paddingHorizontal: 14, paddingVertical: 12,
+    marginBottom: 14, gap: 12,
+  },
+  nearbyIconCircle: {
+    width: 40, height: 40, borderRadius: 20,
+    backgroundColor: '#40E0D022',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  nearbyText: { flex: 1 },
+  nearbyTitle: { fontSize: 14, fontWeight: '600' },
+  nearbySubtitle: { fontSize: 12, marginTop: 2 },
+
+  // Search pill integrada
+  searchPill: {
+    flexDirection: 'row', alignItems: 'center',
+    height: 48, borderRadius: 24,
+    borderWidth: 1,
+    paddingLeft: 16, paddingRight: 6,
+    gap: 10,
+  },
+  searchInput: {
+    flex: 1, fontSize: 14, paddingVertical: 0,
+  },
+  searchFilterBtn: {
+    width: 36, height: 36, borderRadius: 18,
     justifyContent: 'center', alignItems: 'center',
   },
   filterBadge: {
-    position: 'absolute', top: -4, right: -4,
+    position: 'absolute', top: -2, right: -2,
     width: 16, height: 16, borderRadius: 8,
-    backgroundColor: Theme.primary,
+    backgroundColor: '#FF8C00',
     justifyContent: 'center', alignItems: 'center',
   },
-  filterBadgeText: { color: '#fff', fontSize: 10, fontWeight: '700' },
-
-  // Search
-  searchRow: { paddingHorizontal: 20, paddingBottom: 6 },
+  filterBadgeText: { color: '#fff', fontSize: 9, fontWeight: '700' },
 
   // Active filter chips
   activeFiltersRow: {
     flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center',
-    paddingHorizontal: 20, marginBottom: 8, gap: 6,
+    marginBottom: 8, gap: 6,
   },
   activeFilterChip: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
@@ -875,8 +931,8 @@ const styles = StyleSheet.create({
   listContent: { paddingHorizontal: 20, paddingBottom: 100 },
   emptyFiltered: { flex: 1, justifyContent: 'center', padding: 20 },
 
-  // Swipe card
-  swipeContainer: { marginBottom: 10, borderRadius: 16, overflow: 'hidden' },
+  // Swipe card - novo design
+  swipeContainer: { marginBottom: 12, borderRadius: 16, overflow: 'hidden' },
   deleteBackground: {
     position: 'absolute', right: 0, top: 0, bottom: 0,
     width: DELETE_WIDTH,
@@ -887,51 +943,38 @@ const styles = StyleSheet.create({
   deleteBackgroundText: { color: '#fff', fontSize: 11, fontWeight: '700', marginTop: 2 },
   petCard: {
     flexDirection: 'row', alignItems: 'center',
-    paddingVertical: 12, paddingRight: 12, paddingLeft: 14,
-    borderRadius: 16, borderLeftWidth: 4,
-    ...Shadows.small,
+    padding: 14, gap: 14,
+    borderRadius: 16, borderWidth: 1,
   },
-  petInfo: { flex: 1, marginLeft: 12 },
-  petNameRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 3 },
-  petName: { fontSize: 16, fontWeight: '700', flex: 1, marginRight: 8 },
-  healthBadge: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 10 },
-  healthBadgeText: { fontSize: 11, fontWeight: '700' },
-  petMeta: { fontSize: 12, marginBottom: 5 },
-  badgesRow: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: 4 },
-  badge: { marginRight: 4, marginTop: 2 },
-  birthdayChip: {
-    alignSelf: 'flex-start',
-    backgroundColor: '#FF6B9D22',
-    borderRadius: 8,
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    marginTop: 2,
-  },
-  birthdayChipText: { fontSize: 11, fontWeight: '700', color: '#FF6B9D' },
-
-  // Nearby banner
-  nearbyBanner: {
-    flexDirection: 'row', alignItems: 'center',
-    marginHorizontal: 20, marginBottom: 8,
-    borderRadius: 14, borderWidth: 1,
-    paddingHorizontal: 12, paddingVertical: 9, gap: 10,
-  },
-  nearbyIconCircle: {
-    width: 36, height: 36, borderRadius: 10,
-    backgroundColor: Theme.primary + '18',
+  petAvatarCircle: {
+    width: 56, height: 56, borderRadius: 28,
     justifyContent: 'center', alignItems: 'center',
+    overflow: 'hidden',
   },
-  nearbyText: { flex: 1 },
-  nearbyTitle: { fontSize: 13, fontWeight: '700', marginBottom: 1 },
-  nearbySubtitle: { fontSize: 11 },
+  petInfo: { flex: 1, gap: 4 },
+  petNameRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  petName: { fontSize: 16, fontWeight: '700', flex: 1, marginRight: 8 },
+  healthBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10,
+  },
+  healthDot: { width: 6, height: 6, borderRadius: 3 },
+  healthBadgeText: { fontSize: 11, fontWeight: '700' },
+  petMeta: { fontSize: 12 },
+  badgesRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 2 },
+  iconBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 3,
+    paddingHorizontal: 8, paddingVertical: 2,
+    borderRadius: 8,
+  },
+  iconBadgeText: { fontSize: 10, fontWeight: '600' },
 
-  // FAB
+  // FAB - com sombra turquesa
   fab: {
     position: 'absolute', bottom: 28, right: 24,
-    width: 60, height: 60, borderRadius: 30,
+    width: 56, height: 56, borderRadius: 28,
     backgroundColor: Theme.primary,
     justifyContent: 'center', alignItems: 'center',
-    ...Shadows.primary,
   },
   fabOverlay: {
     position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,

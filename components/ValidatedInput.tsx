@@ -1,7 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, Animated } from 'react-native';
 import IconInput from './IconInput';
-import { Theme } from '../constants/Colors';
 
 interface ValidatedInputProps {
   iconName: any;
@@ -61,11 +60,6 @@ export default function ValidatedInput({
           multiline={multiline}
           numberOfLines={numberOfLines}
         />
-        {!!(required && !value) && (
-          <View style={styles.requiredBadge}>
-            <Text style={styles.requiredText}>*</Text>
-          </View>
-        )}
       </View>
       {!!error && (
         <View style={styles.errorContainer}>
@@ -88,22 +82,6 @@ const styles = StyleSheet.create({
   },
   inputWrapperError: {
     borderColor: '#DC3545',
-  },
-  requiredBadge: {
-    position: 'absolute',
-    top: -8,
-    right: 12,
-    backgroundColor: Theme.primary,
-    borderRadius: 12,
-    width: 24,
-    height: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  requiredText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
   },
   errorContainer: {
     marginTop: 4,

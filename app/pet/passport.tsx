@@ -10,7 +10,6 @@ import {
   Image,
   Platform,
 } from 'react-native';
-import QRCode from 'react-native-qrcode-svg';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, Stack } from 'expo-router';
 import { useFocusEffect } from 'expo-router';
@@ -18,7 +17,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { requestBiometricAuth } from '../../services/biometricAuth';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
 import { useGoBack } from '../../hooks/useGoBack';
 import { useTranslation } from 'react-i18next';
@@ -355,12 +354,6 @@ function buildPassportHtml(data: PassportData): string {
 </html>`;
 }
 
-// ─── QR Code helper ──────────────────────────────────────────────────────────
-
-function buildQrData(pet: Pet): string {
-  // Apenas o ID interno — nenhum dado pessoal exposto no QR
-  return `pet-agenda://pet/${pet.id}`;
-}
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
@@ -463,13 +456,8 @@ export default function PetPassportScreen() {
     }
   };
 
-  // ── Sorted / filtered display data ──────────────────────────────────────
+  // ── Sorted display data ──────────────────────────────────────────────────
   const sortedVaccines = [...vaccines].sort((a, b) => parseDDMMYYYY(b.dateAdministered) - parseDDMMYYYY(a.dateAdministered));
-  const sortedWeights = [...weights].sort((a, b) => parseDDMMYYYY(b.date) - parseDDMMYYYY(a.date));
-  const lastWeight = sortedWeights[0];
-  const activeMeds = medications.filter(m => m.active);
-  const upcomingReminders = [...reminders].sort((a, b) => parseDDMMYYYY(a.date) - parseDDMMYYYY(b.date)).slice(0, 5);
-  const recentDiary = [...diary].sort((a, b) => parseDDMMYYYY(b.date) - parseDDMMYYYY(a.date)).slice(0, 3);
 
   if (loading) {
     return (
@@ -487,288 +475,132 @@ export default function PetPassportScreen() {
     );
   }
 
-  const age = calcAge(pet.dob);
+  const getVaccineStatus = (v: VaccineRecord): { label: string; color: string } => {
+    if (!v.nextDueDate) return { label: 'Em dia', color: '#4CAF50' };
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const due = parseDDMMYYYY(v.nextDueDate);
+    if (due < today.getTime()) return { label: 'Vencida', color: '#FF9800' };
+    return { label: 'Em dia', color: '#4CAF50' };
+  };
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <Stack.Screen options={{ headerShown: false }} />
 
       {/* Header */}
-      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+      <View style={[styles.header, { backgroundColor: colors.background }]}>
         <TouchableOpacity style={styles.headerBtn} onPress={goBack}>
           <Ionicons name="arrow-back" size={24} color={colors.text.primary} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.text.primary }]} numberOfLines={1}>
-          {t('passport.title')}
-        </Text>
-        <View style={{ width: 40 }} />
+        <Text style={[styles.headerTitle, { color: colors.text.primary }]}>Passaporte</Text>
+        <TouchableOpacity
+          style={styles.headerBtn}
+          onPress={handleExport}
+          disabled={exporting}
+        >
+          {exporting
+            ? <ActivityIndicator size="small" color={Theme.primary} />
+            : <Ionicons name="share-outline" size={22} color={Theme.primary} />
+          }
+        </TouchableOpacity>
       </View>
 
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-      >
-        {/* Passport cover */}
-        <View style={[styles.coverCard, { backgroundColor: Theme.primary }]}>
-          <Text style={styles.coverApp}>🐾 Pet Agenda</Text>
-          <Text style={styles.coverTitle}>{t('passport.title')}</Text>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
 
-          <View style={styles.coverAvatarContainer}>
-            {pet.photoUri ? (
-              <Image source={{ uri: pet.photoUri }} style={styles.coverAvatar} />
-            ) : (
-              <View style={[styles.coverAvatarFallback, { backgroundColor: Theme.primaryDark }]}>
-                <Text style={styles.coverInitial}>{pet.name.charAt(0).toUpperCase()}</Text>
-              </View>
-            )}
+        {/* Pet Card */}
+        <View style={[styles.petCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <View style={styles.petCardTop}>
+            <View style={[styles.petAvatarCircle, { backgroundColor: Theme.primary + '20' }]}>
+              {pet.photoUri
+                ? <Image source={{ uri: pet.photoUri }} style={styles.petAvatarImg} />
+                : <Ionicons name="paw" size={28} color={Theme.primary} />
+              }
+            </View>
+            <View style={styles.petCardInfo}>
+              <Text style={[styles.petCardName, { color: colors.text.primary }]}>{pet.name}</Text>
+              {!!(pet.breed || pet.species) && (
+                <Text style={[styles.petCardBreed, { color: colors.text.secondary }]}>
+                  {[pet.breed, pet.species].filter(Boolean).join(' · ')}
+                </Text>
+              )}
+
+            </View>
           </View>
 
-          <Text style={styles.coverPetName}>{pet.name}</Text>
-          {!!(pet.species || pet.breed) && (
-            <Text style={styles.coverSub}>
-              {[pet.species, pet.breed].filter(Boolean).join(' · ')}
-            </Text>
-          )}
-          {!!pet.dob && (
-            <Text style={styles.coverSub}>
-              Nascimento: {pet.dob}{age ? ` (${age})` : ''}
-            </Text>
+          {/* Info row */}
+          <View style={[styles.infoRow, { borderTopColor: colors.border }]}>
+            {[
+              { label: 'Espécie', value: pet.species || '—' },
+              { label: 'Sexo', value: pet.gender || '—' },
+              { label: 'Nascimento', value: pet.dob || '—' },
+              { label: 'Microchip', value: pet.microchip || '—' },
+            ].map((item, i, arr) => (
+              <View
+                key={item.label}
+                style={[
+                  styles.infoCell,
+                  i < arr.length - 1 && { borderRightWidth: 1, borderRightColor: colors.border },
+                ]}
+              >
+                <Text style={[styles.infoCellLabel, { color: colors.text.secondary }]}>{item.label}</Text>
+                <Text style={[styles.infoCellValue, { color: colors.text.primary }]} numberOfLines={1}>{item.value}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+
+        {/* Vacinas */}
+        <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <View style={styles.sectionHeader}>
+            <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>Vacinas</Text>
+            <TouchableOpacity
+              style={[styles.addBtn, { backgroundColor: Theme.primary + '18', borderColor: Theme.primary + '40' }]}
+              onPress={() => {/* navegar para nova vacina */}}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="add" size={16} color={Theme.primary} />
+              <Text style={[styles.addBtnText, { color: Theme.primary }]}>Adicionar</Text>
+            </TouchableOpacity>
+          </View>
+
+          {sortedVaccines.length === 0 ? (
+            <Text style={[styles.emptyText, { color: colors.text.light }]}>Nenhuma vacina registrada</Text>
+          ) : (
+            sortedVaccines.map((v, i) => {
+              const status = getVaccineStatus(v);
+              return (
+                <View
+                  key={v.id}
+                  style={[
+                    styles.vaccineRow,
+                    { borderBottomColor: colors.border },
+                    i === sortedVaccines.length - 1 && { borderBottomWidth: 0 },
+                  ]}
+                >
+                  <View style={[styles.vaccineIconCircle, { backgroundColor: status.color + '18' }]}>
+                    <Ionicons name="checkmark-circle" size={20} color={status.color} />
+                  </View>
+                  <View style={styles.vaccineInfo}>
+                    <Text style={[styles.vaccineName, { color: colors.text.primary }]}>{v.vaccineName}</Text>
+                    <Text style={[styles.vaccineDate, { color: colors.text.secondary }]}>
+                      Aplicada em {v.dateAdministered}
+                    </Text>
+                  </View>
+                  <View style={[styles.statusBadge, { backgroundColor: status.color + '18' }]}>
+                    <Text style={[styles.statusBadgeText, { color: status.color }]}>{status.label}</Text>
+                  </View>
+                </View>
+              );
+            })
           )}
         </View>
 
-        {/* ── VACCINES ── */}
-        <SectionCard
-          icon="💉"
-          iconColor="#40E0D0"
-          title={t('passport.sections.vaccines')}
-          count={vaccines.length}
-          colors={colors}
-        >
-          {sortedVaccines.length === 0 ? (
-            <EmptyRow message={t('passport.noVaccines')} colors={colors} />
-          ) : (
-            sortedVaccines.map(v => (
-              <View key={v.id} style={[styles.listRow, { borderBottomColor: colors.border }]}>
-                <View style={styles.listRowMain}>
-                  <Text style={[styles.listRowTitle, { color: colors.text.primary }]}>{v.vaccineName}</Text>
-                  <Text style={[styles.listRowSub, { color: colors.text.secondary }]}>
-                    Aplicada em: {v.dateAdministered}
-                  </Text>
-                  {!!v.nextDueDate && (
-                    <Text style={[styles.listRowBooster, { color: Theme.primaryDark }]}>
-                      {t('passport.nextBooster', { date: v.nextDueDate })}
-                    </Text>
-                  )}
-                </View>
-                <MaterialCommunityIcons name="needle" size={20} color={Theme.primary} />
-              </View>
-            ))
-          )}
-        </SectionCard>
-
-        {/* ── WEIGHT ── */}
-        <SectionCard
-          icon="⚖️"
-          iconColor="#9C27B0"
-          title={t('passport.sections.weight')}
-          colors={colors}
-        >
-          {!lastWeight ? (
-            <EmptyRow message={t('passport.noWeight')} colors={colors} />
-          ) : (
-            <>
-              <View style={[styles.weightHighlight, { backgroundColor: colors.background }]}>
-                <Text style={[styles.weightValue, { color: '#9C27B0' }]}>{lastWeight.weight} kg</Text>
-                <Text style={[styles.weightDate, { color: colors.text.secondary }]}>
-                  {t('passport.lastWeight', { weight: lastWeight.weight, date: lastWeight.date })}
-                </Text>
-                {!!lastWeight.note && (
-                  <Text style={[styles.weightNote, { color: colors.text.light }]}>{lastWeight.note}</Text>
-                )}
-              </View>
-              {sortedWeights.length > 1 && (
-                <Text style={[styles.weightHistory, { color: colors.text.secondary }]}>
-                  {sortedWeights.length} registros no total
-                </Text>
-              )}
-            </>
-          )}
-        </SectionCard>
-
-        {/* ── MEDICATIONS ── */}
-        <SectionCard
-          icon="💊"
-          iconColor="#E91E63"
-          title={t('passport.sections.medications')}
-          count={activeMeds.length}
-          colors={colors}
-        >
-          {activeMeds.length === 0 ? (
-            <EmptyRow message={t('passport.noMedications')} colors={colors} />
-          ) : (
-            activeMeds.map(m => (
-              <View key={m.id} style={[styles.listRow, { borderBottomColor: colors.border }]}>
-                <View style={styles.listRowMain}>
-                  <Text style={[styles.listRowTitle, { color: colors.text.primary }]}>{m.name}</Text>
-                  <Text style={[styles.listRowSub, { color: colors.text.secondary }]}>
-                    {m.dosage} · {m.frequency}
-                  </Text>
-                  {!!m.vet && (
-                    <Text style={[styles.listRowSub, { color: colors.text.light }]}>Dr(a). {m.vet}</Text>
-                  )}
-                </View>
-                <View style={[styles.activeBadge, { backgroundColor: '#E91E6320' }]}>
-                  <Text style={{ color: '#E91E63', fontSize: 11, fontWeight: '700' }}>Ativo</Text>
-                </View>
-              </View>
-            ))
-          )}
-        </SectionCard>
-
-        {/* ── REMINDERS ── */}
-        <SectionCard
-          icon="📅"
-          iconColor="#2196F3"
-          title={t('passport.sections.reminders')}
-          count={upcomingReminders.length}
-          colors={colors}
-        >
-          {upcomingReminders.length === 0 ? (
-            <EmptyRow message={t('passport.noReminders')} colors={colors} />
-          ) : (
-            upcomingReminders.map(r => (
-              <View key={r.id} style={[styles.listRow, { borderBottomColor: colors.border }]}>
-                <View style={styles.listRowMain}>
-                  <Text style={[styles.listRowTitle, { color: colors.text.primary }]}>{r.description}</Text>
-                  <Text style={[styles.listRowSub, { color: colors.text.secondary }]}>
-                    {r.category} · {r.date}
-                  </Text>
-                </View>
-                <Ionicons name="calendar-outline" size={18} color="#2196F3" />
-              </View>
-            ))
-          )}
-        </SectionCard>
-
-        {/* ── DIARY ── */}
-        <SectionCard
-          icon="📓"
-          iconColor="#4CAF50"
-          title={t('passport.sections.diary')}
-          count={recentDiary.length}
-          colors={colors}
-        >
-          {recentDiary.length === 0 ? (
-            <EmptyRow message={t('passport.noDiary')} colors={colors} />
-          ) : (
-            recentDiary.map(d => (
-              <View key={d.id} style={[styles.listRow, { borderBottomColor: colors.border }]}>
-                <Text style={styles.diaryMoodEmoji}>{moodEmoji(d.mood)}</Text>
-                <View style={styles.listRowMain}>
-                  <Text style={[styles.listRowTitle, { color: colors.text.primary }]}>
-                    {moodLabel(d.mood)} · {d.date}
-                  </Text>
-                  {!!d.notes && (
-                    <Text style={[styles.listRowSub, { color: colors.text.secondary }]} numberOfLines={2}>
-                      {d.notes}
-                    </Text>
-                  )}
-                </View>
-              </View>
-            ))
-          )}
-        </SectionCard>
-
-        {/* ── QR CODE ── */}
-        <SectionCard
-          icon="📱"
-          iconColor="#FF9800"
-          title={t('passport.sections.qrCode')}
-          colors={colors}
-        >
-          <View style={styles.qrContainer}>
-            <QRCode
-              value={buildQrData(pet)}
-              size={200}
-              color="#00897B"
-              backgroundColor="#ffffff"
-            />
-            <View style={styles.qrInfo}>
-              <Text style={[styles.qrPetName, { color: colors.text.primary }]}>{pet.name}</Text>
-              {!!(pet.species || pet.breed) && (
-                <Text style={[styles.qrSub, { color: colors.text.secondary }]}>
-                  {[pet.species, pet.breed].filter(Boolean).join(' · ')}
-                </Text>
-              )}
-              {!!age && (
-                <Text style={[styles.qrSub, { color: colors.text.secondary }]}>{age}</Text>
-              )}
-              <Text style={[styles.qrHint, { color: colors.text.light }]}>
-                {t('passport.qrHint')}
-              </Text>
-            </View>
-          </View>
-        </SectionCard>
-
-        {/* Export button */}
-        <TouchableOpacity
-          style={[styles.exportBtn, exporting && styles.exportBtnDisabled]}
-          onPress={handleExport}
-          disabled={exporting}
-          activeOpacity={0.8}
-        >
-          {exporting ? (
-            <>
-              <ActivityIndicator size="small" color="#fff" style={{ marginRight: 10 }} />
-              <Text style={styles.exportBtnText}>{t('passport.exporting')}</Text>
-            </>
-          ) : (
-            <>
-              <Ionicons name="document-outline" size={22} color="#fff" style={{ marginRight: 10 }} />
-              <Text style={styles.exportBtnText}>{t('passport.export')}</Text>
-            </>
-          )}
-        </TouchableOpacity>
-
-        <View style={{ height: 24 }} />
       </ScrollView>
     </SafeAreaView>
   );
 }
 
-// ─── Sub-components ──────────────────────────────────────────────────────────
-
-interface SectionCardProps {
-  icon: string;
-  iconColor: string;
-  title: string;
-  count?: number;
-  colors: any;
-  children: React.ReactNode;
-}
-
-function SectionCard({ icon, iconColor, title, count, colors, children }: SectionCardProps) {
-  return (
-    <View style={[styles.card, { backgroundColor: colors.surface, ...Shadows.small }]}>
-      <View style={styles.cardHeader}>
-        <Text style={styles.cardIcon}>{icon}</Text>
-        <Text style={[styles.cardTitle, { color: colors.text.primary }]}>{title}</Text>
-        {count !== undefined && (
-          <View style={[styles.countBadge, { backgroundColor: iconColor + '20' }]}>
-            <Text style={[styles.countBadgeText, { color: iconColor }]}>{count}</Text>
-          </View>
-        )}
-      </View>
-      <View style={styles.cardBody}>{children}</View>
-    </View>
-  );
-}
-
-function EmptyRow({ message, colors }: { message: string; colors: any }) {
-  return (
-    <Text style={[styles.emptyRowText, { color: colors.text.light }]}>{message}</Text>
-  );
-}
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
@@ -791,7 +623,101 @@ const styles = StyleSheet.create({
 
   scrollContent: { padding: 16, gap: 16 },
 
-  // Cover card
+  // Pet card
+  petCard: {
+    marginHorizontal: 16,
+    marginBottom: 12,
+    borderRadius: 16,
+    borderWidth: 1,
+    overflow: 'hidden',
+  },
+  petCardTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    gap: 14,
+  },
+  petAvatarCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  petAvatarImg: { width: 56, height: 56, borderRadius: 28 },
+  petCardInfo: { flex: 1 },
+  petCardName: { fontSize: 18, fontWeight: '700', marginBottom: 2 },
+  petCardBreed: { fontSize: 13, marginBottom: 4 },
+  petCardId: { fontSize: 12, fontWeight: '600' },
+  infoRow: {
+    flexDirection: 'row',
+    borderTopWidth: 1,
+  },
+  infoCell: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 4,
+  },
+  infoCellLabel: { fontSize: 10, marginBottom: 3 },
+  infoCellValue: { fontSize: 12, fontWeight: '600', textAlign: 'center' },
+
+  // Section
+  section: {
+    marginHorizontal: 16,
+    marginBottom: 12,
+    borderRadius: 16,
+    borderWidth: 1,
+    overflow: 'hidden',
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  sectionTitle: { fontSize: 16, fontWeight: '700' },
+  addBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  addBtnText: { fontSize: 13, fontWeight: '600' },
+  emptyText: { textAlign: 'center', paddingVertical: 20, fontSize: 14, paddingHorizontal: 16 },
+
+  // Vaccine rows
+  vaccineRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    gap: 12,
+  },
+  vaccineIconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  vaccineInfo: { flex: 1 },
+  vaccineName: { fontSize: 14, fontWeight: '600', marginBottom: 2 },
+  vaccineDate: { fontSize: 12 },
+  statusBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20,
+  },
+  statusBadgeText: { fontSize: 11, fontWeight: '700' },
+
+  // Cover card (kept for PDF compat)
   coverCard: {
     borderRadius: 20,
     padding: 28,

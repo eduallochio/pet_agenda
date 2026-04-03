@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   Text, StyleSheet, Alert, View, TouchableOpacity,
-  ScrollView, Platform, Image,
+  ScrollView, Platform, Image, TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -48,6 +48,10 @@ export default function EditPetScreen() {
   const [species, setSpecies] = useState('');
   const [breed, setBreed] = useState('');
   const [dob, setDob] = useState<Date | null>(null);
+  const [gender, setGender] = useState('');
+  const [weight, setWeight] = useState('');
+  const [castrated, setCastrated] = useState<boolean | null>(null);
+  const [microchip, setMicrochip] = useState('');
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [foodAllergies, setFoodAllergies] = useState<string[]>([]);
   const [medAllergies, setMedAllergies] = useState<string[]>([]);
@@ -71,6 +75,10 @@ export default function EditPetScreen() {
           setName(pet.name);
           setSpecies(pet.species);
           setBreed(pet.breed || '');
+          setGender(pet.gender || '');
+          setWeight(pet.weight ? String(pet.weight) : '');
+          setCastrated(pet.castrated ?? null);
+          setMicrochip(pet.microchip || '');
           setPhotoUri(pet.photoUri || null);
           setFoodAllergies(pet.foodAllergies ?? []);
           setMedAllergies(pet.medAllergies ?? []);
@@ -156,6 +164,10 @@ export default function EditPetScreen() {
         species: species.trim(),
         breed: breed.trim(),
         dob: formattedDob,
+        gender: gender || undefined,
+        weight: weight ? parseFloat(weight.replace(',', '.')) : undefined,
+        castrated: castrated ?? undefined,
+        microchip: microchip.trim() || undefined,
         photoUri: photoUri ?? undefined,
         foodAllergies: foodAllergies.length > 0 ? foodAllergies : undefined,
         medAllergies: medAllergies.length > 0 ? medAllergies : undefined,
@@ -339,6 +351,83 @@ export default function EditPetScreen() {
           maximumDate={new Date()}
         />
 
+        {/* Sexo */}
+        <Text style={[styles.sectionLabel, { color: colors.text.primary }]}>Sexo</Text>
+        <View style={[styles.twoColRow, { marginBottom: 20 }]}>
+          {[{ label: 'Macho', value: 'Macho', icon: 'male' }, { label: 'Fêmea', value: 'Fêmea', icon: 'female' }].map(opt => {
+            const selected = gender === opt.value;
+            return (
+              <TouchableOpacity
+                key={opt.value}
+                style={[
+                  styles.optionBtn,
+                  { backgroundColor: colors.surface, borderColor: colors.border },
+                  selected && { backgroundColor: Theme.primary + '20', borderColor: Theme.primary },
+                ]}
+                onPress={() => setGender(opt.value)}
+                activeOpacity={0.7}
+              >
+                <Ionicons name={opt.icon as any} size={18} color={selected ? Theme.primary : colors.text.light} style={{ marginRight: 6 }} />
+                <Text style={[styles.optionBtnText, { color: selected ? Theme.primary : colors.text.secondary }, selected && { fontWeight: '700' }]}>
+                  {opt.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+
+        {/* Peso */}
+        <Text style={[styles.sectionLabel, { color: colors.text.primary }]}>Peso (kg)</Text>
+        <View style={[styles.inputRow, { backgroundColor: colors.surface, borderColor: colors.border, marginBottom: 20 }]}>
+          <Ionicons name="scale-outline" size={18} color={colors.text.light} style={{ marginRight: 10 }} />
+          <TextInput
+            style={[styles.inputText, { color: colors.text.primary }]}
+            placeholder="0,0"
+            placeholderTextColor={colors.text.light}
+            value={weight}
+            onChangeText={setWeight}
+            keyboardType="decimal-pad"
+          />
+        </View>
+
+        {/* Castrado */}
+        <Text style={[styles.sectionLabel, { color: colors.text.primary }]}>Castrado</Text>
+        <View style={[styles.twoColRow, { marginBottom: 20 }]}>
+          {[{ label: 'Sim', value: true }, { label: 'Não', value: false }].map(opt => {
+            const selected = castrated === opt.value;
+            return (
+              <TouchableOpacity
+                key={opt.label}
+                style={[
+                  styles.optionBtn,
+                  { backgroundColor: colors.surface, borderColor: colors.border },
+                  selected && { backgroundColor: Theme.primary + '20', borderColor: Theme.primary },
+                ]}
+                onPress={() => setCastrated(opt.value)}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.optionBtnText, { color: selected ? Theme.primary : colors.text.secondary }, selected && { fontWeight: '700' }]}>
+                  {opt.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+
+        {/* Microchip */}
+        <Text style={[styles.sectionLabel, { color: colors.text.primary }]}>Microchip</Text>
+        <View style={[styles.inputRow, { backgroundColor: colors.surface, borderColor: colors.border, marginBottom: 20 }]}>
+          <Ionicons name="barcode-outline" size={18} color={colors.text.light} style={{ marginRight: 10 }} />
+          <TextInput
+            style={[styles.inputText, { color: colors.text.primary }]}
+            placeholder="Ex: BR-9281742"
+            placeholderTextColor={colors.text.light}
+            value={microchip}
+            onChangeText={setMicrochip}
+            autoCapitalize="characters"
+          />
+        </View>
+
         {/* Alergias e Restrições */}
         <View style={[styles.allergiesSection, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <View style={styles.allergiesHeader}>
@@ -453,6 +542,27 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   allergiesSectionTitle: { fontSize: 16, fontWeight: '700' },
+  // Campos novos
+  twoColRow: { flexDirection: 'row', gap: 10 },
+  optionBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 48,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  optionBtnText: { fontSize: 14, fontWeight: '500' },
+  inputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: 48,
+    borderRadius: 12,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+  },
+  inputText: { flex: 1, fontSize: 14, padding: 0 },
   // Botão
   saveButton: {
     backgroundColor: Theme.primary,

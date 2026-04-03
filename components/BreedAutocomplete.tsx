@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import {
-  View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Platform,
+  View, Text, TextInput, TouchableOpacity, StyleSheet, Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../hooks/useTheme';
@@ -82,36 +82,30 @@ export default function BreedAutocomplete({ species, value, onChangeText, onBlur
 
       {showDropdown && (
         <View style={[styles.dropdown, { backgroundColor: colors.surface, borderColor: colors.border }, dropdownShadow]}>
-          <ScrollView
-            keyboardShouldPersistTaps="always"
-            showsVerticalScrollIndicator={false}
-            style={styles.dropdownScroll}
-          >
-            {suggestions.map((breed, i) => {
-              const isLast = i === suggestions.length - 1;
-              const isMatch = value.trim() && breed.toLowerCase().startsWith(value.trim().toLowerCase());
-              return (
-                <TouchableOpacity
-                  key={breed}
-                  style={[
-                    styles.suggestion,
-                    { borderBottomColor: colors.border },
-                    isLast && styles.suggestionLast,
-                  ]}
-                  onPress={() => handleSelect(breed)}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons name="paw-outline" size={14} color={colors.text.light} style={styles.suggestionIcon} />
-                  <Text style={[styles.suggestionText, { color: colors.text.primary }]}>{breed}</Text>
-                  {!!isMatch && (
-                    <View style={styles.matchDot}>
-                      <View style={[styles.matchDotInner, { backgroundColor: Theme.primary }]} />
-                    </View>
-                  )}
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
+          {suggestions.map((breed, i) => {
+            const isLast = i === suggestions.length - 1;
+            const isMatch = value.trim() && breed.toLowerCase().startsWith(value.trim().toLowerCase());
+            return (
+              <TouchableOpacity
+                key={breed}
+                style={[
+                  styles.suggestion,
+                  { borderBottomColor: colors.border },
+                  isLast && styles.suggestionLast,
+                ]}
+                onPress={() => handleSelect(breed)}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="paw-outline" size={14} color={colors.text.light} style={styles.suggestionIcon} />
+                <Text style={[styles.suggestionText, { color: colors.text.primary }]}>{breed}</Text>
+                {!!isMatch && (
+                  <View style={styles.matchDot}>
+                    <View style={[styles.matchDotInner, { backgroundColor: Theme.primary }]} />
+                  </View>
+                )}
+              </TouchableOpacity>
+            );
+          })}
         </View>
       )}
     </View>

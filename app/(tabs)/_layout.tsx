@@ -1,212 +1,144 @@
 import { Tabs } from 'expo-router';
-import React, { useState } from 'react';
-import { View, StyleSheet, Platform, Text } from 'react-native';
+import React from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useTheme } from '../../hooks/useTheme';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useFocusEffect } from 'expo-router';
-import { useCallback } from 'react';
-import { Reminder, VaccineRecord } from '../../types/pet';
 import { useTranslation } from 'react-i18next';
-import { getUnreadCount } from '../../services/notificationHistory';
+import { Theme } from '../../constants/Colors';
+import { useTheme } from '../../hooks/useTheme';
+import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 
-function UrgencyDot({ color }: { color: string }) {
-  return <View style={[styles.dot, { backgroundColor: color }]} />;
-}
+const TABS = [
+  {
+    name: 'index',
+    labelKey: 'tabs.pets',
+    labelDefault: 'PETS',
+    icon: (color: string) => <MaterialCommunityIcons name="paw" size={18} color={color} />,
+  },
+  {
+    name: 'agenda',
+    labelKey: 'tabs.agenda',
+    labelDefault: 'AGENDA',
+    icon: (color: string) => <Ionicons name="calendar" size={18} color={color} />,
+  },
+  {
+    name: 'statistics',
+    labelKey: 'tabs.stats',
+    labelDefault: 'STATS',
+    icon: (color: string) => <Ionicons name="bar-chart" size={18} color={color} />,
+  },
+  {
+    name: 'profile',
+    labelKey: 'tabs.profile',
+    labelDefault: 'PERFIL',
+    icon: (color: string) => <Ionicons name="person" size={18} color={color} />,
+  },
+];
 
-function NotifTabIcon({ color, size, focused }: { color: string; size: number; focused: boolean }) {
-  const [unread, setUnread] = useState(0);
+function CustomTabBar({ state, navigation }: BottomTabBarProps) {
+  const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
+  const { isDarkMode } = useTheme();
 
-  useFocusEffect(useCallback(() => {
-    getUnreadCount().then(setUnread);
-  }, []));
-
-  return (
-    <View style={styles.iconWrapper}>
-      <Ionicons name={focused ? 'notifications' : 'notifications-outline'} size={size} color={color} />
-      {unread > 0 && (
-        <View style={[styles.badge, { backgroundColor: '#FF3B30' }]}>
-          <Text style={styles.badgeText}>{unread > 99 ? '99+' : unread}</Text>
-        </View>
-      )}
-    </View>
-  );
-}
-
-function PetsTabIcon({ color, size, focused }: { color: string; size: number; focused: boolean }) {
-  const [hasUrgency, setHasUrgency] = useState<'danger' | 'warning' | null>(null);
-
-  useFocusEffect(useCallback(() => {
-    const check = async () => {
-      try {
-        const [rJSON, vJSON] = await Promise.all([
-          AsyncStorage.getItem('reminders'),
-          AsyncStorage.getItem('vaccinations'),
-        ]);
-        const reminders: Reminder[] = rJSON ? JSON.parse(rJSON) : [];
-        const vaccines: VaccineRecord[] = vJSON ? JSON.parse(vJSON) : [];
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-
-        const parseD = (s: string) => {
-          const p = s.split('/');
-          if (p.length === 3) return new Date(parseInt(p[2]), parseInt(p[1]) - 1, parseInt(p[0]));
-          return new Date(s);
-        };
-
-        const overdue = reminders.some(r => { const d = parseD(r.date); d.setHours(0,0,0,0); return d < today; });
-        const vaccOverdue = vaccines.some(v => {
-          if (!v.nextDueDate) return false;
-          const d = parseD(v.nextDueDate); d.setHours(0,0,0,0); return d < today;
-        });
-        const todayR = reminders.some(r => { const d = parseD(r.date); d.setHours(0,0,0,0); return d.getTime() === today.getTime(); });
-
-        if (overdue || vaccOverdue) setHasUrgency('danger');
-        else if (todayR) setHasUrgency('warning');
-        else setHasUrgency(null);
-      } catch { setHasUrgency(null); }
-    };
-    check();
-  }, []));
+  const bgColor = isDarkMode ? '#1A1A1A' : '#FFFFFF';
+  const borderColor = isDarkMode ? '#2C2C2C' : '#E8E8E8';
+  const inactiveColor = isDarkMode ? '#666666' : '#999999';
 
   return (
-    <View style={styles.iconWrapper}>
-      <MaterialCommunityIcons name={focused ? 'paw' : 'paw-outline'} size={size} color={color} />
-      {hasUrgency && (
-        <UrgencyDot color={hasUrgency === 'danger' ? '#FF3B30' : '#FF9500'} />
-      )}
+    <View style={[styles.tabBarOuter, { paddingBottom: insets.bottom, height: 82 + insets.bottom, backgroundColor: bgColor, borderTopColor: borderColor }]}>
+      <View style={[styles.pill, { backgroundColor: bgColor, borderColor }]}>
+        {TABS.map((tab) => {
+          const route = state.routes.find(r => r.name === tab.name);
+          const isFocused = route ? state.index === state.routes.indexOf(route) : false;
+          const color = isFocused ? '#FFFFFF' : inactiveColor;
+
+          const onPress = () => {
+            if (route) {
+              const event = navigation.emit({
+                type: 'tabPress',
+                target: route.key,
+                canPreventDefault: true,
+              });
+              if (!isFocused && !event.defaultPrevented) {
+                navigation.navigate(route.name);
+              }
+            }
+          };
+
+          return (
+            <TouchableOpacity
+              key={tab.name}
+              style={[styles.tabItem, isFocused && styles.tabItemActive]}
+              onPress={onPress}
+              activeOpacity={0.8}
+            >
+              {tab.icon(color)}
+              <Text style={[styles.tabLabel, { color }]}>
+                {t(tab.labelKey, { defaultValue: tab.labelDefault }).toUpperCase()}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
     </View>
   );
-}
-
-// Tab bar com blur no iOS, sólida em outros
-function TabBarBackground() {
-  const { colors, isDarkMode } = useTheme();
-  if (Platform.OS === 'ios') {
-    return (
-      <BlurView
-        style={StyleSheet.absoluteFill}
-        tint={isDarkMode ? 'dark' : 'light'}
-        intensity={85}
-      />
-    );
-  }
-  return <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.surface }]} />;
 }
 
 export default function TabLayout() {
-  const { colors, isDarkMode } = useTheme();
   const { t } = useTranslation();
-  const insets = useSafeAreaInsets();
-
-  // Altura da tab bar: garante espaço para a navigation bar do Android
-  const tabBarHeight = Platform.OS === 'ios' ? 60 + insets.bottom : 56 + insets.bottom;
-  const tabBarPaddingBottom = Platform.OS === 'ios' ? insets.bottom : insets.bottom + 4;
 
   return (
     <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.text.light,
-        tabBarStyle: {
-          backgroundColor: Platform.OS === 'ios' ? 'transparent' : colors.surface,
-          borderTopColor: colors.border,
-          borderTopWidth: StyleSheet.hairlineWidth,
-          height: tabBarHeight,
-          paddingBottom: tabBarPaddingBottom,
-          elevation: 12,
-        },
-        tabBarBackground: () => <TabBarBackground />,
-        tabBarLabelStyle: {
-          fontSize: 11,
-          fontWeight: '600',
-        },
-      }}
+      tabBar={(props) => <CustomTabBar {...props} />}
+      screenOptions={{ headerShown: false }}
     >
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: t('tabs.pets'),
-          tabBarIcon: ({ color, size, focused }) => (
-            <PetsTabIcon color={color} size={size} focused={focused} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="statistics"
-        options={{
-          title: t('statistics.title'),
-          tabBarIcon: ({ color, size, focused }) => (
-            <Ionicons name={focused ? 'bar-chart' : 'bar-chart-outline'} size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="add-pet"
-        options={{ href: null }}
-      />
-      <Tabs.Screen
-        name="comunidade"
-        options={{ href: null }}
-      />
-      <Tabs.Screen
-        name="notifications"
-        options={{
-          title: t('tabs.notifications') ?? 'Notificações',
-          tabBarIcon: ({ color, size, focused }) => (
-            <NotifTabIcon color={color} size={size} focused={focused} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="profile"
-        options={{
-          title: t('tabs.profile'),
-          tabBarIcon: ({ color, size, focused }) => (
-            <Ionicons name={focused ? 'person' : 'person-outline'} size={size} color={color} />
-          ),
-        }}
-      />
+      <Tabs.Screen name="index" options={{ title: t('tabs.pets', { defaultValue: 'Pets' }) }} />
+      <Tabs.Screen name="add-pet" options={{ href: null }} />
+      <Tabs.Screen name="comunidade" options={{ href: null }} />
+      <Tabs.Screen name="notifications/index" options={{ href: null }} />
+      <Tabs.Screen name="agenda" options={{ title: t('tabs.agenda', { defaultValue: 'Agenda' }) }} />
+      <Tabs.Screen name="statistics" options={{ title: t('tabs.stats', { defaultValue: 'Stats' }) }} />
+      <Tabs.Screen name="profile" options={{ title: t('tabs.profile', { defaultValue: 'Perfil' }) }} />
     </Tabs>
   );
 }
 
 const styles = StyleSheet.create({
-  iconWrapper: {
-    position: 'relative',
+  tabBarOuter: {
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: 1,
+    borderTopColor: '#E8E8E8',
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    ...(Platform.OS === 'android' ? { elevation: 8 } : {
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: -2 },
+      shadowOpacity: 0.06,
+      shadowRadius: 8,
+    }),
+  },
+  pill: {
+    flexDirection: 'row',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 36,
+    borderWidth: 1,
+    borderColor: '#E8E8E8',
+    padding: 4,
+    height: 62,
+  },
+  tabItem: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    borderRadius: 26,
+    gap: 4,
   },
-  dot: {
-    position: 'absolute',
-    top: -2,
-    right: -6,
-    width: 9,
-    height: 9,
-    borderRadius: 5,
-    borderWidth: 1.5,
-    borderColor: '#fff',
+  tabItemActive: {
+    backgroundColor: Theme.primary,
   },
-  badge: {
-    position: 'absolute',
-    top: -4,
-    right: -8,
-    minWidth: 16,
-    height: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 3,
-    borderWidth: 1.5,
-    borderColor: '#fff',
-  },
-  badgeText: {
-    color: '#fff',
-    fontSize: 9,
-    fontWeight: '700',
-    lineHeight: 11,
+  tabLabel: {
+    fontSize: 10,
+    fontWeight: '600',
+    letterSpacing: 0.5,
   },
 });

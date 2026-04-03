@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Platform, TextInput, Modal } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Platform, Modal } from 'react-native';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import { Theme } from '../constants/Colors';
@@ -88,21 +88,30 @@ const DatePickerInput = ({
     return `${year}-${month}-${day}`;
   };
 
-  // Versão Web com TextInput (type="date" via nativeID)
+  // Versão Web com <input type="date"> nativo do browser
   if (Platform.OS === 'web') {
     return (
       <View style={styles.container}>
         {!!label && <Text style={[styles.label, { color: colors.text.primary }]}>{label}</Text>}
         <View style={[styles.input, { backgroundColor: colors.surface }]}>
           <Ionicons name="calendar-outline" size={20} color={colors.text.secondary} style={styles.icon} />
-          <TextInput
-            style={[styles.dateText, { color: colors.text.primary }]}
-            value={formatDateForWeb(value)}
-            onChangeText={(text) => handleWebDateChange(text)}
-            placeholder={placeholder}
-            placeholderTextColor={colors.text.light}
-            // @ts-ignore — web-only prop
+          {/* @ts-ignore */}
+          <input
             type="date"
+            value={formatDateForWeb(value)}
+            min={formatDateLimitForWeb(minimumDate)}
+            max={formatDateLimitForWeb(maximumDate)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleWebDateChange(e.target.value)}
+            style={{
+              flex: 1,
+              fontSize: 16,
+              border: 'none',
+              outline: 'none',
+              background: 'transparent',
+              color: value ? (colors.text.primary as string) : (colors.text.light as string),
+              fontFamily: 'inherit',
+              cursor: 'pointer',
+            }}
           />
         </View>
       </View>
@@ -186,7 +195,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   label: {
-    fontSize: 16,
+    fontSize: 13,
     fontWeight: '600',
     marginBottom: 8,
   },
@@ -195,8 +204,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: 12,
     paddingHorizontal: 15,
-    paddingVertical: 15,
-    ...Shadows.small,
+    paddingVertical: 14,
   },
   icon: {
     marginRight: 10,
