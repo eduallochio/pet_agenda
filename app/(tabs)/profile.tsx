@@ -12,14 +12,12 @@ import { Pet, UserProfile, Reminder, VaccineRecord, Achievement, WeightRecord } 
 import { StreakData } from '../../hooks/useStreak';
 import { Theme } from '../../constants/Colors';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import StatCard from '../../components/StatCard';
 import PetAvatar from '../../components/PetAvatar';
 import ThemeToggle from '../../components/ThemeToggle';
 import { useTheme } from '../../hooks/useTheme';
 import { useTranslation } from 'react-i18next';
-import { changeLanguage, getInitialLanguage, SUPPORTED_LANGUAGES, SupportedLanguage } from '../../i18n';
-import { ACHIEVEMENTS, groupAchievements, checkAndUnlockAchievements, getAchievementProgress, AchievementProgress } from '../../hooks/useAchievements';
-import AchievementGroupSection from '../../components/AchievementGroupSection';
+import { changeLanguage, getInitialLanguage, SupportedLanguage } from '../../i18n';
+import { ACHIEVEMENTS, checkAndUnlockAchievements } from '../../hooks/useAchievements';
 import AchievementUnlockModal from '../../components/AchievementUnlockModal';
 import {
   CHALLENGES, getCurrentChallenge, loadChallengeState, completeChallenge, autoCompleteDataChallenge,
@@ -240,12 +238,14 @@ export default function ProfileScreen() {
   today.setHours(0, 0, 0, 0);
 
   const overdueReminders = reminders.filter(r => {
+    if (r.completed) return false;
     const d = parseDate(r.date);
     d.setHours(0, 0, 0, 0);
     return d < today;
   });
 
   const todayReminders = reminders.filter(r => {
+    if (r.completed) return false;
     const d = parseDate(r.date);
     d.setHours(0, 0, 0, 0);
     return d.getTime() === today.getTime();
@@ -286,6 +286,14 @@ export default function ProfileScreen() {
     });
     if (hasToday) return 'warning';
     return null;
+  };
+
+  const markReminderDone = async (reminderId: string) => {
+    const updated = reminders.map(r =>
+      r.id === reminderId ? { ...r, completed: true, completedAt: new Date().toISOString() } : r
+    );
+    setReminders(updated);
+    await AsyncStorage.setItem('reminders', JSON.stringify(updated));
   };
 
   // ── Desafio da semana ─────────────────────────────────────────────────────
@@ -454,20 +462,7 @@ ${petsSection || '<p>Nenhum pet cadastrado.</p>'}
 
   // ── Conquistas ────────────────────────────────────────────────────────────
   const unlockedIds = unlockedAchievements.map(a => a.id);
-  const totalAchievements = ACHIEVEMENTS.length;
   const unlockedCount = unlockedAchievements.length;
-
-  // Mapa de progresso para conquistas ainda bloqueadas
-  const achievementProgressMap: Record<string, AchievementProgress> = React.useMemo(() => {
-    const progressData = { pets, reminders, vaccines, weightRecords, streak };
-    const map: Record<string, AchievementProgress> = {};
-    for (const ach of ACHIEVEMENTS) {
-      if (!unlockedIds.includes(ach.id)) {
-        map[ach.id] = getAchievementProgress(ach.id, progressData);
-      }
-    }
-    return map;
-  }, [pets, reminders, vaccines, weightRecords, streak, unlockedIds]);
 
   const displayName = profile?.name || t('profile.yourName');
   const initials = getInitials(displayName);
@@ -476,32 +471,18 @@ ${petsSection || '<p>Nenhum pet cadastrado.</p>'}
     <View style={[styles.rootWrap, { backgroundColor: colors.background }]}>
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Header */}
-      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+      <View style={styles.header}>
         <Text style={[styles.headerTitle, { color: colors.text.primary }]}>{t('profile.title')}</Text>
-        <View style={styles.headerActions}>
-          <TouchableOpacity
-            style={styles.headerBtn}
-            onPress={() => router.push('/monthly-report')}
-          >
-            <Ionicons name="document-text-outline" size={24} color={colors.text.primary} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.headerBtn}
-            onPress={() => router.push('/calendar')}
-          >
-            <Ionicons name="calendar-outline" size={24} color={colors.text.primary} />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.headerBtn} onPress={() => setSettingsVisible(true)}>
-            <Ionicons name="settings-outline" size={24} color={colors.text.primary} />
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity style={styles.headerBtn} onPress={() => setSettingsVisible(true)}>
+          <Ionicons name="settings-outline" size={22} color={colors.text.secondary} />
+        </TouchableOpacity>
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
         {/* ── Seção do usuário ── */}
-        <View style={[styles.profileCard, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-          <View style={[styles.userAvatar, { backgroundColor: Theme.primary }]}>
+        <View style={[styles.profileCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <View style={[styles.userAvatar, { backgroundColor: Theme.primary + '22' }]}>
             {profile?.avatarUrl ? (
               <Image source={{ uri: profile.avatarUrl }} style={styles.avatarImage} />
             ) : (
@@ -509,59 +490,60 @@ ${petsSection || '<p>Nenhum pet cadastrado.</p>'}
             )}
           </View>
           <Text style={[styles.userName, { color: colors.text.primary }]}>{displayName}</Text>
-          {!!(profile?.experience) && (
-            <View style={[styles.expBadge, { backgroundColor: Theme.primary + '18' }]}>
-              <MaterialCommunityIcons
-                name={profile.experience === 'expert' ? 'trophy-outline' : profile.experience === 'intermediate' ? 'paw' : 'sprout'}
-                size={13} color={Theme.primary}
-              />
-              <Text style={[styles.expBadgeText, { color: Theme.primary }]}>
-                {t(`editProfile.exp.${profile.experience}`)}
-              </Text>
-            </View>
-          )}
-          {!!(profile?.city) && (
-            <View style={styles.profileMetaRow}>
-              <Ionicons name="location-outline" size={13} color={colors.text.light} />
-              <Text style={[styles.profileMetaText, { color: colors.text.light }]}> {profile.city}</Text>
-            </View>
-          )}
-          {!!(profile?.bio) && (
-            <Text style={[styles.userBio, { color: colors.text.secondary }]}>{profile.bio}</Text>
+          {!!(profile?.email) && (
+            <Text style={[styles.userEmail, { color: colors.text.secondary }]}>{profile.email}</Text>
           )}
           <TouchableOpacity
-            style={[styles.editBtn, { borderColor: colors.primary }]}
+            style={styles.editBtn}
             onPress={() => router.push('/profile/edit')}
           >
-            <Ionicons name="create-outline" size={15} color={colors.primary} />
-            <Text style={[styles.editBtnText, { color: colors.primary }]}>{t('profile.editProfile')}</Text>
+            <Ionicons name="create-outline" size={14} color="#fff" />
+            <Text style={styles.editBtnText}>{t('profile.editProfile')}</Text>
           </TouchableOpacity>
         </View>
 
         {/* ── Estatísticas ── */}
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>{t('profile.resume')}</Text>
-          <View style={styles.statsRow}>
-            <StatCard icon="paw" value={pets.length} label={t('profile.stats.pets')} color={Theme.primary} />
-            <StatCard
-              icon="calendar-check"
-              value={upcomingReminders.length}
-              label={t('profile.stats.events')}
-              color={Theme.categories.Consulta.main}
-            />
-            <StatCard
-              icon="needle"
-              value={vaccines.length}
-              label={t('profile.stats.vaccines')}
-              color={Theme.categories.Saúde.main}
-            />
-            <StatCard
-              icon="trophy"
-              value={unlockedCount}
-              label={t('profile.stats.trophies')}
-              color="#FF9800"
-            />
-          </View>
+        <View style={styles.miniStatsRow}>
+          {[
+            { value: pets.length, label: 'Pets', color: '#40E0D0' },
+            { value: reminders.length, label: 'Lembretes', color: '#FF9800' },
+            { value: vaccines.length, label: 'Vacinas', color: '#4CAF50' },
+            { value: unlockedCount, label: 'Conquistas', color: '#9C27B0' },
+          ].map(stat => (
+            <View key={stat.label} style={[styles.miniStatCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <Text style={[styles.miniStatValue, { color: stat.color }]}>{stat.value}</Text>
+              <Text style={styles.miniStatLabel}>{stat.label}</Text>
+            </View>
+          ))}
+        </View>
+
+        {/* ── Quick Settings ── */}
+        <View style={[styles.quickSettings, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <TouchableOpacity style={styles.settingRow} onPress={() => setSettingsVisible(true)}>
+            <View style={[styles.settingIcon, { backgroundColor: '#E3F2FD' }]}>
+              <Ionicons name="color-palette-outline" size={16} color="#2196F3" />
+            </View>
+            <Text style={[styles.settingLabel, { color: colors.text.primary }]}>{t('settings.theme', { defaultValue: 'Tema' })}</Text>
+            <Text style={[styles.settingValue, { color: colors.text.secondary }]}>{t('settings.light', { defaultValue: 'Claro' })}</Text>
+            <Ionicons name="chevron-forward" size={16} color={colors.text.light} />
+          </TouchableOpacity>
+          <View style={[styles.settingDivider, { backgroundColor: colors.border }]} />
+          <TouchableOpacity style={styles.settingRow} onPress={() => setSettingsVisible(true)}>
+            <View style={[styles.settingIcon, { backgroundColor: '#FFF3E0' }]}>
+              <Ionicons name="globe-outline" size={16} color="#FF9800" />
+            </View>
+            <Text style={[styles.settingLabel, { color: colors.text.primary }]}>{t('settings.language', { defaultValue: 'Idioma' })}</Text>
+            <Text style={[styles.settingValue, { color: colors.text.secondary }]}>Português</Text>
+            <Ionicons name="chevron-forward" size={16} color={colors.text.light} />
+          </TouchableOpacity>
+          <View style={[styles.settingDivider, { backgroundColor: colors.border }]} />
+          <TouchableOpacity style={styles.settingRow} onPress={() => router.push('/monthly-report')}>
+            <View style={[styles.settingIcon, { backgroundColor: '#E8F5E9' }]}>
+              <Ionicons name="download-outline" size={16} color="#4CAF50" />
+            </View>
+            <Text style={[styles.settingLabel, { color: colors.text.primary }]}>{t('profile.exportData', { defaultValue: 'Exportar Dados' })}</Text>
+            <Ionicons name="chevron-forward" size={16} color={colors.text.light} />
+          </TouchableOpacity>
         </View>
 
         {/* ── Painel de urgência ── */}
@@ -569,22 +551,8 @@ ${petsSection || '<p>Nenhum pet cadastrado.</p>'}
           <View style={styles.section}>
             <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>{t('profile.attention')}</Text>
             <View style={[styles.urgencyCard, { backgroundColor: colors.surface, borderColor: Theme.danger + '40' }]}>
-              {overdueReminders.length > 0 && (
-                <View style={styles.urgencyRow}>
-                  <View style={[styles.urgencyDot, { backgroundColor: Theme.danger }]} />
-                  <Text style={[styles.urgencyText, { color: Theme.danger, fontWeight: '700' }]}>
-                    {t('profile.overdueReminders', { count: overdueReminders.length })}
-                  </Text>
-                </View>
-              )}
-              {todayReminders.length > 0 && (
-                <View style={styles.urgencyRow}>
-                  <View style={[styles.urgencyDot, { backgroundColor: Theme.warning }]} />
-                  <Text style={[styles.urgencyText, { color: Theme.warning, fontWeight: '700' }]}>
-                    {t('profile.todayReminders', { count: todayReminders.length })}
-                  </Text>
-                </View>
-              )}
+
+              {/* Resumo vacinas vencidas */}
               {overdueVaccines.length > 0 && (
                 <View style={styles.urgencyRow}>
                   <View style={[styles.urgencyDot, { backgroundColor: Theme.danger }]} />
@@ -593,13 +561,60 @@ ${petsSection || '<p>Nenhum pet cadastrado.</p>'}
                   </Text>
                 </View>
               )}
-              <TouchableOpacity
-                style={[styles.urgencyAction, { borderTopColor: colors.border }]}
-                onPress={() => router.push('/(tabs)')}
-              >
-                <Text style={[styles.urgencyActionText, { color: Theme.primary }]}>{t('common.seeMyPets')}</Text>
-                <Ionicons name="arrow-forward" size={14} color={Theme.primary} />
-              </TouchableOpacity>
+
+              {/* Lembretes atrasados — com botão de marcar */}
+              {overdueReminders.length > 0 && (
+                <>
+                  <View style={[styles.urgencyRow, { paddingBottom: 4 }]}>
+                    <View style={[styles.urgencyDot, { backgroundColor: Theme.danger }]} />
+                    <Text style={[styles.urgencyText, { color: Theme.danger, fontWeight: '700' }]}>
+                      {t('profile.overdueReminders', { count: overdueReminders.length })}
+                    </Text>
+                  </View>
+                  {overdueReminders.slice(0, 5).map(r => {
+                    const pet = pets.find(p => p.id === r.petId);
+                    return (
+                      <View key={r.id} style={[styles.overdueReminderRow, { borderTopColor: colors.border }]}>
+                        <View style={styles.overdueReminderInfo}>
+                          <Text style={[styles.overdueReminderDesc, { color: colors.text.primary }]} numberOfLines={1}>
+                            {r.description}
+                          </Text>
+                          {pet && (
+                            <Text style={[styles.overdueReminderMeta, { color: colors.text.light }]}>
+                              {pet.name} · {r.date}
+                            </Text>
+                          )}
+                        </View>
+                        <TouchableOpacity
+                          style={[styles.markDoneBtn, { backgroundColor: Theme.primary + '20' }]}
+                          onPress={() => markReminderDone(r.id)}
+                        >
+                          <Ionicons name="checkmark" size={14} color={Theme.primary} />
+                          <Text style={[styles.markDoneBtnText, { color: Theme.primary }]}>Feito</Text>
+                        </TouchableOpacity>
+                      </View>
+                    );
+                  })}
+                  {overdueReminders.length > 5 && (
+                    <View style={[styles.urgencyRow, { paddingTop: 4 }]}>
+                      <Text style={[styles.urgencyText, { color: colors.text.light }]}>
+                        +{overdueReminders.length - 5} lembretes atrasados
+                      </Text>
+                    </View>
+                  )}
+                </>
+              )}
+
+              {/* Lembretes de hoje */}
+              {todayReminders.length > 0 && (
+                <View style={styles.urgencyRow}>
+                  <View style={[styles.urgencyDot, { backgroundColor: Theme.warning }]} />
+                  <Text style={[styles.urgencyText, { color: Theme.warning, fontWeight: '700' }]}>
+                    {t('profile.todayReminders', { count: todayReminders.length })}
+                  </Text>
+                </View>
+              )}
+
             </View>
           </View>
         )}
@@ -771,49 +786,46 @@ ${petsSection || '<p>Nenhum pet cadastrado.</p>'}
           </Text>
         </View>
 
-        {/* ── Conquistas ── */}
+        {/* ── Conquistas Recentes ── */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>{t('profile.achievements')}</Text>
-            <View style={[styles.achCountBadge, { backgroundColor: colors.primary + '20' }]}>
-              <Text style={[styles.achCountText, { color: colors.primary }]}>
-                {unlockedCount}/{totalAchievements}
-              </Text>
-            </View>
+            <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>
+              {t('profile.achievements', { defaultValue: 'Conquistas Recentes' })}
+            </Text>
+            <TouchableOpacity onPress={() => router.push('/conquistas')}>
+              <Text style={[styles.seeAllText, { color: Theme.primary }]}>Ver todas</Text>
+            </TouchableOpacity>
           </View>
-
-          {/* Barra de progresso geral */}
-          <View style={[styles.achProgressCard, { backgroundColor: colors.card }]}>
-            <View style={styles.achProgressRow}>
-              <MaterialCommunityIcons name="trophy" size={20} color="#FFB800" />
-              <Text style={[styles.achProgressNumbers, { color: colors.text.primary }]}>
-                {unlockedCount}
-                <Text style={{ color: colors.text.light, fontSize: 16 }}>/{totalAchievements}</Text>
-              </Text>
-              <Text style={[styles.achProgressPct, { color: colors.text.secondary }]}>
-                {Math.round((unlockedCount / totalAchievements) * 100)}{t('profile.complete')}
+          {unlockedAchievements.length === 0 ? (
+            <View style={[styles.achEmptyCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <MaterialCommunityIcons name="trophy-outline" size={28} color={colors.text.light} />
+              <Text style={[styles.achEmptyText, { color: colors.text.secondary }]}>
+                {t('profile.noAchievements', { defaultValue: 'Complete desafios para desbloquear conquistas!' })}
               </Text>
             </View>
-            <View style={[styles.achProgressBar, { backgroundColor: colors.border }]}>
-              <View style={[styles.achProgressFill, {
-                width: `${Math.round((unlockedCount / totalAchievements) * 100)}%` as any,
-              }]} />
+          ) : (
+            <View style={styles.achGrid}>
+              {unlockedAchievements.slice(-3).reverse().map((ach) => {
+                const def = ACHIEVEMENTS.find(a => a.id === ach.id);
+                return (
+                  <View key={ach.id} style={[styles.achCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                    <View style={[styles.achIconWrap, { backgroundColor: (def?.color ?? '#40E0D0') + '20' }]}>
+                      <MaterialCommunityIcons
+                        name={(def?.icon ?? 'trophy') as MCIName}
+                        size={24}
+                        color={def?.color ?? '#40E0D0'}
+                      />
+                    </View>
+                    <Text style={[styles.achCardName, { color: colors.text.primary }]} numberOfLines={2}>
+                      {def?.title ?? ach.id}
+                    </Text>
+                  </View>
+                );
+              })}
             </View>
-          </View>
-
-          {/* Grupos */}
-          {groupAchievements(unlockedIds).map(({ group, achievements, unlockedCount: gc }) => (
-            <AchievementGroupSection
-              key={group.id}
-              group={group}
-              achievements={achievements}
-              unlockedCount={gc}
-              unlockedAchievements={unlockedAchievements}
-              progressMap={achievementProgressMap}
-              defaultCollapsed={gc === 0}
-            />
-          ))}
+          )}
         </View>
+
 
         <View style={{ height: 32 }} />
       </ScrollView>
@@ -1028,34 +1040,38 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingVertical: 14,
-    borderBottomWidth: 1,
+    paddingTop: 16,
+    paddingBottom: 12,
   },
-  headerTitle: { fontSize: 24, fontWeight: 'bold' },
-  headerActions: { flexDirection: 'row', alignItems: 'center' },
-  headerBtn: { padding: 6, marginLeft: 8 },
+  headerTitle: { fontSize: 22, fontWeight: '700' },
+  headerBtn: { padding: 6 },
   scrollContent: { paddingBottom: 40 },
 
   // Profile card
   profileCard: {
     alignItems: 'center',
-    paddingVertical: 20,
+    marginHorizontal: 20,
+    marginTop: 8,
+    paddingVertical: 24,
     paddingHorizontal: 20,
-    borderBottomWidth: 1,
+    borderRadius: 16,
+    borderWidth: 1,
   },
   userAvatar: {
-    width: 80, height: 80, borderRadius: 40,
-    marginBottom: 10, justifyContent: 'center', alignItems: 'center', overflow: 'hidden',
+    width: 72, height: 72, borderRadius: 36,
+    marginBottom: 12, justifyContent: 'center', alignItems: 'center', overflow: 'hidden',
   },
-  avatarImage: { width: 80, height: 80, borderRadius: 40 },
-  avatarInitials: { fontSize: 28, fontWeight: 'bold', color: '#fff' },
-  userName: { fontSize: 20, fontWeight: '800', marginBottom: 4 },
+  avatarImage: { width: 72, height: 72, borderRadius: 36 },
+  avatarInitials: { fontSize: 26, fontWeight: 'bold', color: '#fff' },
+  userName: { fontSize: 20, fontWeight: '700', marginBottom: 4 },
+  userEmail: { fontSize: 13, marginBottom: 12 },
   userBio: { fontSize: 13, marginBottom: 12, textAlign: 'center' },
   editBtn: {
     flexDirection: 'row', alignItems: 'center',
-    borderWidth: 1.5, borderRadius: 20, paddingHorizontal: 14, paddingVertical: 5,
+    backgroundColor: Theme.primary,
+    borderRadius: 20, paddingHorizontal: 16, paddingVertical: 8, gap: 6,
   },
-  editBtnText: { fontSize: 12, fontWeight: '600', marginLeft: 4 },
+  editBtnText: { fontSize: 13, fontWeight: '600', color: '#fff' },
   expBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
     paddingHorizontal: 10, paddingVertical: 3, borderRadius: 20, marginBottom: 5,
@@ -1064,12 +1080,40 @@ const styles = StyleSheet.create({
   profileMetaRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 5 },
   profileMetaText: { fontSize: 12 },
 
+  // Quick Settings
+  quickSettings: {
+    marginHorizontal: 16,
+    marginTop: 16,
+    borderRadius: 14,
+    borderWidth: 1,
+    overflow: 'hidden',
+  },
+  settingRow: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 16, paddingVertical: 14,
+  },
+  settingIcon: {
+    width: 32, height: 32, borderRadius: 10,
+    justifyContent: 'center', alignItems: 'center',
+    marginRight: 12,
+  },
+  settingLabel: { flex: 1, fontSize: 14, fontWeight: '500' },
+  settingValue: { fontSize: 14, marginRight: 8 },
+  settingDivider: { height: 1, marginLeft: 60 },
+
   // Sections
   section: { paddingHorizontal: 16, marginTop: 20 },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   sectionTitle: { fontSize: 15, fontWeight: '700', marginBottom: 12 },
   addBtn: { width: 28, height: 28, borderRadius: 14, justifyContent: 'center', alignItems: 'center' },
   statsRow: { flexDirection: 'row', marginHorizontal: -4, gap: 4 },
+  miniStatsRow: { flexDirection: 'row', gap: 10, paddingHorizontal: 20, marginTop: 20 },
+  miniStatCard: {
+    flex: 1, borderRadius: 12, borderWidth: 1,
+    alignItems: 'center', paddingVertical: 12, gap: 2,
+  },
+  miniStatValue: { fontSize: 20, fontWeight: '700' },
+  miniStatLabel: { fontSize: 11, color: '#666666' },
 
   // Urgency
   urgencyCard: { borderWidth: 1, borderRadius: 14, overflow: 'hidden' },
@@ -1081,6 +1125,19 @@ const styles = StyleSheet.create({
     paddingVertical: 10, borderTopWidth: 1,
   },
   urgencyActionText: { fontSize: 13, fontWeight: '600', marginRight: 4 },
+  overdueReminderRow: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 14, paddingVertical: 10,
+    borderTopWidth: 1, gap: 10,
+  },
+  overdueReminderInfo: { flex: 1 },
+  overdueReminderDesc: { fontSize: 13, fontWeight: '500', marginBottom: 2 },
+  overdueReminderMeta: { fontSize: 11 },
+  markDoneBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8,
+  },
+  markDoneBtnText: { fontSize: 12, fontWeight: '600' },
 
   // Pets
   emptyCard: {
@@ -1097,6 +1154,28 @@ const styles = StyleSheet.create({
   },
   petName: { fontSize: 11, fontWeight: '600', textAlign: 'center' },
   petSpecies: { fontSize: 10, textAlign: 'center', marginTop: 1 },
+
+  // Achievements recentes
+  achEmptyCard: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    borderWidth: 1, borderRadius: 14, padding: 16,
+  },
+  achEmptyText: { flex: 1, fontSize: 13, lineHeight: 18 },
+  seeAllText: { fontSize: 13, fontWeight: '600' },
+  achGrid: { flexDirection: 'row', gap: 10 },
+  achCard: {
+    flex: 1, alignItems: 'center',
+    borderWidth: 1, borderRadius: 14,
+    padding: 14, gap: 6,
+  },
+  achIconWrap: {
+    width: 44, height: 44, borderRadius: 22,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  achCardName: {
+    fontSize: 10, fontWeight: '600',
+    textAlign: 'center', lineHeight: 14,
+  },
 
   // Challenge
   challengeCard: { borderRadius: 14, padding: 14, borderWidth: 1.5, marginBottom: 10 },
