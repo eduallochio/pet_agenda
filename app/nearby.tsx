@@ -1,45 +1,63 @@
 import React, { useState } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView,
-  Platform, Linking, Alert, ActivityIndicator,
+  Platform, Linking, Alert, ActivityIndicator, TextInput,
 } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { useTheme } from '../hooks/useTheme';
 import { Theme } from '../constants/Colors';
-import FadeIn from '../components/animations/FadeIn';
-import PressableCard from '../components/animations/PressableCard';
 import { useTranslation } from 'react-i18next';
+import { useTheme } from '../hooks/useTheme';
 
-// Tipos de serviço disponíveis
 type ServiceType = {
   id: string;
   label: string;
   subtitle: string;
-  query: string;         // termo para busca no Maps
+  query: string;
   icon: string;
   iconLib: 'ion' | 'mci';
   color: string;
   bgColor: string;
+  category: 'vet' | 'petshop' | 'hotel' | 'grooming' | 'training' | 'emergency';
 };
 
 const SERVICE_BASE: Omit<ServiceType, 'label' | 'subtitle'>[] = [
   {
-    id: 'petshop',
-    query: 'pet shop',
-    icon: 'storefront-outline',
-    iconLib: 'ion',
-    color: '#FF6B9D',
-    bgColor: '#FFF0F5',
-  },
-  {
     id: 'vet',
     query: 'clínica veterinária',
-    icon: 'medical-bag',
+    icon: 'stethoscope',
+    iconLib: 'mci',
+    color: '#40E0D0',
+    bgColor: '#40E0D022',
+    category: 'vet',
+  },
+  {
+    id: 'petshop',
+    query: 'pet shop banho e tosa',
+    icon: 'scissors-cutting',
+    iconLib: 'mci',
+    color: '#FF6B9D',
+    bgColor: '#FF6B9D22',
+    category: 'petshop',
+  },
+  {
+    id: 'hotel',
+    query: 'hotel pet hospedagem animal',
+    icon: 'home-heart',
+    iconLib: 'mci',
+    color: '#9C27B0',
+    bgColor: '#9C27B022',
+    category: 'hotel',
+  },
+  {
+    id: 'emergencia',
+    query: 'veterinário emergência 24 horas',
+    icon: 'stethoscope',
     iconLib: 'mci',
     color: '#4CAF50',
-    bgColor: '#F0FFF1',
+    bgColor: '#4CAF5022',
+    category: 'vet',
   },
   {
     id: 'banhotosa',
@@ -47,146 +65,72 @@ const SERVICE_BASE: Omit<ServiceType, 'label' | 'subtitle'>[] = [
     icon: 'scissors-cutting',
     iconLib: 'mci',
     color: '#2196F3',
-    bgColor: '#F0F7FF',
-  },
-  {
-    id: 'hotel',
-    query: 'hotel pet hospedagem animal',
-    icon: 'home-heart',
-    iconLib: 'mci',
-    color: '#FF9800',
-    bgColor: '#FFF8F0',
+    bgColor: '#2196F322',
+    category: 'grooming',
   },
   {
     id: 'adestramento',
     query: 'adestramento cão',
     icon: 'paw',
     iconLib: 'mci',
-    color: '#9C27B0',
-    bgColor: '#FAF0FF',
-  },
-  {
-    id: 'emergencia',
-    query: 'veterinário emergência 24 horas',
-    icon: 'alert-circle-outline',
-    iconLib: 'ion',
-    color: '#F44336',
-    bgColor: '#FFF0F0',
+    color: '#FF9800',
+    bgColor: '#FF980022',
+    category: 'training',
   },
 ];
 
-// Gera URL do Maps dependendo da plataforma
+type FilterCategory = 'all' | 'vet' | 'petshop' | 'hotel';
+
+const FILTERS: { value: FilterCategory; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
+  { value: 'all',     label: 'Todos',    icon: 'list-outline' },
+  { value: 'vet',     label: 'Vet',      icon: 'pulse-outline' },
+  { value: 'petshop', label: 'Pet Shop', icon: 'cut-outline' },
+  { value: 'hotel',   label: 'Hotel',    icon: 'home-outline' },
+];
+
 function buildMapsUrl(query: string): string {
   const encoded = encodeURIComponent(query + ' próximo');
-  if (Platform.OS === 'ios') {
-    // Tenta abrir Apple Maps; se não abrir, handleOpen faz fallback para Google Maps web
-    return `maps://?q=${encoded}`;
-  }
-  if (Platform.OS === 'android') {
-    // geo:0,0?q= é instável para busca textual — usa Google Maps diretamente
-    return `https://maps.google.com/?q=${encoded}`;
-  }
-  // Web: Google Maps
+  if (Platform.OS === 'ios') return `maps://?q=${encoded}`;
+  if (Platform.OS === 'android') return `https://maps.google.com/?q=${encoded}`;
   return `https://www.google.com/maps/search/?api=1&query=${encoded}`;
-}
-
-function ServiceCard({
-  service,
-  onPress,
-  loading,
-  index,
-}: {
-  service: ServiceType;
-  onPress: (s: ServiceType) => void;
-  loading: boolean;
-  index: number;
-}) {
-  const { colors } = useTheme();
-  const { t } = useTranslation();
-
-  const cardStyle = [
-    styles.card,
-    {
-      backgroundColor: colors.surface,
-      borderColor: colors.border,
-      ...(Platform.OS === 'web'
-        ? { boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }
-        : { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.07, shadowRadius: 6, elevation: 3 }),
-    },
-  ];
-
-  return (
-    <FadeIn delay={index * 60} duration={320}>
-      <PressableCard
-        style={cardStyle}
-        onPress={() => onPress(service)}
-        haptic
-      >
-        {/* Ícone */}
-        <View style={[styles.iconCircle, { backgroundColor: service.bgColor }]}>
-          {service.iconLib === 'ion' ? (
-            <Ionicons name={service.icon as any} size={28} color={service.color} />
-          ) : (
-            <MaterialCommunityIcons name={service.icon as any} size={28} color={service.color} />
-          )}
-        </View>
-
-        {/* Texto */}
-        <View style={styles.cardText}>
-          <Text style={[styles.cardTitle, { color: colors.text.primary }]}>{service.label}</Text>
-          <Text style={[styles.cardSubtitle, { color: colors.text.secondary }]}>{service.subtitle}</Text>
-        </View>
-
-        {/* Chevron / loader */}
-        <View style={styles.cardRight}>
-          {loading ? (
-            <ActivityIndicator size="small" color={service.color} />
-          ) : (
-            <View style={[styles.chevronCircle, { backgroundColor: service.color + '18' }]}>
-              <Ionicons name="navigate-outline" size={18} color={service.color} />
-            </View>
-          )}
-        </View>
-      </PressableCard>
-    </FadeIn>
-  );
 }
 
 export default function NearbyScreen() {
   const router = useRouter();
-  const { colors } = useTheme();
   const { t } = useTranslation();
+  const { colors } = useTheme();
   const [loadingId, setLoadingId] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
+  const [activeFilter, setActiveFilter] = useState<FilterCategory>('all');
 
   const SERVICES: ServiceType[] = [
-    { ...SERVICE_BASE[0], label: t('nearby.services.petshopLabel'), subtitle: t('nearby.services.petshopSub') },
-    { ...SERVICE_BASE[1], label: t('nearby.services.vetLabel'),     subtitle: t('nearby.services.vetSub') },
-    { ...SERVICE_BASE[2], label: t('nearby.services.groomLabel'),   subtitle: t('nearby.services.groomSub') },
-    { ...SERVICE_BASE[3], label: t('nearby.services.hotelLabel'),   subtitle: t('nearby.services.hotelSub') },
-    { ...SERVICE_BASE[4], label: t('nearby.services.trainingLabel'),subtitle: t('nearby.services.trainingSub') },
-    { ...SERVICE_BASE[5], label: t('nearby.services.emergencyLabel'),subtitle: t('nearby.services.emergencySub') },
+    { ...SERVICE_BASE[0], label: t('nearby.services.vetLabel'),      subtitle: t('nearby.services.vetSub') },
+    { ...SERVICE_BASE[1], label: t('nearby.services.petshopLabel'),  subtitle: t('nearby.services.petshopSub') },
+    { ...SERVICE_BASE[2], label: t('nearby.services.hotelLabel'),    subtitle: t('nearby.services.hotelSub') },
+    { ...SERVICE_BASE[3], label: t('nearby.services.emergencyLabel'),subtitle: t('nearby.services.emergencySub') },
+    { ...SERVICE_BASE[4], label: t('nearby.services.groomLabel'),    subtitle: t('nearby.services.groomSub') },
+    { ...SERVICE_BASE[5], label: t('nearby.services.trainingLabel'), subtitle: t('nearby.services.trainingSub') },
   ];
+
+  const filtered = SERVICES.filter(s => {
+    const matchesFilter = activeFilter === 'all' || s.category === activeFilter;
+    const matchesSearch = !search || s.label.toLowerCase().includes(search.toLowerCase());
+    return matchesFilter && matchesSearch;
+  });
 
   const handleOpen = async (service: ServiceType) => {
     setLoadingId(service.id);
     const url = buildMapsUrl(service.query);
-
     try {
       const canOpen = Platform.OS === 'web' ? true : await Linking.canOpenURL(url);
-
       if (!canOpen) {
-        // Fallback para Google Maps web
         const fallback = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(service.query + ' próximo')}`;
         await Linking.openURL(fallback);
       } else {
         await Linking.openURL(url);
       }
     } catch {
-      Alert.alert(
-        t('nearby.mapError'),
-        t('nearby.mapErrorMsg'),
-        [{ text: 'OK' }]
-      );
+      Alert.alert(t('nearby.mapError'), t('nearby.mapErrorMsg'), [{ text: 'OK' }]);
     } finally {
       setLoadingId(null);
     }
@@ -197,49 +141,102 @@ export default function NearbyScreen() {
       <Stack.Screen options={{ headerShown: false }} />
 
       {/* Header */}
-      <View style={[styles.header, { borderBottomColor: colors.border }]}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-          <Ionicons name="chevron-back" size={26} color={colors.text.primary} />
+      <View style={[styles.header, { backgroundColor: colors.background }]}>
+        <TouchableOpacity style={styles.headerBtn} onPress={() => router.back()}>
+          <Ionicons name="arrow-back" size={24} color={colors.text.primary} />
         </TouchableOpacity>
-        <View style={styles.headerCenter}>
-          <Text style={[styles.headerTitle, { color: colors.text.primary }]}>{t('nearby.title')}</Text>
-          <Text style={[styles.headerSub, { color: colors.text.secondary }]}>{t('nearby.subtitle')}</Text>
+        <Text style={[styles.headerTitle, { color: colors.text.primary }]}>{t('nearby.title')}</Text>
+        <View style={styles.headerBtn}>
+          <Ionicons name="map-outline" size={22} color={Theme.primary} />
         </View>
-        <View style={{ width: 40 }} />
       </View>
 
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
       >
-        {/* Info banner */}
-        <View style={[styles.infoBanner, { backgroundColor: Theme.primary + '18', borderColor: Theme.primary + '40' }]}>
-          <Ionicons name="location-outline" size={20} color={Theme.primary} />
-          <Text style={[styles.infoText, { color: colors.text.secondary }]}>
-            {t('nearby.infoBanner')}
-          </Text>
+        {/* Search bar */}
+        <View style={[styles.searchBar, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <Ionicons name="search-outline" size={18} color={colors.text.light} />
+          <TextInput
+            style={[styles.searchInput, { color: colors.text.primary }]}
+            placeholder="Buscar serviços..."
+            placeholderTextColor={colors.text.light}
+            value={search}
+            onChangeText={setSearch}
+          />
+          {!!search && (
+            <TouchableOpacity onPress={() => setSearch('')}>
+              <Ionicons name="close-circle" size={16} color={colors.text.light} />
+            </TouchableOpacity>
+          )}
         </View>
+
+        {/* Filtros */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filtersRow}
+        >
+          {FILTERS.map(f => {
+            const active = activeFilter === f.value;
+            return (
+              <TouchableOpacity
+                key={f.value}
+                style={[
+                  styles.filterChip,
+                  active
+                    ? { backgroundColor: Theme.primary }
+                    : { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
+                ]}
+                onPress={() => setActiveFilter(f.value)}
+              >
+                <Ionicons name={f.icon} size={14} color={active ? '#FFFFFF' : colors.text.secondary} />
+                <Text style={[styles.filterLabel, { color: active ? '#FFFFFF' : colors.text.secondary }]}>
+                  {f.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
 
         {/* Cards de serviços */}
-        <Text style={[styles.sectionLabel, { color: colors.text.secondary }]}>{t('nearby.categories')}</Text>
-
-        {SERVICES.map((service, i) => (
-          <ServiceCard
+        {filtered.map(service => (
+          <TouchableOpacity
             key={service.id}
-            service={service}
-            onPress={handleOpen}
-            loading={loadingId === service.id}
-            index={i}
-          />
+            style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}
+            onPress={() => handleOpen(service)}
+            activeOpacity={0.75}
+          >
+            {/* Ícone */}
+            <View style={[styles.iconCircle, { backgroundColor: service.bgColor }]}>
+              {service.iconLib === 'ion' ? (
+                <Ionicons name={service.icon as any} size={24} color={service.color} />
+              ) : (
+                <MaterialCommunityIcons name={service.icon as any} size={24} color={service.color} />
+              )}
+            </View>
+
+            {/* Info */}
+            <View style={styles.cardInfo}>
+              <Text style={[styles.cardTitle, { color: colors.text.primary }]} numberOfLines={1}>{service.label}</Text>
+              <Text style={[styles.cardSubtitle, { color: colors.text.secondary }]}>{service.subtitle}</Text>
+            </View>
+
+            {/* Loader */}
+            {loadingId === service.id && (
+              <ActivityIndicator size="small" color={service.color} />
+            )}
+          </TouchableOpacity>
         ))}
 
-        {/* Dica no rodapé */}
-        <View style={[styles.tipBox, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <Ionicons name="information-circle-outline" size={18} color={colors.text.light} />
-          <Text style={[styles.tipText, { color: colors.text.light }]}>
-            {t('nearby.tip')}
-          </Text>
-        </View>
+        {filtered.length === 0 && (
+          <View style={styles.empty}>
+            <Ionicons name="search-outline" size={40} color={colors.text.light} />
+            <Text style={[styles.emptyText, { color: colors.text.light }]}>Nenhum serviço encontrado</Text>
+          </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -252,36 +249,42 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
+    paddingHorizontal: 8,
     paddingVertical: 12,
-    borderBottomWidth: 1,
+    backgroundColor: '#F8F9FA',
   },
-  backBtn: { width: 40, height: 40, justifyContent: 'center' },
-  headerCenter: { flex: 1, alignItems: 'center' },
-  headerTitle: { fontSize: 17, fontWeight: '700' },
-  headerSub: { fontSize: 12, marginTop: 1 },
+  headerBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
+  headerTitle: { flex: 1, fontSize: 22, fontWeight: '700', color: '#111111', marginLeft: 4 },
 
-  scrollContent: { padding: 16, paddingBottom: 40 },
+  scrollContent: { paddingHorizontal: 20, paddingBottom: 40, gap: 16 },
 
-  // Info banner
-  infoBanner: {
+  // Search
+  searchBar: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    borderWidth: 1,
+    alignItems: 'center',
+    height: 48,
     borderRadius: 12,
-    padding: 12,
-    marginBottom: 20,
+    borderWidth: 1,
+    paddingHorizontal: 14,
     gap: 10,
   },
-  infoText: { flex: 1, fontSize: 13, lineHeight: 18 },
-
-  sectionLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
-    marginBottom: 12,
+  searchInput: {
+    flex: 1,
+    fontSize: 14,
+    color: '#111111',
   },
+
+  // Filters
+  filtersRow: { gap: 8, paddingVertical: 2 },
+  filterChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  filterLabel: { fontSize: 12, fontWeight: '600' },
 
   // Cards
   card: {
@@ -290,37 +293,22 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     borderWidth: 1,
     padding: 14,
-    marginBottom: 10,
-    gap: 14,
+    gap: 12,
   },
   iconCircle: {
-    width: 56,
-    height: 56,
-    borderRadius: 16,
+    width: 48,
+    height: 48,
+    borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
+    flexShrink: 0,
   },
-  cardText: { flex: 1 },
-  cardTitle: { fontSize: 15, fontWeight: '700', marginBottom: 2 },
-  cardSubtitle: { fontSize: 12, lineHeight: 16 },
-  cardRight: { width: 36, alignItems: 'center' },
-  chevronCircle: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
+  cardInfo: { flex: 1, gap: 4 },
+  cardTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  cardTitle: { fontSize: 15, fontWeight: '600', color: '#111111', flex: 1 },
+  cardSubtitle: { fontSize: 12, color: '#666666' },
 
-  // Tip
-  tipBox: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    borderRadius: 10,
-    borderWidth: 1,
-    padding: 12,
-    marginTop: 8,
-    gap: 8,
-  },
-  tipText: { flex: 1, fontSize: 12, lineHeight: 17 },
+  // Empty
+  empty: { alignItems: 'center', paddingVertical: 40, gap: 12 },
+  emptyText: { fontSize: 14, color: '#999999' },
 });
