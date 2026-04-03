@@ -957,7 +957,7 @@ function ChallengesTab({ challenge, completed, completedIds, onComplete, onPostP
               style={[styles.completeBtn, { backgroundColor: completed ? colors.border : challenge.color + 'CC' }]}
               onPress={onComplete}
             >
-              <Ionicons name="flag-checkered" size={18} color="#fff" style={{ marginRight: 8 }} />
+              <MaterialCommunityIcons name="flag-variant" size={18} color="#fff" style={{ marginRight: 8 }} />
               <Text style={styles.completeBtnText}>{t('community.challenges.markDone')}</Text>
             </TouchableOpacity>
           </View>

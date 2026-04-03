@@ -357,7 +357,7 @@ export default function PetDashboard() {
       Alert.alert(
         t('common.selectPet'),
         undefined,
-        pets.map(p => ({ text: p.name, onPress: () => router.push({ pathname: '/reminder/new', params: { petId: p.id } }) })).concat([{ text: t('common.cancel'), style: 'cancel' as const, onPress: () => {} }])
+        [...pets.map(p => ({ text: p.name, onPress: () => router.push({ pathname: '/reminder/new', params: { petId: p.id } }) })), { text: t('common.cancel'), style: 'cancel' as const, onPress: () => {} }] as any
       );
     }
   };

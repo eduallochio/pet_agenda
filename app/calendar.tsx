@@ -6,7 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useRouter, Stack } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { getCategoryColor } from '../constants/Colors';
+import { getCategoryColor, Theme } from '../constants/Colors';
 import { Pet, Reminder, VaccineRecord } from '../types/pet';
 import { useTranslation } from 'react-i18next';
 

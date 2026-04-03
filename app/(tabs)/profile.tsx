@@ -341,15 +341,15 @@ export default function ProfileScreen() {
         const petReminders = data.reminders.filter(r => r.petId === p.id);
         const petVaccines = data.vaccines.filter(v => v.petId === p.id);
         const remindersRows = petReminders.length
-          ? petReminders.map(r => `<tr><td>${r.title}</td><td>${r.date ?? '—'}</td><td>${r.done ? '✓' : '—'}</td></tr>`).join('')
+          ? petReminders.map(r => `<tr><td>${r.description}</td><td>${r.date ?? '—'}</td><td>${r.completed ? '✓' : '—'}</td></tr>`).join('')
           : `<tr><td colspan="3" style="color:#999">Nenhum lembrete</td></tr>`;
         const vaccinesRows = petVaccines.length
-          ? petVaccines.map(v => `<tr><td>${v.vaccineName}</td><td>${v.date}</td><td>${v.nextDue ?? '—'}</td></tr>`).join('')
+          ? petVaccines.map(v => `<tr><td>${v.vaccineName}</td><td>${v.dateAdministered}</td><td>${v.nextDueDate ?? '—'}</td></tr>`).join('')
           : `<tr><td colspan="3" style="color:#999">Nenhuma vacina</td></tr>`;
         return `
           <div class="pet-card">
             <h2>${p.name}</h2>
-            <p class="meta">${[p.species, p.breed, p.age ? `${p.age}` : ''].filter(Boolean).join(' · ')}</p>
+            <p class="meta">${[p.species, p.breed].filter(Boolean).join(' · ')}</p>
             <h3>Lembretes</h3>
             <table><tr><th>Título</th><th>Data</th><th>Feito</th></tr>${remindersRows}</table>
             <h3>Vacinas</h3>
@@ -490,9 +490,6 @@ ${petsSection || '<p>Nenhum pet cadastrado.</p>'}
             )}
           </View>
           <Text style={[styles.userName, { color: colors.text.primary }]}>{displayName}</Text>
-          {!!(profile?.email) && (
-            <Text style={[styles.userEmail, { color: colors.text.secondary }]}>{profile.email}</Text>
-          )}
           <TouchableOpacity
             style={styles.editBtn}
             onPress={() => router.push('/profile/edit')}
