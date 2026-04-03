@@ -55,3 +55,6 @@ banco/
 .idea/
 .env
 pencil
+
+# screenshots temporarios
+*.png
