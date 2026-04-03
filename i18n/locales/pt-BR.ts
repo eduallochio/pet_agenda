@@ -64,9 +64,13 @@ export default {
   // ── Add Pet ────────────────────────────────────────────────────────────────
   addPet: {
     title: 'Novo Pet',
-    namePlaceholder: 'Nome do pet *',
+    nameLabel: 'Nome do Pet',
+    namePlaceholder: 'Ex: Luna, Milo...',
     speciesLabel: 'Espécie',
+    breedLabel: 'Raça',
     breedPlaceholder: 'Raça (opcional)',
+    weightLabel: 'Peso (kg)',
+    genderLabel: 'Sexo',
     dobLabel: 'Data de Nascimento',
     dobPlaceholder: 'Selecione a data de nascimento',
     addPhoto: 'Adicionar Foto',
