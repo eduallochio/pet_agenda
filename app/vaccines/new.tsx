@@ -33,9 +33,10 @@ export default function NewVaccineScreen() {
 	const params = useLocalSearchParams();
 	const petId = params.petId as string;
 	const vaccineId = params.vaccineId as string | undefined;
+	const prefillName = params.prefillName as string | undefined;
 	const isEditing = !!vaccineId;
 
-	const [vaccineName, setVaccineName] = useState('');
+	const [vaccineName, setVaccineName] = useState(prefillName ?? '');
 	const [dateAdministered, setDateAdministered] = useState<Date | null>(null);
 	const [nextDueDate, setNextDueDate] = useState<Date | null>(null);
 	const [showSuccess, setShowSuccess] = useState(false);
@@ -205,7 +206,7 @@ export default function NewVaccineScreen() {
 			<Stack.Screen options={{ headerShown: false }} />
 
 			{/* Header */}
-			<View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+			<View style={[styles.header, { backgroundColor: colors.background }]}>
 				<TouchableOpacity style={styles.headerBtn} onPress={() => goBack()}>
 					<Ionicons name="arrow-back" size={24} color={colors.text.primary} />
 				</TouchableOpacity>
@@ -222,12 +223,6 @@ export default function NewVaccineScreen() {
 			</View>
 
 			<ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
-				{/* Ícone decorativo */}
-				<View style={styles.iconSection}>
-					<View style={[styles.iconCircle, { backgroundColor: Theme.primary + '20' }]}>
-						<MaterialCommunityIcons name="needle" size={40} color={Theme.primary} />
-					</View>
-				</View>
 
 				{/* Nome da vacina */}
 				<ValidatedInput
@@ -243,7 +238,7 @@ export default function NewVaccineScreen() {
 				{/* Sugestões rápidas */}
 				{!isEditing && (
 					<View style={styles.suggestionsSection}>
-						<Text style={[styles.suggestionsLabel, { color: colors.text.secondary }]}>{t('reminder.suggestions')}</Text>
+						<Text style={[styles.label, { color: colors.text.secondary }]}>{t('reminder.suggestions')}</Text>
 						<View style={styles.suggestionsGrid}>
 							{COMMON_VACCINES.map(name => (
 								<TouchableOpacity
@@ -288,9 +283,9 @@ export default function NewVaccineScreen() {
 
 				{/* Info sobre notificações */}
 				{!!nextDueDate && Platform.OS !== 'web' && (
-					<View style={[styles.infoBox, { backgroundColor: Theme.info + '15', borderColor: Theme.info + '40' }]}>
-						<Ionicons name="notifications-outline" size={16} color={Theme.info} />
-						<Text style={[styles.infoText, { color: Theme.info }]}>
+					<View style={[styles.infoBox, { backgroundColor: Theme.primary + '10', borderColor: Theme.primary + '30' }]}>
+						<Ionicons name="notifications-outline" size={16} color={Theme.primary} />
+						<Text style={[styles.infoText, { color: Theme.primary }]}>
 							{t('vaccine.boosterInfo')}
 						</Text>
 					</View>
@@ -298,7 +293,6 @@ export default function NewVaccineScreen() {
 
 				{/* Botão salvar */}
 				<AnimatedButton style={styles.saveButton} onPress={handleSave}>
-					<Ionicons name="checkmark-circle" size={22} color="#fff" style={{ marginRight: 8 }} />
 					<Text style={styles.saveButtonText}>{isEditing ? t('vaccine.editTitle') : t('vaccine.newTitle')}</Text>
 				</AnimatedButton>
 			</ScrollView>
@@ -313,50 +307,42 @@ const styles = StyleSheet.create({
 	header: {
 		flexDirection: 'row',
 		alignItems: 'center',
-		justifyContent: 'space-between',
-		paddingHorizontal: 16,
+		paddingHorizontal: 8,
 		paddingVertical: 12,
-		borderBottomWidth: 1,
 	},
 	headerBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
-	headerTitle: { fontSize: 20, fontWeight: 'bold' },
-	scrollContent: { padding: 20, paddingBottom: 40 },
-	iconSection: { alignItems: 'center', marginBottom: 24 },
-	iconCircle: {
-		width: 80, height: 80, borderRadius: 40,
-		justifyContent: 'center', alignItems: 'center',
-	},
+	headerTitle: { flex: 1, fontSize: 20, fontWeight: '700', marginLeft: 4 },
+	scrollContent: { paddingHorizontal: 20, paddingBottom: 40, paddingTop: 8 },
+	label: { fontSize: 13, fontWeight: '600', marginBottom: 8, marginTop: 16 },
 	// Sugestões
-	suggestionsSection: { marginBottom: 20 },
-	suggestionsLabel: { fontSize: 13, fontWeight: '600', marginBottom: 8 },
-	suggestionsGrid: { flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -4 },
+	suggestionsSection: { marginBottom: 4 },
+	suggestionsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
 	suggestionChip: {
-		borderWidth: 1.5,
+		borderWidth: 1,
 		borderRadius: 20,
-		paddingHorizontal: 12,
-		paddingVertical: 6,
-		margin: 4,
+		paddingHorizontal: 14,
+		paddingVertical: 7,
 	},
-	suggestionText: { fontSize: 12 },
+	suggestionText: { fontSize: 13 },
 	// Info box
 	infoBox: {
 		flexDirection: 'row',
 		alignItems: 'flex-start',
 		borderWidth: 1,
-		borderRadius: 10,
+		borderRadius: 12,
 		padding: 12,
-		marginBottom: 20,
+		marginTop: 16,
+		gap: 8,
 	},
-	infoText: { flex: 1, fontSize: 13, marginLeft: 8, lineHeight: 18 },
+	infoText: { flex: 1, fontSize: 13, lineHeight: 18 },
 	// Botão
 	saveButton: {
 		backgroundColor: Theme.primary,
-		padding: 16,
-		borderRadius: 12,
-		flexDirection: 'row',
+		paddingVertical: 16,
+		borderRadius: 14,
 		alignItems: 'center',
 		justifyContent: 'center',
-		...Shadows.primary,
+		marginTop: 28,
 	},
-	saveButtonText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
+	saveButtonText: { color: '#fff', fontSize: 16, fontWeight: '700' },
 });

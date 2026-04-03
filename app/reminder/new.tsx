@@ -1,18 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert, Platform, ScrollView } from 'react-native';
-import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
+import {
+  View, Text, TouchableOpacity, StyleSheet, Alert,
+  Platform, ScrollView, TextInput,
+} from 'react-native';
+import { useLocalSearchParams, Stack } from 'expo-router';
 import { useGoBack } from '../../hooks/useGoBack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { syncReminders } from '../../services/syncService';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Reminder, Pet, RecurrenceType } from '../../types/pet';
 import { Theme, getCategoryColor } from '../../constants/Colors';
-import { Shadows } from '../../constants/Shadows';
 import { Ionicons } from '@expo/vector-icons';
 import AnimatedButton from '../../components/animations/AnimatedButton';
 import SuccessAnimation from '../../components/animations/SuccessAnimation';
 import DatePickerInput from '../../components/DatePickerInput';
-import ValidatedInput from '../../components/ValidatedInput';
 import { useFormValidation } from '../../hooks/useFormValidation';
 import { useTheme } from '../../hooks/useTheme';
 import { checkAndUnlockAchievements } from '../../hooks/useAchievements';
@@ -21,568 +22,627 @@ import { useTranslation } from 'react-i18next';
 
 type Category = 'Saúde' | 'Higiene' | 'Consulta' | 'Prevenção' | 'Outro';
 
-const CATEGORIES: { value: Category; icon: keyof typeof Ionicons.glyphMap }[] = [
-	{ value: 'Saúde',     icon: 'medical' },
-	{ value: 'Higiene',   icon: 'water' },
-	{ value: 'Consulta',  icon: 'calendar' },
-	{ value: 'Prevenção', icon: 'shield-checkmark' },
-	{ value: 'Outro',     icon: 'ellipse-outline' },
+const CATEGORIES: { value: Category; icon: keyof typeof Ionicons.glyphMap; label: string; color: string }[] = [
+  { value: 'Saúde',     icon: 'medkit-outline',           label: 'Vacina',   color: '#40E0D0' },
+  { value: 'Consulta',  icon: 'pulse-outline',            label: 'Consulta', color: '#FF9800' },
+  { value: 'Higiene',   icon: 'color-filter-outline',     label: 'Remédio',  color: '#9C27B0' },
+  { value: 'Prevenção', icon: 'cut-outline',              label: 'Banho',    color: '#2196F3' },
+  { value: 'Outro',     icon: 'ellipse-outline',          label: 'Outro',    color: '#9E9E9E' },
 ];
 
 const SUGGESTIONS: Record<Category, string[]> = {
-	'Saúde':     ['Vermifugação', 'Antipulgas', 'Curativo', 'Medicação'],
-	'Higiene':   ['Banho', 'Tosa', 'Corte de unhas', 'Limpeza de ouvido'],
-	'Consulta':  ['Consulta de rotina', 'Retorno', 'Exame de sangue', 'Ultrassom'],
-	'Prevenção': ['Antipulgas', 'Carrapatos', 'Vermífugo', 'Heartworm', 'Fungicida'],
-	'Outro':     ['Passeio', 'Adestramento', 'Hotel pet', 'Comprar ração'],
+  'Saúde':     ['Vermifugação', 'Antipulgas', 'Curativo', 'Medicação'],
+  'Higiene':   ['Banho', 'Tosa', 'Corte de unhas', 'Limpeza de ouvido'],
+  'Consulta':  ['Consulta de rotina', 'Retorno', 'Exame de sangue', 'Ultrassom'],
+  'Prevenção': ['Antipulgas', 'Carrapatos', 'Vermífugo', 'Heartworm'],
+  'Outro':     ['Passeio', 'Adestramento', 'Hotel pet', 'Comprar ração'],
 };
 
 type Template = {
-	emoji: string;
-	labelKey: string;
-	category: Category;
-	descriptionKey: string;
-	recurrence: RecurrenceType;
+  emoji: string;
+  labelKey: string;
+  category: Category;
+  descriptionKey: string;
+  recurrence: RecurrenceType;
 };
 
 const TEMPLATES: Template[] = [
-	{ emoji: '🛁', labelKey: 'reminder.templates.bath',       category: 'Higiene',   descriptionKey: 'reminder.templates.bathDesc',       recurrence: 'monthly'   },
-	{ emoji: '💊', labelKey: 'reminder.templates.deworming',  category: 'Prevenção', descriptionKey: 'reminder.templates.dewormingDesc',  recurrence: 'quarterly' },
-	{ emoji: '🩺', labelKey: 'reminder.templates.checkup',    category: 'Consulta',  descriptionKey: 'reminder.templates.checkupDesc',    recurrence: 'none'      },
-	{ emoji: '✂️', labelKey: 'reminder.templates.grooming',   category: 'Higiene',   descriptionKey: 'reminder.templates.groomingDesc',   recurrence: 'monthly'   },
-	{ emoji: '🦟', labelKey: 'reminder.templates.flea',       category: 'Prevenção', descriptionKey: 'reminder.templates.fleaDesc',       recurrence: 'monthly'   },
-	{ emoji: '💉', labelKey: 'reminder.templates.vaccine',    category: 'Saúde',     descriptionKey: 'reminder.templates.vaccineDesc',    recurrence: 'none'      },
-	{ emoji: '🦷', labelKey: 'reminder.templates.dental',     category: 'Higiene',   descriptionKey: 'reminder.templates.dentalDesc',     recurrence: 'monthly'   },
-	{ emoji: '🏥', labelKey: 'reminder.templates.return',     category: 'Consulta',  descriptionKey: 'reminder.templates.returnDesc',     recurrence: 'none'      },
+  { emoji: '🛁', labelKey: 'reminder.templates.bath',      category: 'Higiene',   descriptionKey: 'reminder.templates.bathDesc',      recurrence: 'monthly'   },
+  { emoji: '💊', labelKey: 'reminder.templates.deworming', category: 'Prevenção', descriptionKey: 'reminder.templates.dewormingDesc', recurrence: 'quarterly' },
+  { emoji: '🩺', labelKey: 'reminder.templates.checkup',   category: 'Consulta',  descriptionKey: 'reminder.templates.checkupDesc',   recurrence: 'none'      },
+  { emoji: '✂️', labelKey: 'reminder.templates.grooming',  category: 'Higiene',   descriptionKey: 'reminder.templates.groomingDesc',  recurrence: 'monthly'   },
+  { emoji: '🦟', labelKey: 'reminder.templates.flea',      category: 'Prevenção', descriptionKey: 'reminder.templates.fleaDesc',      recurrence: 'monthly'   },
+  { emoji: '💉', labelKey: 'reminder.templates.vaccine',   category: 'Saúde',     descriptionKey: 'reminder.templates.vaccineDesc',   recurrence: 'none'      },
+  { emoji: '🦷', labelKey: 'reminder.templates.dental',    category: 'Higiene',   descriptionKey: 'reminder.templates.dentalDesc',    recurrence: 'monthly'   },
+  { emoji: '🏥', labelKey: 'reminder.templates.return',    category: 'Consulta',  descriptionKey: 'reminder.templates.returnDesc',    recurrence: 'none'      },
 ];
 
 export default function ReminderFormScreen() {
-	const router = useRouter();
-	const goBack = useGoBack('/(tabs)');
-	const { colors } = useTheme();
-	const { t } = useTranslation();
-	const params = useLocalSearchParams();
-	const petId = params.petId as string;
-	const reminderId = params.reminderId as string | undefined;
-	const isEditing = !!reminderId;
+  const goBack  = useGoBack('/(tabs)');
+  const { colors } = useTheme();
+  const { t }   = useTranslation();
+  const params  = useLocalSearchParams();
+  const petId      = params.petId as string;
+  const reminderId = params.reminderId as string | undefined;
+  const isEditing  = !!reminderId;
 
-	const [category, setCategory] = useState<Category>('Saúde');
-	const [description, setDescription] = useState('');
-	const [date, setDate] = useState<Date | null>(null);
-	const [recurrence, setRecurrence] = useState<RecurrenceType>('none');
-	const [showSuccess, setShowSuccess] = useState(false);
+  const [pets, setPets]               = useState<Pet[]>([]);
+  const [selectedPetId, setSelectedPetId] = useState<string>(petId || '');
+  const [category, setCategory]       = useState<Category>('Saúde');
+  const [description, setDescription] = useState('');
+  const [notes, setNotes]             = useState('');
+  const [date, setDate]               = useState<Date | null>(null);
+  const [recurrence, setRecurrence]   = useState<RecurrenceType>('none');
+  const [showSuccess, setShowSuccess] = useState(false);
 
-	const { validateAll, getFieldError, touchField } = useFormValidation({
-		description: { required: true, minLength: 3, maxLength: 200 },
-	});
+  const { validateAll, getFieldError, touchField } = useFormValidation({
+    description: { required: true, minLength: 3, maxLength: 200 },
+  });
 
-	useEffect(() => {
-		if (!isEditing) {
-			// Apply prefill params from navigation (e.g. from weight screen suggestion)
-			const prefillDesc = params.prefillDescription as string | undefined;
-			const prefillCat = params.prefillCategory as string | undefined;
-			const prefillRec = params.prefillRecurrence as string | undefined;
-			if (prefillDesc) setDescription(prefillDesc);
-			if (prefillCat && CATEGORIES.some(c => c.value === prefillCat)) setCategory(prefillCat as Category);
-			if (prefillRec) setRecurrence(prefillRec as RecurrenceType);
-			return;
-		}
-		const load = async () => {
-			try {
-				const json = await AsyncStorage.getItem('reminders');
-				const all: Reminder[] = json ? JSON.parse(json) : [];
-				const r = all.find(r => r.id === reminderId);
-				if (r) {
-					setCategory(r.category);
-					setDescription(r.description);
-					const parts = r.date.split('/');
-					if (parts.length === 3) {
-						setDate(new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0])));
-					}
-				}
-			} catch (e) {
-				console.error('Erro ao carregar lembrete', e);
-			}
-		};
-		load();
-	}, [reminderId, isEditing]);
+  // Carrega pets para o seletor
+  useEffect(() => {
+    AsyncStorage.getItem('pets').then(j => {
+      if (j) setPets(JSON.parse(j));
+    });
+  }, []);
 
-	const handleDelete = async () => {
-		Alert.alert(t('petDetail.deleteReminder'), t('petDetail.deleteReminderMsg'), [
-			{ text: t('common.cancel'), style: 'cancel' },
-			{
-				text: t('common.delete'),
-				style: 'destructive',
-				onPress: async () => {
-					try {
-						const json = await AsyncStorage.getItem('reminders');
-						let all: Reminder[] = json ? JSON.parse(json) : [];
-						const toDelete = all.find(r => r.id === reminderId);
-						if (toDelete?.notificationIds && Platform.OS !== 'web') {
-							try {
-								const NS = await import('../../services/notificationService');
-								await NS.cancelNotifications(toDelete.notificationIds);
-							} catch { /* ignore */ }
-						}
-						all = all.filter(r => r.id !== reminderId);
-						await syncReminders(all);
-						goBack();
-					} catch {
-						Alert.alert(t('common.error'), t('reminder.deleteError'));
-					}
-				},
-			},
-		]);
-	};
+  useEffect(() => {
+    if (!isEditing) {
+      const prefillDesc = params.prefillDescription as string | undefined;
+      const prefillCat  = params.prefillCategory   as string | undefined;
+      const prefillRec  = params.prefillRecurrence as string | undefined;
+      if (prefillDesc) setDescription(prefillDesc);
+      if (prefillCat && CATEGORIES.some(c => c.value === prefillCat)) setCategory(prefillCat as Category);
+      if (prefillRec) setRecurrence(prefillRec as RecurrenceType);
+      return;
+    }
+    const load = async () => {
+      try {
+        const json = await AsyncStorage.getItem('reminders');
+        const all: Reminder[] = json ? JSON.parse(json) : [];
+        const r = all.find(r => r.id === reminderId);
+        if (r) {
+          setCategory(r.category);
+          setDescription(r.description);
+          const parts = r.date.split('/');
+          if (parts.length === 3) {
+            setDate(new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0])));
+          }
+        }
+      } catch (e) {
+        console.error('Erro ao carregar lembrete', e);
+      }
+    };
+    load();
+  }, [reminderId, isEditing]);
 
-	const handleSave = async () => {
-		const isValid = validateAll({ description });
-		if (!isValid) {
-			Alert.alert(t('common.attention'), t('addPet.validationError'));
-			return;
-		}
-		if (!date) {
-			Alert.alert(t('common.attention'), t('reminder.datePlaceholder') + '.');
-			return;
-		}
+  const handleDelete = async () => {
+    Alert.alert(t('petDetail.deleteReminder'), t('petDetail.deleteReminderMsg'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      {
+        text: t('common.delete'),
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            const json = await AsyncStorage.getItem('reminders');
+            let all: Reminder[] = json ? JSON.parse(json) : [];
+            const toDelete = all.find(r => r.id === reminderId);
+            if (toDelete?.notificationIds && Platform.OS !== 'web') {
+              try {
+                const NS = await import('../../services/notificationService');
+                await NS.cancelNotifications(toDelete.notificationIds);
+              } catch { /* ignore */ }
+            }
+            all = all.filter(r => r.id !== reminderId);
+            await syncReminders(all);
+            goBack();
+          } catch {
+            Alert.alert(t('common.error'), t('reminder.deleteError'));
+          }
+        },
+      },
+    ]);
+  };
 
-		const formattedDate = `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear()}`;
+  const handleSave = async () => {
+    const isValid = validateAll({ description });
+    if (!isValid) {
+      Alert.alert(t('common.attention'), t('addPet.validationError'));
+      return;
+    }
+    if (!date) {
+      Alert.alert(t('common.attention'), t('reminder.datePlaceholder') + '.');
+      return;
+    }
 
-		// Verifica duplicata
-		try {
-			const json = await AsyncStorage.getItem('reminders');
-			const all: Reminder[] = json ? JSON.parse(json) : [];
-			const duplicate = all.find(r =>
-				r.petId === petId &&
-				r.category === category &&
-				r.description.trim().toLowerCase() === description.trim().toLowerCase() &&
-				r.date === formattedDate &&
-				r.id !== reminderId
-			);
-			if (duplicate) {
-				Alert.alert(t('reminder.duplicateTitle'), t('reminder.duplicateMessage'));
-				return;
-			}
-		} catch { /* prossegue */ }
+    const effectivePetId = selectedPetId || petId;
+    const formattedDate  = `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear()}`;
 
-		try {
-			const json = await AsyncStorage.getItem('reminders');
-			let all: Reminder[] = json ? JSON.parse(json) : [];
+    try {
+      const json = await AsyncStorage.getItem('reminders');
+      const all: Reminder[] = json ? JSON.parse(json) : [];
+      const duplicate = all.find(r =>
+        r.petId === effectivePetId &&
+        r.category === category &&
+        r.description.trim().toLowerCase() === description.trim().toLowerCase() &&
+        r.date === formattedDate &&
+        r.id !== reminderId
+      );
+      if (duplicate) {
+        Alert.alert(t('reminder.duplicateTitle'), t('reminder.duplicateMessage'));
+        return;
+      }
+    } catch { /* prossegue */ }
 
-			const petsJSON = await AsyncStorage.getItem('pets');
-			const pets: Pet[] = petsJSON ? JSON.parse(petsJSON) : [];
-			const pet = pets.find(p => p.id === petId);
-			const petName = pet?.name || 'Seu pet';
+    try {
+      const json = await AsyncStorage.getItem('reminders');
+      let all: Reminder[] = json ? JSON.parse(json) : [];
 
-			let notificationIds: string[] = [];
-			if (Platform.OS !== 'web' && date > new Date()) {
-				try {
-					const NS = await import('../../services/notificationService');
-					notificationIds = await NS.scheduleReminderNotification(
-						reminderId || Date.now().toString(),
-						petName, description, date, category, petId
-					);
-				} catch { /* notif opcional */ }
-			}
+      const petsJSON = await AsyncStorage.getItem('pets');
+      const allPets: Pet[] = petsJSON ? JSON.parse(petsJSON) : [];
+      const pet = allPets.find(p => p.id === effectivePetId);
+      const petName = pet?.name || 'Seu pet';
 
-			if (isEditing) {
-				const old = all.find(r => r.id === reminderId);
-				if (old?.notificationIds && Platform.OS !== 'web') {
-					try {
-						const NS = await import('../../services/notificationService');
-						await NS.cancelNotifications(old.notificationIds);
-					} catch { /* ignore */ }
-				}
-				all = all.map(r =>
-					r.id === reminderId
-						? { ...r, category, description, date: formattedDate, notificationIds }
-						: r
-				);
-			} else {
-				const newId = Date.now().toString();
-				all.push({ id: newId, petId, category, description, date: formattedDate, notificationIds, recurrence });
+      let notificationIds: string[] = [];
+      if (Platform.OS !== 'web' && date > new Date()) {
+        try {
+          const NS = await import('../../services/notificationService');
+          notificationIds = await NS.scheduleReminderNotification(
+            reminderId || Date.now().toString(),
+            petName, description, date, category, effectivePetId
+          );
+        } catch { /* notif opcional */ }
+      }
 
-				// Criar ocorrências futuras para lembretes recorrentes (próximos 6 meses)
-				if (recurrence !== 'none') {
-					const daysMap: Record<string, number> = { weekly: 7, monthly: 30, quarterly: 90 };
-					const interval = daysMap[recurrence];
-					const baseDate = new Date(date);
-					const maxDate = new Date();
-					maxDate.setMonth(maxDate.getMonth() + 6);
-					let nextDate = new Date(baseDate);
-					for (let i = 0; i < 24; i++) {
-						nextDate = new Date(nextDate);
-						nextDate.setDate(nextDate.getDate() + interval);
-						if (nextDate > maxDate) break;
-						const nd = `${String(nextDate.getDate()).padStart(2, '0')}/${String(nextDate.getMonth() + 1).padStart(2, '0')}/${nextDate.getFullYear()}`;
-						let recurNotifIds: string[] = [];
-						if (Platform.OS !== 'web' && nextDate > new Date()) {
-							try {
-								const NS = await import('../../services/notificationService');
-								recurNotifIds = await NS.scheduleReminderNotification(
-									Date.now().toString() + i, petName, description, nextDate, category, petId
-								);
-							} catch { /* ignore */ }
-						}
-						all.push({ id: Date.now().toString() + '_r' + i, petId, category, description, date: nd, notificationIds: recurNotifIds, recurrence: 'none' });
-					}
-				}
-			}
+      if (isEditing) {
+        const old = all.find(r => r.id === reminderId);
+        if (old?.notificationIds && Platform.OS !== 'web') {
+          try {
+            const NS = await import('../../services/notificationService');
+            await NS.cancelNotifications(old.notificationIds);
+          } catch { /* ignore */ }
+        }
+        all = all.map(r =>
+          r.id === reminderId
+            ? { ...r, category, description, date: formattedDate, notificationIds }
+            : r
+        );
+      } else {
+        const newId = Date.now().toString();
+        all.push({ id: newId, petId: effectivePetId, category, description, date: formattedDate, notificationIds, recurrence });
 
-			await syncReminders(all);
+        if (recurrence !== 'none') {
+          const daysMap: Record<string, number> = { weekly: 7, monthly: 30, quarterly: 90 };
+          const interval = daysMap[recurrence];
+          const maxDate  = new Date();
+          maxDate.setMonth(maxDate.getMonth() + 6);
+          let nextDate = new Date(date);
+          for (let i = 0; i < 24; i++) {
+            nextDate = new Date(nextDate);
+            nextDate.setDate(nextDate.getDate() + interval);
+            if (nextDate > maxDate) break;
+            const nd = `${String(nextDate.getDate()).padStart(2, '0')}/${String(nextDate.getMonth() + 1).padStart(2, '0')}/${nextDate.getFullYear()}`;
+            let recurNotifIds: string[] = [];
+            if (Platform.OS !== 'web' && nextDate > new Date()) {
+              try {
+                const NS = await import('../../services/notificationService');
+                recurNotifIds = await NS.scheduleReminderNotification(
+                  Date.now().toString() + i, petName, description, nextDate, category, effectivePetId
+                );
+              } catch { /* ignore */ }
+            }
+            all.push({ id: Date.now().toString() + '_r' + i, petId: effectivePetId, category, description, date: nd, notificationIds: recurNotifIds, recurrence: 'none' });
+          }
+        }
+      }
 
-			// Verificar conquistas
-			const [petsJ, vacJ, weightJ, streakJ] = await Promise.all([
-				AsyncStorage.getItem('pets'),
-				AsyncStorage.getItem('vaccinations'),
-				AsyncStorage.getItem('weightRecords'),
-				AsyncStorage.getItem('streakData'),
-			]);
-			await checkAndUnlockAchievements({
-				pets: petsJ ? JSON.parse(petsJ) : [],
-				reminders: all,
-				vaccines: vacJ ? JSON.parse(vacJ) : [],
-				weightRecords: weightJ ? JSON.parse(weightJ) : [],
-				streak: streakJ ? JSON.parse(streakJ) : { currentStreak: 0, bestStreak: 0, lastOpenedDate: '', totalDays: 0 },
-			});
-			await autoCompleteChallenge('register_reminder');
+      await syncReminders(all);
 
-			setShowSuccess(true);
-			setTimeout(() => { try { goBack(); } catch (e) { console.error('nav error:', e); } }, 1800);
-		} catch (err) {
-			console.error('Erro ao salvar lembrete:', err);
-			Alert.alert(t('common.error'), t('reminder.saveError'));
-		}
-	};
+      const [petsJ, vacJ, weightJ, streakJ] = await Promise.all([
+        AsyncStorage.getItem('pets'),
+        AsyncStorage.getItem('vaccinations'),
+        AsyncStorage.getItem('weightRecords'),
+        AsyncStorage.getItem('streakData'),
+      ]);
+      await checkAndUnlockAchievements({
+        pets: petsJ ? JSON.parse(petsJ) : [],
+        reminders: all,
+        vaccines: vacJ ? JSON.parse(vacJ) : [],
+        weightRecords: weightJ ? JSON.parse(weightJ) : [],
+        streak: streakJ ? JSON.parse(streakJ) : { currentStreak: 0, bestStreak: 0, lastOpenedDate: '', totalDays: 0 },
+      });
+      await autoCompleteChallenge('register_reminder');
 
-	const applyTemplate = (tpl: Template) => {
-		setCategory(tpl.category);
-		setDescription(t(tpl.descriptionKey));
-		setRecurrence(tpl.recurrence);
-	};
+      setShowSuccess(true);
+      setTimeout(() => { try { goBack(); } catch (e) { console.error('nav error:', e); } }, 1800);
+    } catch (err) {
+      console.error('Erro ao salvar lembrete:', err);
+      Alert.alert(t('common.error'), t('reminder.saveError'));
+    }
+  };
 
-	return (
-		<SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-			<Stack.Screen options={{ headerShown: false }} />
+  const applyTemplate = (tpl: Template) => {
+    setCategory(tpl.category);
+    setDescription(t(tpl.descriptionKey));
+    setRecurrence(tpl.recurrence);
+  };
 
-			{/* Header */}
-			<View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-				<TouchableOpacity style={styles.headerBtn} onPress={goBack}>
-					<Ionicons name="arrow-back" size={24} color={colors.text.primary} />
-				</TouchableOpacity>
-				<Text style={[styles.headerTitle, { color: colors.text.primary }]}>
-					{isEditing ? t('reminder.editTitle') : t('reminder.newTitle')}
-				</Text>
-				{isEditing ? (
-					<TouchableOpacity style={styles.headerBtn} onPress={handleDelete}>
-						<Ionicons name="trash-outline" size={22} color={Theme.danger} />
-					</TouchableOpacity>
-				) : (
-					<View style={styles.headerBtn} />
-				)}
-			</View>
+  return (
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <Stack.Screen options={{ headerShown: false }} />
 
-			<ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity style={styles.headerBtn} onPress={goBack} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+          <Ionicons name="arrow-back" size={24} color={colors.text.primary} />
+        </TouchableOpacity>
+        <Text style={[styles.headerTitle, { color: colors.text.primary }]}>
+          {isEditing ? t('reminder.editTitle') : t('reminder.newTitle')}
+        </Text>
+        {isEditing ? (
+          <TouchableOpacity style={styles.headerBtn} onPress={handleDelete}>
+            <Ionicons name="trash-outline" size={22} color={colors.danger} />
+          </TouchableOpacity>
+        ) : (
+          <View style={styles.headerBtn} />
+        )}
+      </View>
 
-				{/* Templates rápidos (apenas criação) */}
-				{!isEditing && (
-					<View style={styles.templatesSection}>
-						<Text style={[styles.sectionLabel, { color: colors.text.primary }]}>{t('reminder.templates.title')}</Text>
-						<ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.templatesScroll} contentContainerStyle={styles.templatesContent}>
-							{TEMPLATES.map((tpl) => {
-								const catColor = getCategoryColor(tpl.category as any);
-								const isActive = description === t(tpl.descriptionKey) && category === tpl.category;
-								return (
-									<TouchableOpacity
-										key={tpl.labelKey}
-										style={[
-											styles.templateCard,
-											{
-												backgroundColor: isActive ? catColor.main + '20' : colors.surface,
-												borderColor: isActive ? catColor.main : colors.border,
-											},
-										]}
-										onPress={() => applyTemplate(tpl)}
-										activeOpacity={0.75}
-									>
-										<Text style={styles.templateEmoji}>{tpl.emoji}</Text>
-										<Text style={[styles.templateLabel, { color: isActive ? catColor.main : colors.text.primary }]} numberOfLines={2}>
-											{t(tpl.labelKey)}
-										</Text>
-										{tpl.recurrence !== 'none' && (
-											<View style={[styles.templateRecurrenceBadge, { backgroundColor: catColor.main + '25' }]}>
-												<Text style={[styles.templateRecurrenceText, { color: catColor.main }]}>
-													{t(`reminder.recurrences.${tpl.recurrence}`)}
-												</Text>
-											</View>
-										)}
-									</TouchableOpacity>
-								);
-							})}
-						</ScrollView>
-					</View>
-				)}
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Selecionar Pet */}
+        {pets.length > 0 && (
+          <View style={styles.fieldGroup}>
+            <Text style={[styles.fieldLabel, { color: colors.text.primary }]}>
+              {t('common.selectPet')}
+            </Text>
+            <View style={styles.petRow}>
+              {pets.map(p => {
+                const selected = (selectedPetId || petId) === p.id;
+                return (
+                  <TouchableOpacity
+                    key={p.id}
+                    style={[
+                      styles.petChip,
+                      { backgroundColor: colors.surface, borderColor: colors.border },
+                      selected && { backgroundColor: Theme.primary + '20', borderColor: Theme.primary },
+                    ]}
+                    onPress={() => setSelectedPetId(p.id)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.petEmoji}>
+                      {p.species === 'Cachorro' ? '🐕' : p.species === 'Gato' ? '🐈' : p.species === 'Pássaro' ? '🐦' : '🐾'}
+                    </Text>
+                    <Text style={[
+                      styles.petName,
+                      { color: selected ? Theme.primary : colors.text.secondary },
+                      selected && { fontWeight: '700' },
+                    ]} numberOfLines={1}>
+                      {p.name}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+        )}
 
-				{/* Categoria */}
-				<Text style={[styles.sectionLabel, { color: colors.text.primary }]}>{t('reminder.category')}</Text>
-				<View style={styles.categoryGrid}>
-					{CATEGORIES.map(({ value, icon }) => {
-						const catColor = getCategoryColor(value as any);
-						const isSelected = category === value;
-						return (
-							<TouchableOpacity
-								key={value}
-								style={[
-									styles.categoryChip,
-									{
-										borderColor: isSelected ? catColor.main : colors.border,
-										backgroundColor: isSelected ? catColor.main + '20' : colors.surface,
-										...(Platform.OS === 'web'
-											? { boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }
-											: { shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 2, elevation: 2 }),
-									},
-								]}
-								onPress={() => setCategory(value)}
-								activeOpacity={0.7}
-							>
-								<View style={[styles.categoryIconCircle, { backgroundColor: isSelected ? catColor.main : catColor.main + '20' }]}>
-									<Ionicons name={icon} size={18} color={isSelected ? '#fff' : catColor.main} />
-								</View>
-								<Text style={[
-									styles.categoryLabel,
-									{ color: isSelected ? catColor.main : colors.text.secondary },
-									isSelected && { fontWeight: '700' },
-								]}>
-									{value}
-								</Text>
-							</TouchableOpacity>
-						);
-					})}
-				</View>
+        {/* Tipo de Lembrete — 4 chips em linha, ícone + label vertical */}
+        <View style={styles.fieldGroup}>
+          <Text style={[styles.fieldLabel, { color: colors.text.primary }]}>
+            {t('reminder.category')}
+          </Text>
+          <View style={styles.typeGrid}>
+            {CATEGORIES.map(({ value, icon, label, color }) => {
+              const selected = category === value;
+              return (
+                <TouchableOpacity
+                  key={value}
+                  style={[
+                    styles.typeChip,
+                    { backgroundColor: colors.surface, borderColor: colors.border },
+                    selected && { backgroundColor: color + '20', borderColor: color },
+                  ]}
+                  onPress={() => setCategory(value)}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name={icon} size={22} color={selected ? color : colors.text.light} />
+                  <Text style={[
+                    styles.typeLabel,
+                    { color: selected ? color : colors.text.secondary },
+                    selected && { fontWeight: '700' },
+                  ]}>
+                    {label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
 
-				{/* Info box Prevenção */}
-				{category === 'Prevenção' && (
-					<View style={[styles.infoBox, { backgroundColor: '#00BCD415', borderColor: '#00BCD450' }]}>
-						<Ionicons name="shield-checkmark" size={16} color="#00BCD4" />
-						<Text style={[styles.infoText, { color: '#00838F' }]}>
-							{t('reminder.infoPreventive')}
-						</Text>
-					</View>
-				)}
+        {/* Título */}
+        <View style={styles.fieldGroup}>
+          <Text style={[styles.fieldLabel, { color: colors.text.primary }]}>
+            {t('reminder.descLabel')}{' '}
+            <Text style={{ color: colors.danger }}>*</Text>
+          </Text>
+          <View style={[
+            styles.inputRow,
+            { backgroundColor: colors.surface, borderColor: colors.border },
+            !!getFieldError('description') && { borderColor: colors.danger },
+          ]}>
+            <Ionicons name="pencil-outline" size={18} color={colors.text.light} style={styles.inputIcon} />
+            <TextInput
+              style={[styles.inputText, { color: colors.text.primary }]}
+              placeholder={t('reminder.descPlaceholder')}
+              placeholderTextColor={colors.text.light}
+              value={description}
+              onChangeText={setDescription}
+              onBlur={() => touchField('description')}
+            />
+          </View>
+          {!!getFieldError('description') && (
+            <Text style={[styles.errorText, { color: colors.danger }]}>{getFieldError('description')}</Text>
+          )}
+          {/* Sugestões rápidas */}
+          <View style={styles.suggestionsRow}>
+            {SUGGESTIONS[category].map(s => (
+              <TouchableOpacity
+                key={s}
+                style={[
+                  styles.suggestionChip,
+                  { borderColor: colors.border, backgroundColor: colors.surface },
+                  description === s && { borderColor: Theme.primary, backgroundColor: Theme.primary + '15' },
+                ]}
+                onPress={() => setDescription(s)}
+              >
+                <Text style={[
+                  styles.suggestionText,
+                  { color: colors.text.secondary },
+                  description === s && { color: Theme.primary, fontWeight: '700' },
+                ]}>
+                  {s}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
 
-				{/* Descrição */}
-				<Text style={[styles.sectionLabel, { color: colors.text.primary }]}>
-					{t('reminder.descLabel')} <Text style={{ color: Theme.danger }}>*</Text>
-				</Text>
-				<ValidatedInput
-					iconName="text"
-					placeholder={t('reminder.descPlaceholder')}
-					value={description}
-					onChangeText={setDescription}
-					onBlur={() => touchField('description')}
-					error={getFieldError('description')}
-					required
-				/>
+        {/* Data */}
+        <View style={styles.fieldGroup}>
+          <DatePickerInput
+            label={t('reminder.dateLabel')}
+            value={date}
+            onChange={setDate}
+            placeholder={t('reminder.datePlaceholder')}
+          />
+        </View>
 
-				{/* Sugestões rápidas */}
-				<View style={styles.suggestionsSection}>
-					<Text style={[styles.suggestionsLabel, { color: colors.text.secondary }]}>{t('reminder.suggestions')}</Text>
-					<View style={styles.suggestionsRow}>
-						{SUGGESTIONS[category].map(s => (
-							<TouchableOpacity
-								key={s}
-								style={[
-									styles.suggestionChip,
-									{ borderColor: colors.border, backgroundColor: colors.surface },
-									description === s && { borderColor: Theme.primary, backgroundColor: Theme.primary + '15' },
-								]}
-								onPress={() => setDescription(s)}
-							>
-								<Text style={[
-									styles.suggestionText,
-									{ color: colors.text.secondary },
-									description === s && { color: Theme.primary, fontWeight: '700' },
-								]}>
-									{s}
-								</Text>
-							</TouchableOpacity>
-						))}
-					</View>
-				</View>
+        {/* Observações */}
+        <View style={styles.fieldGroup}>
+          <Text style={[styles.fieldLabel, { color: colors.text.primary }]}>
+            {t('reminder.notesLabel') || 'Observações (opcional)'}
+          </Text>
+          <View style={[styles.notesInput, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <TextInput
+              style={[styles.notesText, { color: colors.text.primary }]}
+              placeholder={t('reminder.notesPlaceholder') || 'Adicionar notas...'}
+              placeholderTextColor={colors.text.light}
+              value={notes}
+              onChangeText={setNotes}
+              multiline
+              numberOfLines={3}
+              textAlignVertical="top"
+            />
+          </View>
+        </View>
 
-				{/* Data */}
-				<DatePickerInput
-					label={t('reminder.dateLabel')}
-					value={date}
-					onChange={setDate}
-					placeholder={t('reminder.datePlaceholder')}
-				/>
+        {/* Repetir lembrete — toggle row */}
+        {!isEditing && (
+          <TouchableOpacity
+            style={[styles.repeatRow, { backgroundColor: colors.surface, borderColor: colors.border }]}
+            onPress={() => setRecurrence(recurrence === 'none' ? 'monthly' : 'none')}
+            activeOpacity={0.8}
+          >
+            <View style={styles.repeatLeft}>
+              <Ionicons name="repeat" size={18} color={Theme.primary} style={{ marginRight: 10 }} />
+              <Text style={[styles.repeatLabel, { color: colors.text.primary }]}>
+                {t('reminder.repeatLabel')}
+              </Text>
+            </View>
+            <View style={[
+              styles.toggleTrack,
+              { backgroundColor: recurrence !== 'none' ? Theme.primary : colors.border },
+            ]}>
+              <View style={[
+                styles.toggleThumb,
+                { transform: [{ translateX: recurrence !== 'none' ? 20 : 2 }] },
+              ]} />
+            </View>
+          </TouchableOpacity>
+        )}
 
+        {/* Info notificação */}
+        {!!date && Platform.OS !== 'web' && date > new Date() && (
+          <View style={[styles.infoBox, { backgroundColor: Theme.info + '15', borderColor: Theme.info + '40', marginTop: 20 }]}>
+            <Ionicons name="notifications-outline" size={16} color={Theme.info} />
+            <Text style={[styles.infoText, { color: Theme.info }]}>{t('reminder.infoNotification')}</Text>
+          </View>
+        )}
 
-				{/* Recorrência */}
-				{!isEditing && (
-					<>
-						<Text style={[styles.sectionLabel, { color: colors.text.primary }]}>{t('reminder.repeatLabel')}</Text>
-						<View style={styles.recurrenceRow}>
-							{([
-								{ value: 'none',      label: t('reminder.noRepeat'), icon: 'close-circle-outline' },
-								{ value: 'weekly',    label: t('reminder.recurrences.weekly'),     icon: 'repeat' },
-								{ value: 'monthly',   label: t('reminder.recurrences.monthly'),      icon: 'calendar-outline' },
-								{ value: 'quarterly', label: t('reminder.quarterly'),  icon: 'calendar-number-outline' },
-							]).map(opt => (
-								<TouchableOpacity
-									key={opt.value}
-									style={[
-										styles.recurrenceChip,
-										{ borderColor: colors.border, backgroundColor: colors.surface },
-										recurrence === opt.value && { borderColor: Theme.primary, backgroundColor: Theme.primary + '15' },
-									]}
-									onPress={() => setRecurrence(opt.value as any)}
-								>
-									<Ionicons name={opt.icon as any} size={13} color={recurrence === opt.value ? Theme.primary : colors.text.secondary} />
-									<Text style={[styles.recurrenceText, { color: colors.text.secondary }, recurrence === opt.value && { color: Theme.primary, fontWeight: '700' }]}>
-										{opt.label}
-									</Text>
-								</TouchableOpacity>
-							))}
-						</View>
-						{recurrence !== 'none' && (
-							<View style={[styles.infoBox, { backgroundColor: Theme.primary + '12', borderColor: Theme.primary + '40' }]}>
-								<Ionicons name="repeat" size={14} color={Theme.primary} />
-								<Text style={[styles.infoText, { color: Theme.primary }]}>
-									{recurrence === 'weekly' && t('reminder.infoWeekly')}
-									{recurrence === 'monthly' && t('reminder.infoMonthly')}
-									{recurrence === 'quarterly' && t('reminder.infoQuarterly')}
-								</Text>
-							</View>
-						)}
-					</>
-				)}
+        {/* Marcar como concluído — só ao editar */}
+        {isEditing && (
+          <TouchableOpacity
+            style={[styles.completeBtn, { borderColor: Theme.primary }]}
+            onPress={async () => {
+              try {
+                const json = await AsyncStorage.getItem('reminders');
+                let all: Reminder[] = json ? JSON.parse(json) : [];
+                all = all.map(r =>
+                  r.id === reminderId
+                    ? { ...r, completed: true, completedAt: new Date().toISOString() }
+                    : r
+                );
+                await syncReminders(all);
+                setShowSuccess(true);
+                setTimeout(() => { try { goBack(); } catch { /* ignore */ } }, 1800);
+              } catch {
+                Alert.alert(t('common.error'), t('reminder.saveError'));
+              }
+            }}
+          >
+            <Ionicons name="checkmark-circle-outline" size={20} color={Theme.primary} />
+            <Text style={[styles.completeBtnText, { color: Theme.primary }]}>Marcar como concluído</Text>
+          </TouchableOpacity>
+        )}
 
-				{/* Info notificação */}
-				{!!date && Platform.OS !== 'web' && date > new Date() && (
-					<View style={[styles.infoBox, { backgroundColor: Theme.info + '15', borderColor: Theme.info + '40' }]}>
-						<Ionicons name="notifications-outline" size={16} color={Theme.info} />
-						<Text style={[styles.infoText, { color: Theme.info }]}>
-							{t('reminder.infoNotification')}
-						</Text>
-					</View>
-				)}
+        {/* Botão salvar */}
+        <AnimatedButton style={styles.saveBtn} onPress={handleSave}>
+          <Text style={styles.saveBtnText}>
+            {isEditing ? t('reminder.updateBtn') : t('reminder.saveBtn')}
+          </Text>
+        </AnimatedButton>
 
-				{/* Botão salvar */}
-				<AnimatedButton style={styles.saveButton} onPress={handleSave}>
-					<Ionicons name="checkmark-circle" size={22} color="#fff" style={{ marginRight: 8 }} />
-					<Text style={styles.saveButtonText}>{isEditing ? t('reminder.updateBtn') : t('reminder.saveBtn')}</Text>
-				</AnimatedButton>
-			</ScrollView>
+      </ScrollView>
 
-			<SuccessAnimation visible={showSuccess} onAnimationEnd={() => setShowSuccess(false)} />
-		</SafeAreaView>
-	);
+      <SuccessAnimation visible={showSuccess} onAnimationEnd={() => setShowSuccess(false)} />
+    </SafeAreaView>
+  );
 }
 
 const styles = StyleSheet.create({
-	container: { flex: 1 },
-	header: {
-		flexDirection: 'row',
-		alignItems: 'center',
-		justifyContent: 'space-between',
-		paddingHorizontal: 16,
-		paddingVertical: 12,
-		borderBottomWidth: 1,
-	},
-	headerBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
-	headerTitle: { fontSize: 20, fontWeight: 'bold' },
-	scrollContent: { padding: 20, paddingBottom: 40 },
-	sectionLabel: { fontSize: 15, fontWeight: '600', marginBottom: 10 },
-	// Categoria
-	categoryGrid: {
-		flexDirection: 'row',
-		flexWrap: 'wrap',
-		marginHorizontal: -5,
-		marginBottom: 24,
-	},
-	categoryChip: {
-		width: '44%',
-		flexDirection: 'row',
-		alignItems: 'center',
-		paddingVertical: 10,
-		paddingHorizontal: 12,
-		borderRadius: 12,
-		borderWidth: 1.5,
-		margin: 5,
-		...Shadows.small,
-	},
-	categoryIconCircle: {
-		width: 32,
-		height: 32,
-		borderRadius: 16,
-		justifyContent: 'center',
-		alignItems: 'center',
-		marginRight: 8,
-	},
-	categoryLabel: { fontSize: 14 },
-	// Sugestões
-	suggestionsSection: { marginBottom: 20 },
-	suggestionsLabel: { fontSize: 12, fontWeight: '600', marginBottom: 8 },
-	suggestionsRow: { flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -4 },
-	suggestionChip: {
-		borderWidth: 1.5,
-		borderRadius: 20,
-		paddingHorizontal: 12,
-		paddingVertical: 6,
-		margin: 4,
-	},
-	suggestionText: { fontSize: 12 },
-	// Info box
-	infoBox: {
-		flexDirection: 'row',
-		alignItems: 'flex-start',
-		borderWidth: 1,
-		borderRadius: 10,
-		padding: 12,
-		marginBottom: 20,
-	},
-	infoText: { flex: 1, fontSize: 13, marginLeft: 8, lineHeight: 18 },
-	// Botão
-	saveButton: {
-		backgroundColor: Theme.primary,
-		padding: 16,
-		borderRadius: 12,
-		flexDirection: 'row',
-		alignItems: 'center',
-		justifyContent: 'center',
-		marginTop: 8,
-		...Shadows.primary,
-	},
-	saveButtonText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
-	// Templates
-	templatesSection: { marginBottom: 24 },
-	templatesScroll: { marginHorizontal: -20 },
-	templatesContent: { paddingHorizontal: 20, gap: 10 },
-	templateCard: {
-		width: 90,
-		borderRadius: 14,
-		borderWidth: 1.5,
-		padding: 10,
-		alignItems: 'center',
-		gap: 4,
-	},
-	templateEmoji: { fontSize: 22 },
-	templateLabel: { fontSize: 11, fontWeight: '600', textAlign: 'center' },
-	templateRecurrenceBadge: { borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2, marginTop: 2 },
-	templateRecurrenceText: { fontSize: 9, fontWeight: '700' },
-	// Recorrência
-	recurrenceRow: { flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -4, marginBottom: 12 },
-	recurrenceChip: {
-		borderWidth: 1.5,
-		borderRadius: 20,
-		paddingHorizontal: 14,
-		paddingVertical: 7,
-		margin: 4,
-		flexDirection: 'row',
-		alignItems: 'center',
-		gap: 5,
-	},
-	recurrenceText: { fontSize: 13 },
+  container: { flex: 1 },
+
+  // Header
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+  },
+  headerBtn:   { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
+  headerTitle: { fontSize: 22, fontWeight: '700' },
+
+  // Scroll
+  scrollContent: { paddingHorizontal: 20, paddingBottom: 40 },
+
+  // Field group
+  fieldGroup: { marginBottom: 20 },
+  fieldLabel:  { fontSize: 13, fontWeight: '600', marginBottom: 8 },
+  errorText:   { fontSize: 12, marginTop: 4, marginLeft: 2 },
+
+  // Pet selector — chips em linha
+  petRow:  { flexDirection: 'row', gap: 10 },
+  petChip: {
+    flex: 1,
+    height: 56,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+  },
+  petEmoji: { fontSize: 18 },
+  petName:  { fontSize: 11, fontWeight: '600', textAlign: 'center' },
+
+  // Tipo de lembrete — 4 colunas, ícone + label vertical, height 72
+  typeGrid: { flexDirection: 'row', gap: 10 },
+  typeChip: {
+    flex: 1,
+    height: 72,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  typeLabel: { fontSize: 11, fontWeight: '600', textAlign: 'center' },
+
+  // Input
+  inputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: 48,
+    borderRadius: 12,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+  },
+  inputIcon: { marginRight: 10 },
+  inputText: { flex: 1, fontSize: 14, padding: 0 },
+
+  // Sugestões
+  suggestionsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 },
+  suggestionChip: {
+    borderWidth: 1,
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  suggestionText: { fontSize: 12 },
+
+  // Notas
+  notesInput: {
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 14,
+    minHeight: 80,
+  },
+  notesText: { fontSize: 14, padding: 0 },
+
+  // Repetir toggle row
+  repeatRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 14,
+    marginBottom: 20,
+  },
+  repeatLeft:  { flexDirection: 'row', alignItems: 'center' },
+  repeatLabel: { fontSize: 14, fontWeight: '500' },
+  toggleTrack: {
+    width: 44,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: 'center',
+  },
+  toggleThumb: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#FFFFFF',
+  },
+
+  // Info box
+  infoBox: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    borderWidth: 1,
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 20,
+  },
+  infoText: { flex: 1, fontSize: 13, marginLeft: 8, lineHeight: 18 },
+
+  // Botão salvar
+  saveBtn: {
+    height: 52,
+    backgroundColor: Theme.primary,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 8,
+  },
+  saveBtnText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
+  completeBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 8, borderWidth: 1.5, borderRadius: 14,
+    paddingVertical: 14, marginTop: 12,
+  },
+  completeBtnText: { fontSize: 16, fontWeight: '600' },
 });

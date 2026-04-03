@@ -6,6 +6,10 @@ export type Pet = {
   species: string
   breed: string
   dob: string
+  gender?: string
+  weight?: number
+  castrated?: boolean
+  microchip?: string
   photoUri?: string // URI da foto do pet
   foodAllergies?: string[]   // Alergias alimentares
   medAllergies?: string[]    // Alergias a medicamentos

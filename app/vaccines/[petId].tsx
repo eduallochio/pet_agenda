@@ -89,31 +89,71 @@ export default function VaccinationCardScreen() {
 		return days !== null && days >= 0 && days <= 30;
 	}).length;
 
+	const clearNextDue = async (vaccineId: string) => {
+		const json = await AsyncStorage.getItem('vaccinations');
+		const all: VaccineRecord[] = json ? JSON.parse(json) : [];
+		const updated = all.map(v =>
+			v.id === vaccineId ? { ...v, nextDueDate: undefined } : v
+		);
+		await AsyncStorage.setItem('vaccinations', JSON.stringify(updated));
+		setVaccinations(updated.filter(v => v.petId === petId));
+	};
+
 	const VaccineItem = ({ item }: { item: VaccineRecord }) => {
 		const status = getStatusInfo(item.nextDueDate, t);
+		const days = getDaysUntil(item.nextDueDate);
+		const isOverdue = days !== null && days < 0;
+		const isDueSoon = days !== null && days >= 0 && days <= 30;
+		const needsAction = isOverdue || isDueSoon;
+
 		return (
-			<TouchableOpacity
-				style={[styles.vaccineItem, { backgroundColor: colors.surface }]}
-				onPress={() => router.push({ pathname: '/vaccines/new', params: { petId: petId as string, vaccineId: item.id } })}
-				activeOpacity={0.7}
-			>
-				<View style={[styles.vaccineIcon, { backgroundColor: Theme.primary + '20' }]}>
-					<MaterialCommunityIcons name="needle" size={24} color={Theme.primary} />
-				</View>
-				<View style={styles.vaccineInfo}>
-					<Text style={[styles.vaccineName, { color: colors.text.primary }]}>{item.vaccineName}</Text>
-					<Text style={[styles.vaccineDate, { color: colors.text.secondary }]}>
-						{t('vaccinationCard.appliedOn', { date: item.dateAdministered })}
-					</Text>
-					{!!item.nextDueDate && (
-						<View style={styles.statusRow}>
-							<MaterialCommunityIcons name={status.icon} size={14} color={status.color} />
-							<Text style={[styles.statusText, { color: status.color }]}>{status.label}</Text>
-						</View>
-					)}
-				</View>
-				<Ionicons name="chevron-forward" size={20} color={colors.text.light} />
-			</TouchableOpacity>
+			<View style={[styles.vaccineItem, { backgroundColor: colors.surface }]}>
+				<TouchableOpacity
+					style={styles.vaccineItemMain}
+					onPress={() => router.push({ pathname: '/vaccines/new', params: { petId: petId as string, vaccineId: item.id } })}
+					activeOpacity={0.7}
+				>
+					<View style={[styles.vaccineIcon, { backgroundColor: Theme.primary + '20' }]}>
+						<MaterialCommunityIcons name="needle" size={24} color={Theme.primary} />
+					</View>
+					<View style={styles.vaccineInfo}>
+						<Text style={[styles.vaccineName, { color: colors.text.primary }]}>{item.vaccineName}</Text>
+						<Text style={[styles.vaccineDate, { color: colors.text.secondary }]}>
+							{t('vaccinationCard.appliedOn', { date: item.dateAdministered })}
+						</Text>
+						{!!item.nextDueDate && (
+							<View style={styles.statusRow}>
+								<MaterialCommunityIcons name={status.icon} size={14} color={status.color} />
+								<Text style={[styles.statusText, { color: status.color }]}>{status.label}</Text>
+							</View>
+						)}
+					</View>
+					<Ionicons name="chevron-forward" size={20} color={colors.text.light} />
+				</TouchableOpacity>
+
+				{needsAction && (
+					<View style={[styles.actionRow, { borderTopColor: colors.border }]}>
+						{/* Confirmar reforço: edita a vacina original com nova data */}
+						<TouchableOpacity
+							style={[styles.actionBtn, { backgroundColor: isOverdue ? Theme.danger + '12' : Theme.warning + '12' }]}
+							onPress={() => router.push({ pathname: '/vaccines/new', params: { petId: petId as string, vaccineId: item.id } })}
+						>
+							<MaterialCommunityIcons name="needle" size={14} color={isOverdue ? Theme.danger : Theme.warning} />
+							<Text style={[styles.actionBtnText, { color: isOverdue ? Theme.danger : Theme.warning }]}>
+								{isOverdue ? 'Confirmar reforço' : 'Registrar reforço'}
+							</Text>
+						</TouchableOpacity>
+						{/* Sem próxima dose: limpa o nextDueDate */}
+						<TouchableOpacity
+							style={[styles.actionBtn, { backgroundColor: colors.border + '60' }]}
+							onPress={() => clearNextDue(item.id)}
+						>
+							<Ionicons name="close-circle-outline" size={14} color={colors.text.secondary} />
+							<Text style={[styles.actionBtnText, { color: colors.text.secondary }]}>Sem próxima dose</Text>
+						</TouchableOpacity>
+					</View>
+				)}
+			</View>
 		);
 	};
 
@@ -122,36 +162,32 @@ export default function VaccinationCardScreen() {
 			<Stack.Screen options={{ headerShown: false }} />
 
 			{/* Header */}
-			<View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+			<View style={[styles.header, { backgroundColor: colors.background }]}>
 				<TouchableOpacity style={styles.headerBtn} onPress={goBack}>
 					<Ionicons name="arrow-back" size={24} color={colors.text.primary} />
 				</TouchableOpacity>
 				<Text style={[styles.headerTitle, { color: colors.text.primary }]}>{t('vaccinationCard.title')}</Text>
 				<TouchableOpacity
-					style={[styles.addBtn, { backgroundColor: Theme.primary }]}
+					style={styles.headerBtn}
 					onPress={() => router.push({ pathname: '/vaccines/new', params: { petId: petId as string } })}
 				>
-					<Ionicons name="add" size={22} color="#fff" />
+					<Ionicons name="add" size={26} color={Theme.primary} />
 				</TouchableOpacity>
 			</View>
 
-			{/* Cards de estatísticas */}
+			{/* Stats */}
 			{!loading && total > 0 && (
-				<View style={[styles.statsRow, { borderBottomColor: colors.border }]}>
-					<View style={styles.statItem}>
-						<Text style={[styles.statValue, { color: colors.text.primary }]}>{total}</Text>
-						<Text style={[styles.statLabel, { color: colors.text.secondary }]}>{t('vaccinationCard.statTotal')}</Text>
-					</View>
-					<View style={[styles.statDivider, { backgroundColor: colors.border }]} />
-					<View style={styles.statItem}>
-						<Text style={[styles.statValue, { color: overdue > 0 ? Theme.danger : Theme.success }]}>{overdue}</Text>
-						<Text style={[styles.statLabel, { color: colors.text.secondary }]}>{t('vaccinationCard.statOverdue')}</Text>
-					</View>
-					<View style={[styles.statDivider, { backgroundColor: colors.border }]} />
-					<View style={styles.statItem}>
-						<Text style={[styles.statValue, { color: upcoming > 0 ? Theme.warning : colors.text.primary }]}>{upcoming}</Text>
-						<Text style={[styles.statLabel, { color: colors.text.secondary }]}>{t('vaccinationCard.statUpcoming')}</Text>
-					</View>
+				<View style={styles.statsRow}>
+					{[
+						{ value: total, label: t('vaccinationCard.statTotal'), color: colors.text.primary },
+						{ value: overdue, label: t('vaccinationCard.statOverdue'), color: overdue > 0 ? Theme.danger : Theme.success },
+						{ value: upcoming, label: t('vaccinationCard.statUpcoming'), color: upcoming > 0 ? Theme.warning : colors.text.primary },
+					].map((s, i) => (
+						<View key={i} style={[styles.statCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+							<Text style={[styles.statValue, { color: s.color }]}>{s.value}</Text>
+							<Text style={[styles.statLabel, { color: colors.text.secondary }]}>{s.label}</Text>
+						</View>
+					))}
 				</View>
 			)}
 
@@ -191,33 +227,25 @@ const styles = StyleSheet.create({
 	header: {
 		flexDirection: 'row',
 		alignItems: 'center',
-		justifyContent: 'space-between',
-		paddingHorizontal: 16,
+		paddingHorizontal: 8,
 		paddingVertical: 12,
-		borderBottomWidth: 1,
 	},
 	headerBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
-	headerTitle: { fontSize: 20, fontWeight: 'bold' },
-	addBtn: { width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center' },
+	headerTitle: { flex: 1, fontSize: 20, fontWeight: '700', marginLeft: 4 },
 	// Stats
-	statsRow: {
-		flexDirection: 'row',
-		paddingVertical: 14,
-		paddingHorizontal: 20,
-		borderBottomWidth: 1,
+	statsRow: { flexDirection: 'row', gap: 10, paddingHorizontal: 16, paddingBottom: 12 },
+	statCard: {
+		flex: 1, borderRadius: 12, borderWidth: 1,
+		alignItems: 'center', paddingVertical: 12, gap: 2,
 	},
-	statItem: { flex: 1, alignItems: 'center' },
-	statValue: { fontSize: 22, fontWeight: 'bold' },
-	statLabel: { fontSize: 12, marginTop: 2 },
-	statDivider: { width: 1, marginHorizontal: 8 },
+	statValue: { fontSize: 20, fontWeight: '700' },
+	statLabel: { fontSize: 11, textAlign: 'center' },
 	// Lista
-	content: { flex: 1, padding: 16 },
+	content: { flex: 1, paddingHorizontal: 16, paddingTop: 4 },
 	vaccineItem: {
-		flexDirection: 'row',
-		alignItems: 'center',
-		padding: 14,
 		borderRadius: 14,
 		marginBottom: 10,
+		overflow: 'hidden',
 		...Shadows.small,
 	},
 	vaccineIcon: {
@@ -228,9 +256,18 @@ const styles = StyleSheet.create({
 		alignItems: 'center',
 		marginRight: 12,
 	},
+	vaccineItemMain: { flexDirection: 'row', alignItems: 'center', padding: 14 },
 	vaccineInfo: { flex: 1 },
 	vaccineName: { fontSize: 16, fontWeight: '700', marginBottom: 3 },
 	vaccineDate: { fontSize: 13, marginBottom: 3 },
 	statusRow: { flexDirection: 'row', alignItems: 'center', marginTop: 2 },
 	statusText: { fontSize: 12, fontWeight: '600', marginLeft: 4 },
+	actionRow: {
+		flexDirection: 'row', borderTopWidth: 1,
+	},
+	actionBtn: {
+		flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+		gap: 6, paddingVertical: 10, paddingHorizontal: 8,
+	},
+	actionBtnText: { fontSize: 12, fontWeight: '600' },
 });
