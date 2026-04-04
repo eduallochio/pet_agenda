@@ -86,30 +86,6 @@ export default function RootLayout() {
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
   const [i18nInstance, setI18nInstance] = useState<any>(null);
-  const [fatalError, setFatalError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const handler = (error: ErrorEvent) => {
-      setFatalError(`${error.message}\n${error.error?.stack ?? ''}`);
-    };
-    if (typeof globalThis !== 'undefined') {
-      (globalThis as any).ErrorUtils?.setGlobalHandler((error: Error, isFatal: boolean) => {
-        if (isFatal) setFatalError(`FATAL: ${error.message}\n${error.stack ?? ''}`);
-      });
-    }
-    return () => {};
-  }, []);
-
-  if (fatalError) {
-    return (
-      <View style={{ flex: 1, padding: 24, paddingTop: 60, backgroundColor: '#fff' }}>
-        <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#c00', marginBottom: 8 }}>Erro Fatal</Text>
-        <ScrollView>
-          <Text style={{ fontSize: 12, color: '#333', fontFamily: 'monospace' }}>{fatalError}</Text>
-        </ScrollView>
-      </View>
-    );
-  }
 
   useEffect(() => {
     initI18n().then(setI18nInstance);

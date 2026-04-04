@@ -1,11 +1,8 @@
 import React, { useState, useRef, useCallback } from 'react';
 import {
-  View, Text, TouchableOpacity, StyleSheet, Platform, LayoutAnimation, UIManager,
+  Animated, View, Text, TouchableOpacity, StyleSheet, Platform, LayoutAnimation, UIManager,
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import Animated, {
-  useSharedValue, useAnimatedStyle, withTiming, Easing,
-} from 'react-native-reanimated';
 import { useTheme } from '../hooks/useTheme';
 import { AchievementDef, AchievementGroupDef, AchievementProgress } from '../hooks/useAchievements';
 import { Achievement } from '../types/pet';
@@ -42,27 +39,25 @@ export default function AchievementGroupSection({
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
 
   // Rotação do chevron
-  const rotation = useSharedValue(defaultCollapsed ? 0 : 1);
+  const rotation = useRef(new Animated.Value(defaultCollapsed ? 0 : 1)).current;
 
-  const chevronStyle = useAnimatedStyle(() => ({
-    transform: [
-      {
-        rotate: withTiming(
-          `${rotation.value * 180}deg`,
-          { duration: 260, easing: Easing.out(Easing.cubic) }
-        ),
-      },
-    ],
-  }));
+  const chevronStyle = {
+    transform: [{
+      rotate: rotation.interpolate({
+        inputRange: [0, 1],
+        outputRange: ['0deg', '180deg'],
+      }),
+    }],
+  };
 
   const toggle = useCallback(() => {
-    // Anima o layout (height) no Android/iOS
     LayoutAnimation.configureNext(
       LayoutAnimation.create(260, LayoutAnimation.Types.easeInEaseOut, LayoutAnimation.Properties.opacity)
     );
-    rotation.value = collapsed ? 1 : 0;
+    const toValue = collapsed ? 1 : 0;
+    Animated.timing(rotation, { toValue, duration: 260, useNativeDriver: true }).start();
     setCollapsed(prev => !prev);
-  }, [collapsed]);
+  }, [collapsed, rotation]);
 
   const isComplete = unlockedCount === achievements.length;
 

@@ -1,7 +1,6 @@
-import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, ViewStyle } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { Animated, View, Text, StyleSheet, ViewStyle } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import Animated, { useSharedValue, useAnimatedStyle, withTiming, withSpring } from 'react-native-reanimated';
 import { Theme } from '../constants/Colors';
 import AnimatedButton from './animations/AnimatedButton';
 
@@ -18,21 +17,18 @@ type EmptyStateProps = {
 );
 
 const EmptyState = ({ icon, iconLib = 'ionicons', title, message, hint, actionLabel, onAction, style }: EmptyStateProps) => {
-  const opacity = useSharedValue(0);
-  const scale = useSharedValue(0.85);
+  const opacity = useRef(new Animated.Value(0)).current;
+  const scale = useRef(new Animated.Value(0.85)).current;
 
   useEffect(() => {
-    opacity.value = withTiming(1, { duration: 400 });
-    scale.value = withSpring(1, { damping: 14, stiffness: 120 });
+    Animated.parallel([
+      Animated.timing(opacity, { toValue: 1, duration: 400, useNativeDriver: true }),
+      Animated.spring(scale, { toValue: 1, damping: 14, stiffness: 120, useNativeDriver: true }),
+    ]).start();
   }, []);
 
-  const animStyle = useAnimatedStyle(() => ({
-    opacity: opacity.value,
-    transform: [{ scale: scale.value }],
-  }));
-
   return (
-    <Animated.View style={[styles.container, style, animStyle]}>
+    <Animated.View style={[styles.container, style, { opacity, transform: [{ scale }] }]}>
       <View style={styles.iconCircle}>
         {iconLib === 'mci'
           ? <MaterialCommunityIcons name={icon as keyof typeof MaterialCommunityIcons.glyphMap} size={60} color={Theme.primary} />
