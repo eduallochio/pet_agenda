@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { ActivityIndicator, View, Platform } from 'react-native';
+import { ActivityIndicator, View, Platform, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -8,6 +8,7 @@ export default function EntryPoint() {
 
 	useEffect(() => {
 		const checkUserStatus = async () => {
+			Alert.alert('DEBUG', 'JS iniciou - checkUserStatus');
 			try {
 				// Solicitar permissões e agendar reengajamento (apenas mobile)
 				if (Platform.OS !== 'web') {
