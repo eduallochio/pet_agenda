@@ -1246,7 +1246,7 @@ const styles = StyleSheet.create({
     padding: 20, borderBottomWidth: 1,
   },
   modalTitle: { fontSize: 20, fontWeight: 'bold' },
-  modalBody: { padding: 20 },
+  modalBody: { padding: 20, flex: 1 },
   modalSectionLabel: { fontSize: 11, fontWeight: '700', letterSpacing: 1, marginBottom: 12 },
   modalItem: { flexDirection: 'row', alignItems: 'center', padding: 14, borderRadius: 12 },
   modalItemText: { flex: 1, fontSize: 15, fontWeight: '500', marginLeft: 12 },
