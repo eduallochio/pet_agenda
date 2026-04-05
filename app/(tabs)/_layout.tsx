@@ -45,7 +45,7 @@ function CustomTabBar({ state, navigation }: BottomTabBarProps) {
   const inactiveColor = isDarkMode ? '#666666' : '#999999';
 
   return (
-    <View style={[styles.tabBarOuter, { paddingBottom: insets.bottom, height: 82 + insets.bottom, backgroundColor: bgColor, borderTopColor: borderColor }]}>
+    <View style={[styles.tabBarOuter, { paddingBottom: insets.bottom || 8, backgroundColor: bgColor, borderTopColor: borderColor }]}>
       <View style={[styles.pill, { backgroundColor: bgColor, borderColor }]}>
         {TABS.map((tab) => {
           const route = state.routes.find(r => r.name === tab.name);
