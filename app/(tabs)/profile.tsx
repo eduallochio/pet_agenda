@@ -28,6 +28,7 @@ import { Share } from 'react-native';
 import { requestBiometricAuth } from '../../services/biometricAuth';
 import { supabase } from '../../services/supabase';
 import { uploadToSupabase, downloadFromSupabase } from '../../services/syncService';
+import Constants from 'expo-constants';
 
 type MCIName = keyof typeof MaterialCommunityIcons.glyphMap;
 
@@ -1037,7 +1038,7 @@ ${petsSection || '<p>Nenhum pet cadastrado.</p>'}
                   <MaterialCommunityIcons name="paw" size={18} color={Theme.primary} />
                 </View>
                 <Text style={[styles.aboutAppName, { color: colors.text.primary }]}>Pet Agenda</Text>
-                <Text style={[styles.aboutVersion, { color: colors.text.secondary }]}>v1.0.5</Text>
+                <Text style={[styles.aboutVersion, { color: colors.text.secondary }]}>v{Constants.expoConfig?.version ?? '1.1.0'}</Text>
               </View>
 
               <View style={{ height: 20 }} />
