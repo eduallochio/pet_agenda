@@ -170,7 +170,7 @@ export default function AgendaScreen() {
     : [...monthEvents].sort((a, b) => a.day - b.day);
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView edges={["top"]} style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Header */}
       <View style={styles.header}>
         <Text style={[styles.headerTitle, { color: colors.text.primary }]}>

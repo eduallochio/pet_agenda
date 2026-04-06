@@ -142,7 +142,7 @@ export default function NotificationsScreen() {
   ]);
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView edges={["top"]} style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Notificações</Text>

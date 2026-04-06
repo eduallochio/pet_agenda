@@ -109,7 +109,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#E8E8E8',
     paddingHorizontal: 16,
-    paddingTop: 8,
+    paddingTop: 0,
     ...(Platform.OS === 'android' ? { elevation: 8 } : {
       shadowColor: '#000',
       shadowOffset: { width: 0, height: -2 },

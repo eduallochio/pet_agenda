@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  FlatList, Modal, Image, Platform, Alert,
+  FlatList, Modal, Image, Platform, Alert, useWindowDimensions,
 } from 'react-native';
 import { Shadows } from '../../constants/Shadows';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -61,6 +61,7 @@ export default function ProfileScreen() {
   const [weightRecords, setWeightRecords] = useState<WeightRecord[]>([]);
   const [streak, setStreak] = useState<StreakData>({ currentStreak: 0, bestStreak: 0, lastOpenedDate: '', totalDays: 0 });
   const [unlockedAchievementId, setUnlockedAchievementId] = useState<string | null>(null);
+  const { height: screenHeight } = useWindowDimensions();
   const [settingsVisible, setSettingsVisible] = useState(false);
   const [currentLang, setCurrentLang] = useState<SupportedLanguage>('pt-BR');
   const [authUser, setAuthUser] = useState<{ email: string } | null>(null);
@@ -469,7 +470,7 @@ ${petsSection || '<p>Nenhum pet cadastrado.</p>'}
 
   return (
     <View style={[styles.rootWrap, { backgroundColor: colors.background }]}>
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView edges={["top"]} style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Header */}
       <View style={styles.header}>
         <Text style={[styles.headerTitle, { color: colors.text.primary }]}>{t('profile.title')}</Text>
@@ -490,6 +491,31 @@ ${petsSection || '<p>Nenhum pet cadastrado.</p>'}
             )}
           </View>
           <Text style={[styles.userName, { color: colors.text.primary }]}>{displayName}</Text>
+          {!!profile?.experience && (
+            <View style={[styles.expBadge, { backgroundColor: Theme.primary + '18' }]}>
+              <MaterialCommunityIcons
+                name={profile.experience === 'beginner' ? 'sprout' : profile.experience === 'intermediate' ? 'paw' : 'trophy-outline'}
+                size={13}
+                color={Theme.primary}
+              />
+              <Text style={[styles.expBadgeText, { color: Theme.primary }]}>
+                {t(`editProfile.exp.${profile.experience}`)}
+              </Text>
+            </View>
+          )}
+          {(!!profile?.city || !!profile?.state) && (
+            <View style={styles.profileMetaRow}>
+              <Ionicons name="location-outline" size={12} color={colors.text.light} />
+              <Text style={[styles.profileMetaText, { color: colors.text.secondary }]}>
+                {' '}{[profile?.city, profile?.state].filter(Boolean).join(', ')}
+              </Text>
+            </View>
+          )}
+          {!!profile?.bio && (
+            <Text style={[styles.userBio, { color: colors.text.secondary }]} numberOfLines={2}>
+              {profile.bio}
+            </Text>
+          )}
           <TouchableOpacity
             style={styles.editBtn}
             onPress={() => router.push('/profile/edit')}
@@ -835,7 +861,7 @@ ${petsSection || '<p>Nenhum pet cadastrado.</p>'}
         onRequestClose={() => setSettingsVisible(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
+          <View style={[styles.modalContent, { backgroundColor: colors.surface, maxHeight: screenHeight * 0.8 }]}>
             <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
               <Text style={[styles.modalTitle, { color: colors.text.primary }]}>{t('profile.settings.title')}</Text>
               <TouchableOpacity onPress={() => setSettingsVisible(false)}>
@@ -1238,7 +1264,7 @@ const styles = StyleSheet.create({
   // Modal
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   modalContent: {
-    borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: '80%',
+    borderTopLeftRadius: 20, borderTopRightRadius: 20,
     ...Shadows.medium,
   },
   modalHeader: {
@@ -1246,7 +1272,7 @@ const styles = StyleSheet.create({
     padding: 20, borderBottomWidth: 1,
   },
   modalTitle: { fontSize: 20, fontWeight: 'bold' },
-  modalBody: { padding: 20, flex: 1 },
+  modalBody: { padding: 20 },
   modalSectionLabel: { fontSize: 11, fontWeight: '700', letterSpacing: 1, marginBottom: 12 },
   modalItem: { flexDirection: 'row', alignItems: 'center', padding: 14, borderRadius: 12 },
   modalItemText: { flex: 1, fontSize: 15, fontWeight: '500', marginLeft: 12 },

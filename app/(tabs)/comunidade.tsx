@@ -286,7 +286,7 @@ export default function CommunityScreen() {
   const authorName = profile?.name || 'Tutor Anônimo';
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView edges={["top"]} style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Header */}
       <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         <Text style={[styles.headerTitle, { color: colors.text.primary }]}>{t('community.title')}</Text>

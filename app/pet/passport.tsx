@@ -11,7 +11,7 @@ import {
   Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useLocalSearchParams, Stack } from 'expo-router';
+import { useLocalSearchParams, Stack, useRouter } from 'expo-router';
 import { useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Print from 'expo-print';
@@ -360,6 +360,7 @@ function buildPassportHtml(data: PassportData): string {
 export default function PetPassportScreen() {
   const { petId } = useLocalSearchParams<{ petId: string }>();
   const goBack = useGoBack('/');
+  const router = useRouter();
   const { colors } = useTheme();
   const { t } = useTranslation();
 
@@ -556,7 +557,7 @@ export default function PetPassportScreen() {
             <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>Vacinas</Text>
             <TouchableOpacity
               style={[styles.addBtn, { backgroundColor: Theme.primary + '18', borderColor: Theme.primary + '40' }]}
-              onPress={() => {/* navegar para nova vacina */}}
+              onPress={() => router.push({ pathname: '/vaccines/new', params: { petId } })}
               activeOpacity={0.7}
             >
               <Ionicons name="add" size={16} color={Theme.primary} />

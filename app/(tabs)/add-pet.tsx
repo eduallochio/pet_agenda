@@ -190,7 +190,7 @@ export default function AddPetScreen() {
   const selectedSpeciesData = SPECIES_OPTIONS.find(s => s.value === species);
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView edges={["top"]} style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity

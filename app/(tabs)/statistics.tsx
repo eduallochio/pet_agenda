@@ -133,7 +133,7 @@ export default function StatisticsScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <SafeAreaView edges={["top"]} style={[styles.container, { backgroundColor: colors.background }]}>
         <View style={styles.loadingWrap}>
           <MaterialCommunityIcons name="chart-bar" size={40} color={colors.text.light} />
           <Text style={[styles.loadingText, { color: colors.text.secondary }]}>
@@ -145,7 +145,7 @@ export default function StatisticsScreen() {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView edges={["top"]} style={[styles.container, { backgroundColor: colors.background }]}>
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
 
         {/* ── Header ── */}

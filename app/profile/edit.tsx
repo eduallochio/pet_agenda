@@ -197,7 +197,7 @@ export default function EditProfileScreen() {
         <SectionLabel label={t('editProfile.sectionBasic')} colors={colors} />
 
         {/* Nome */}
-        <FieldGroup label={t('editProfile.nameLabel')} required error={nameError} charCount={`${name.length}/50`}>
+        <FieldGroup colors={colors} label={t('editProfile.nameLabel')} required error={nameError} charCount={`${name.length}/50`}>
           <InputRow icon="person-outline" colors={colors} error={!!nameError}>
             <RNTextInput
               value={name}
@@ -212,7 +212,7 @@ export default function EditProfileScreen() {
         </FieldGroup>
 
         {/* Bio */}
-        <FieldGroup label={t('editProfile.bioLabel')} charCount={`${bio.length}/150`}>
+        <FieldGroup colors={colors} label={t('editProfile.bioLabel')} charCount={`${bio.length}/150`}>
           <InputRow icon="chatbubble-outline" colors={colors} multiline>
             <RNTextInput
               value={bio}
@@ -232,7 +232,7 @@ export default function EditProfileScreen() {
         <SectionLabel label={t('editProfile.sectionContact')} colors={colors} />
 
         {/* Telefone */}
-        <FieldGroup label={t('editProfile.phoneLabel')} error={phoneError}>
+        <FieldGroup colors={colors} label={t('editProfile.phoneLabel')} error={phoneError}>
           <InputRow icon="call-outline" colors={colors} error={!!phoneError}>
             <RNTextInput
               value={phone}
@@ -249,7 +249,7 @@ export default function EditProfileScreen() {
         {/* Cidade + Estado na mesma linha */}
         <View style={{ flexDirection: 'row', gap: 10 }}>
           <View style={{ flex: 1 }}>
-            <FieldGroup label={t('editProfile.cityLabel')}>
+            <FieldGroup colors={colors} label={t('editProfile.cityLabel')}>
               <InputRow icon="location-outline" colors={colors}>
                 <RNTextInput
                   value={city}
@@ -264,7 +264,7 @@ export default function EditProfileScreen() {
             </FieldGroup>
           </View>
           <View style={{ width: 80 }}>
-            <FieldGroup label={t('editProfile.stateLabel')}>
+            <FieldGroup colors={colors} label={t('editProfile.stateLabel')}>
               <InputRow icon="flag-outline" colors={colors}>
                 <RNTextInput
                   value={state}
@@ -281,7 +281,7 @@ export default function EditProfileScreen() {
         </View>
 
         {/* CEP */}
-        <FieldGroup label={t('editProfile.cepLabel')}>
+        <FieldGroup colors={colors} label={t('editProfile.cepLabel')}>
           <InputRow icon="mail-outline" colors={colors}>
             <RNTextInput
               value={cep}
@@ -299,7 +299,7 @@ export default function EditProfileScreen() {
         <SectionLabel label={t('editProfile.sectionAbout')} colors={colors} />
 
         {/* Data de nascimento */}
-        <FieldGroup label={t('editProfile.birthDateLabel')}>
+        <FieldGroup colors={colors} label={t('editProfile.birthDateLabel')}>
           <InputRow icon="calendar-outline" colors={colors}>
             <RNTextInput
               value={birthDate}
@@ -405,13 +405,13 @@ const sectionLabelStyles = StyleSheet.create({
   text: { fontSize: 11, fontWeight: '700', letterSpacing: 1 },
 });
 
-function FieldGroup({ label, required, error, charCount, children }: {
-  label: string; required?: boolean; error?: string; charCount?: string; children: React.ReactNode;
+function FieldGroup({ label, required, error, charCount, children, colors }: {
+  label: string; required?: boolean; error?: string; charCount?: string; children: React.ReactNode; colors?: any;
 }) {
   return (
     <View style={styles.fieldGroup}>
       <View style={{ flexDirection: 'row', marginBottom: 8 }}>
-        <Text style={[styles.label, { color: '#000' }]}>{label} </Text>
+        <Text style={[styles.label, { color: colors?.text?.primary ?? '#000' }]}>{label} </Text>
         {required && <Text style={[styles.label, { color: Theme.danger }]}>*</Text>}
       </View>
       {children}

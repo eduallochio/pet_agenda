@@ -72,6 +72,7 @@ export default function ReminderFormScreen() {
   const [description, setDescription] = useState('');
   const [notes, setNotes]             = useState('');
   const [date, setDate]               = useState<Date | null>(null);
+  const [time, setTime]               = useState('');
   const [recurrence, setRecurrence]   = useState<RecurrenceType>('none');
   const [showSuccess, setShowSuccess] = useState(false);
 
@@ -419,6 +420,24 @@ export default function ReminderFormScreen() {
             onChange={setDate}
             placeholder={t('reminder.datePlaceholder')}
           />
+        </View>
+
+        {/* Hora (opcional) */}
+        <View style={styles.fieldGroup}>
+          <Text style={[styles.fieldLabel, { color: colors.text.primary }]}>
+            {t('reminder.timeLabel') || 'Hora (opcional)'}
+          </Text>
+          <View style={[styles.notesInput, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <TextInput
+              style={[styles.notesText, { color: colors.text.primary }]}
+              placeholder={t('reminder.timePlaceholder') || 'Ex: 14:30'}
+              placeholderTextColor={colors.text.light}
+              value={time}
+              onChangeText={setTime}
+              keyboardType="numeric"
+              maxLength={5}
+            />
+          </View>
         </View>
 
         {/* Observações */}

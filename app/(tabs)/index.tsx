@@ -485,7 +485,7 @@ export default function PetDashboard() {
 
   if (loading) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <SafeAreaView edges={["top"]} style={[styles.container, { backgroundColor: colors.background }]}>
         <View style={styles.header}>
           <View style={styles.headerLeft}>
             <Text style={[styles.greetingText, { color: colors.text.primary }]}>
@@ -502,7 +502,7 @@ export default function PetDashboard() {
 
   if (pets.length === 0) {
     return (
-      <SafeAreaView style={[styles.containerEmpty, { backgroundColor: colors.background }]}>
+      <SafeAreaView edges={["top"]} style={[styles.containerEmpty, { backgroundColor: colors.background }]}>
         <EmptyState
           icon="paw"
           iconLib="mci"
@@ -662,7 +662,7 @@ export default function PetDashboard() {
   );
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView edges={["top"]} style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Header com saudação */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
@@ -680,9 +680,6 @@ export default function PetDashboard() {
           >
             <Ionicons name="notifications-outline" size={24} color={colors.text.primary} />
           </TouchableOpacity>
-          <View style={[styles.avatarCircle, { backgroundColor: '#E0E0E0' }]}>
-            <Ionicons name="person" size={20} color="#999999" />
-          </View>
         </View>
       </View>
 
