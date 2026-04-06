@@ -377,7 +377,7 @@ export default function CommunityScreen() {
               : [...completedChallengeIds, currentChallenge.id];
             setCompletedChallengeIds(newHistory);
             await AsyncStorage.setItem('challengeHistory', JSON.stringify(newHistory));
-            Alert.alert('🎉 Desafio concluído!', 'Parabéns! Você completou o desafio desta semana.');
+            Alert.alert(t('community.challengeDoneTitle'), t('community.challengeDoneMsg'));
           }}
           onPostPhoto={() => { setActiveTab('feed'); setPostModalVisible(true); }}
           onReportLost={() => { setActiveTab('lost'); setLostModalVisible(true); }}
@@ -780,7 +780,7 @@ function LostTab({ lostPets, setLostPets, colors }: {
           </View>
           <TouchableOpacity
             style={[styles.contactBtn, { backgroundColor: Theme.primary + '20', borderColor: Theme.primary + '40' }]}
-            onPress={() => Alert.alert('Contato', item.contactInfo)}
+            onPress={() => Alert.alert(t('community.contactTitle'), item.contactInfo)}
           >
             <Ionicons name="chatbubble-outline" size={14} color={Theme.primary} />
             <Text style={[styles.contactBtnText, { color: Theme.primary }]}>{t('community.lost.viewContact')}</Text>
@@ -1024,10 +1024,10 @@ function NewPostModal({ visible, onClose, onSave, authorName, colors }: {
   };
 
   const showPhotoPicker = () => {
-    Alert.alert('Adicionar Foto', 'Escolha uma opção:', [
-      { text: 'Câmera', onPress: () => pickPhoto(true) },
-      { text: 'Galeria', onPress: () => pickPhoto(false) },
-      { text: 'Cancelar', style: 'cancel' },
+    Alert.alert(t('community.addPhotoPickTitle'), t('community.addPhotoPickMsg'), [
+      { text: t('common.camera'), onPress: () => pickPhoto(true) },
+      { text: t('common.gallery'), onPress: () => pickPhoto(false) },
+      { text: t('common.cancel'), style: 'cancel' },
     ]);
   };
 

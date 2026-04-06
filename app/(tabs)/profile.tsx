@@ -116,7 +116,7 @@ export default function ProfileScreen() {
     setSyncLoading(true);
     try {
       await uploadToSupabase();
-      Alert.alert('✅ Backup realizado', 'Seus dados foram salvos na nuvem com sucesso.');
+      Alert.alert(t('profile.settings.backupSuccess'), t('profile.settings.backupSuccessMsg'));
     } catch (e: any) {
       Alert.alert(t('common.error'), e.message || 'Erro ao fazer backup.');
     } finally {
@@ -141,7 +141,7 @@ export default function ProfileScreen() {
             setSyncLoading(true);
             try {
               await downloadFromSupabase();
-              Alert.alert('✅ Dados restaurados', 'Seus dados foram restaurados da nuvem.');
+              Alert.alert(t('profile.settings.restoreSuccess'), t('profile.settings.restoreSuccessMsg'));
             } catch (e: any) {
               Alert.alert(t('common.error'), e.message || 'Erro ao restaurar dados.');
             } finally {
@@ -411,7 +411,7 @@ ${petsSection || '<p>Nenhum pet cadastrado.</p>'}
 
   const handleExportData = async () => {
     if (Platform.OS === 'web') {
-      Alert.alert('Export', t('profile.settings.exportWebUnsupported'));
+      Alert.alert(t('common.attention'), t('profile.settings.exportWebUnsupported'));
       return;
     }
     const biometricAvailable = await isBiometricAvailable();
@@ -423,10 +423,10 @@ ${petsSection || '<p>Nenhum pet cadastrado.</p>'}
       const confirmed = await new Promise<boolean>(resolve =>
         Alert.alert(
           t('profile.settings.exportPrivacyTitle'),
-          'Você está prestes a exportar todos os dados dos seus pets. Confirme para continuar.',
+          t('profile.settings.exportPrivacyMsg'),
           [
             { text: t('common.cancel'), style: 'cancel', onPress: () => resolve(false) },
-            { text: 'Confirmar', onPress: () => resolve(true) },
+            { text: t('common.confirm'), onPress: () => resolve(true) },
           ]
         )
       );
