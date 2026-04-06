@@ -195,6 +195,16 @@ export default function LoginScreen() {
             <Text style={[styles.title, { color: colors.text.primary }]}>{titles[mode]}</Text>
             <Text style={[styles.subtitle, { color: colors.text.secondary }]}>{subtitles[mode]}</Text>
 
+            {/* Banner: cadastro em implementação */}
+            {mode === 'signup' && (
+              <View style={styles.wipBanner}>
+                <Ionicons name="construct-outline" size={16} color="#FF9800" />
+                <Text style={styles.wipText}>
+                  Esta funcionalidade está sendo implementada e em breve estará disponível.
+                </Text>
+              </View>
+            )}
+
             {/* E-mail */}
             <View style={[styles.inputGroup, { borderColor: colors.border, backgroundColor: colors.background }]}>
               <Ionicons name="mail-outline" size={18} color={colors.text.secondary} style={styles.inputIcon} />
@@ -385,4 +395,9 @@ const styles = StyleSheet.create({
   socialIcon: { fontSize: 16, fontWeight: '800', color: '#EA4335' },
   socialLabel: { fontSize: 14, fontWeight: '600' },
   privacyText: { fontSize: 11, textAlign: 'center', lineHeight: 16, marginTop: 16 },
+  wipBanner: {
+    flexDirection: 'row', alignItems: 'flex-start', gap: 8,
+    backgroundColor: '#FFF3E0', borderRadius: 10, padding: 12, marginBottom: 16,
+  },
+  wipText: { flex: 1, fontSize: 13, color: '#E65100', lineHeight: 18 },
 });
