@@ -37,7 +37,8 @@ export default function NewVaccineScreen() {
 	const isEditing = !!vaccineId;
 
 	const [vaccineName, setVaccineName] = useState(prefillName ?? '');
-	const [dateAdministered, setDateAdministered] = useState<Date | null>(null);
+	// Pré-preenche data de hoje quando vier de lembrete concluído
+	const [dateAdministered, setDateAdministered] = useState<Date | null>(prefillName ? new Date() : null);
 	const [nextDueDate, setNextDueDate] = useState<Date | null>(null);
 	const [showSuccess, setShowSuccess] = useState(false);
 

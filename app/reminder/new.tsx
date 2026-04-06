@@ -3,7 +3,7 @@ import {
   View, Text, TouchableOpacity, StyleSheet, Alert,
   Platform, ScrollView, TextInput,
 } from 'react-native';
-import { useLocalSearchParams, Stack } from 'expo-router';
+import { useLocalSearchParams, Stack, useRouter } from 'expo-router';
 import { useGoBack } from '../../hooks/useGoBack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { syncReminders } from '../../services/syncService';
@@ -59,6 +59,7 @@ const TEMPLATES: Template[] = [
 
 export default function ReminderFormScreen() {
   const goBack  = useGoBack('/(tabs)');
+  const router  = useRouter();
   const { colors } = useTheme();
   const { t }   = useTranslation();
   const params  = useLocalSearchParams();
@@ -500,6 +501,7 @@ export default function ReminderFormScreen() {
               try {
                 const json = await AsyncStorage.getItem('reminders');
                 let all: Reminder[] = json ? JSON.parse(json) : [];
+                const current = all.find(r => r.id === reminderId);
                 all = all.map(r =>
                   r.id === reminderId
                     ? { ...r, completed: true, completedAt: new Date().toISOString() }
@@ -507,7 +509,39 @@ export default function ReminderFormScreen() {
                 );
                 await syncReminders(all);
                 setShowSuccess(true);
-                setTimeout(() => { try { goBack(); } catch { /* ignore */ } }, 1800);
+
+                // Se for categoria Saúde, oferecer registrar vacina aplicada
+                if (current?.category === 'Saúde') {
+                  setTimeout(() => {
+                    Alert.alert(
+                      '💉 Registrar vacina?',
+                      `Deseja registrar "${current.description}" no histórico de vacinas do pet?`,
+                      [
+                        {
+                          text: 'Não',
+                          style: 'cancel',
+                          onPress: () => { try { goBack(); } catch { /* ignore */ } },
+                        },
+                        {
+                          text: 'Registrar vacina',
+                          onPress: () => {
+                            try {
+                              router.replace({
+                                pathname: '/vaccines/new',
+                                params: {
+                                  petId: current.petId,
+                                  prefillName: current.description,
+                                },
+                              });
+                            } catch { goBack(); }
+                          },
+                        },
+                      ]
+                    );
+                  }, 1800);
+                } else {
+                  setTimeout(() => { try { goBack(); } catch { /* ignore */ } }, 1800);
+                }
               } catch {
                 Alert.alert(t('common.error'), t('reminder.saveError'));
               }
