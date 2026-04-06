@@ -131,7 +131,7 @@ export default function AgendaScreen() {
 
       setEvents(allEvents);
     } catch (e) {
-      console.error('Erro ao carregar eventos do calendário:', e);
+      if (__DEV__) console.error('Erro ao carregar eventos do calendário:', e);
     }
   };
 

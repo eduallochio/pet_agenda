@@ -408,7 +408,7 @@ export default function PetPassportScreen() {
           const allDiary: DiaryEntry[] = diaryJSON ? JSON.parse(diaryJSON) : [];
           setDiary(allDiary.filter(d => d.petId === petId));
         } catch (err) {
-          console.error('Erro ao carregar dados do passaporte:', err);
+          if (__DEV__) console.error('Erro ao carregar dados do passaporte:', err);
         } finally {
           setLoading(false);
         }
@@ -450,7 +450,7 @@ export default function PetPassportScreen() {
         Alert.alert(t('common.error'), t('passport.shareError'));
       }
     } catch (err) {
-      console.error('Erro ao exportar passaporte:', err);
+      if (__DEV__) console.error('Erro ao exportar passaporte:', err);
       Alert.alert(t('common.error'), t('passport.shareError'));
     } finally {
       setExporting(false);

@@ -82,7 +82,7 @@ export default function ConquistasScreen() {
           }
           setProgressMap(map);
         } catch (e) {
-          console.error('Erro ao carregar conquistas:', e);
+          if (__DEV__) console.error('Erro ao carregar conquistas:', e);
         } finally {
           setLoading(false);
         }

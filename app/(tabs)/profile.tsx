@@ -229,7 +229,7 @@ export default function ProfileScreen() {
           });
           if (wasAutoCompleted) setChallengeCompleted(true);
         } catch (e) {
-          console.error('Erro ao carregar perfil:', e);
+          if (__DEV__) console.error('Erro ao carregar perfil:', e);
         }
       };
       load();

@@ -41,7 +41,7 @@ export default function PetDetailScreen() {
 					const petReminders = allReminders.filter(r => r.petId === id);
 					setReminders(petReminders);
 				} catch (error) {
-					console.error('Erro ao carregar dados do pet:', error);
+					if (__DEV__) console.error('Erro ao carregar dados do pet:', error);
 				} finally {
 					setLoading(false);
 				}

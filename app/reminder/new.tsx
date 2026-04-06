@@ -112,7 +112,7 @@ export default function ReminderFormScreen() {
           }
         }
       } catch (e) {
-        console.error('Erro ao carregar lembrete', e);
+        if (__DEV__) console.error('Erro ao carregar lembrete', e);
       }
     };
     load();
@@ -258,7 +258,7 @@ export default function ReminderFormScreen() {
       setShowSuccess(true);
       setTimeout(() => { try { goBack(); } catch (e) { console.error('nav error:', e); } }, 1800);
     } catch (err) {
-      console.error('Erro ao salvar lembrete:', err);
+      if (__DEV__) console.error('Erro ao salvar lembrete:', err);
       Alert.alert(t('common.error'), t('reminder.saveError'));
     }
   };

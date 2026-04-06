@@ -383,7 +383,7 @@ export default function PetDashboard() {
         setUserName(profile?.name || '');
       }
     } catch (e) {
-      console.error('Erro ao carregar dados', e);
+      if (__DEV__) console.error('Erro ao carregar dados', e);
     } finally {
       setLoading(false);
     }

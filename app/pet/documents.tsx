@@ -85,7 +85,7 @@ export default function PetDocumentsScreen() {
       const all: PetDocument[] = json ? JSON.parse(json) : [];
       setDocuments(all.filter(d => d.petId === petId));
     } catch (e) {
-      console.error('Error loading documents:', e);
+      if (__DEV__) console.error('Error loading documents:', e);
     }
   };
 
@@ -215,7 +215,7 @@ export default function PetDocumentsScreen() {
         setSelectedDoc(null);
       }
     } catch (e) {
-      console.error('Error deleting document:', e);
+      if (__DEV__) console.error('Error deleting document:', e);
     }
   };
 

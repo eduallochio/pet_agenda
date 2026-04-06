@@ -271,7 +271,7 @@ export default function CommunityScreen() {
       const achJSON2 = await AsyncStorage.getItem('achievements');
       setUnlockedAchievements(achJSON2 ? JSON.parse(achJSON2) : []);
     } catch (e) {
-      console.error('Erro ao carregar comunidade:', e);
+      if (__DEV__) console.error('Erro ao carregar comunidade:', e);
     }
   };
 

@@ -69,7 +69,7 @@ export default function VaccinationCardScreen() {
 						});
 					setVaccinations(petRecords);
 				} catch (error) {
-					console.error("Erro ao carregar vacinas:", error);
+					if (__DEV__) console.error("Erro ao carregar vacinas:", error);
 				} finally {
 					setLoading(false);
 				}
