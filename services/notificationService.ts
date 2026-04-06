@@ -1,5 +1,6 @@
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
+import { addToHistory } from './notificationHistory';
 
 // Configurar como as notificações devem ser exibidas quando o app está em foreground
 Notifications.setNotificationHandler({
@@ -151,26 +152,18 @@ export async function scheduleReminderNotification(
 
     if (oneDayBefore > now) {
       const title = buildMessage(pickRandom(msgs.titles), petName, description, msgs.emoji);
-      const body = buildMessage(
-        `Amanhã: ${pickRandom(msgs.bodies)}`,
-        petName,
-        description,
-        msgs.emoji,
-      );
+      const body = buildMessage(`Amanhã: ${pickRandom(msgs.bodies)}`, petName, description, msgs.emoji);
       const id = await Notifications.scheduleNotificationAsync({
         content: {
-          title,
-          body,
+          title, body,
           data: { reminderId, petId, type: 'reminder', daysUntil: 1 },
           sound: true,
           priority: Notifications.AndroidNotificationPriority.HIGH,
         },
-        trigger: {
-          type: Notifications.SchedulableTriggerInputTypes.DATE,
-          date: oneDayBefore,
-        },
+        trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: oneDayBefore },
       });
       notificationIds.push(id);
+      await addToHistory({ type: 'reminder', title, body, petId, reminderId }).catch(() => {});
     }
 
     // Notificação no dia (às 9h)
@@ -182,18 +175,15 @@ export async function scheduleReminderNotification(
       const body = buildMessage(pickRandom(msgs.bodies), petName, description, msgs.emoji);
       const id = await Notifications.scheduleNotificationAsync({
         content: {
-          title,
-          body,
+          title, body,
           data: { reminderId, petId, type: 'reminder', daysUntil: 0 },
           sound: true,
           priority: Notifications.AndroidNotificationPriority.MAX,
         },
-        trigger: {
-          type: Notifications.SchedulableTriggerInputTypes.DATE,
-          date: onTheDay,
-        },
+        trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: onTheDay },
       });
       notificationIds.push(id);
+      await addToHistory({ type: 'reminder', title, body, petId, reminderId }).catch(() => {});
     }
 
     return notificationIds;
@@ -258,12 +248,10 @@ export async function scheduleVaccineNotification(
             sound: true,
             priority: cfg.priority,
           },
-          trigger: {
-            type: Notifications.SchedulableTriggerInputTypes.DATE,
-            date: d,
-          },
+          trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: d },
         });
         notificationIds.push(id);
+        await addToHistory({ type: 'vaccine', title: cfg.title, body: cfg.body, vaccineId }).catch(() => {});
       }
     }
 
@@ -316,10 +304,13 @@ export async function scheduleBirthdayNotification(
     const age = nextBirthday.getFullYear() - parseInt(parts[2]);
     const ageText = age === 1 ? '1 aninho' : `${age} aninhos`;
 
+    const birthdayTitle = `🎂 Feliz aniversário, ${petName}!`;
+    const birthdayBody = `Hoje o ${petName} faz ${ageText}! ${emoji} Dê um mimo especial para ele hoje.`;
+
     const id = await Notifications.scheduleNotificationAsync({
       content: {
-        title: `🎂 Feliz aniversário, ${petName}!`,
-        body: `Hoje o ${petName} faz ${ageText}! ${emoji} Dê um mimo especial para ele hoje.`,
+        title: birthdayTitle,
+        body: birthdayBody,
         data: { petId, type: 'birthday' },
         sound: true,
         priority: Notifications.AndroidNotificationPriority.HIGH,
@@ -330,6 +321,7 @@ export async function scheduleBirthdayNotification(
         ...(Platform.OS === 'android' && { channelId: 'birthday' }),
       },
     });
+    await addToHistory({ type: 'birthday', title: birthdayTitle, body: birthdayBody, petId }).catch(() => {});
 
     return id;
   } catch (error) {
