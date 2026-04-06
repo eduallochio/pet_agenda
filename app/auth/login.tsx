@@ -5,7 +5,7 @@ import {
   ScrollView, Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Stack, useRouter } from 'expo-router';
+import { Stack, useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../../services/supabase';
@@ -21,7 +21,8 @@ export default function LoginScreen() {
   const isDark = useIsDarkMode();
   const router = useRouter();
 
-  const [mode, setMode] = useState<Mode>('login');
+  const { mode: initialMode } = useLocalSearchParams<{ mode?: Mode }>();
+  const [mode, setMode] = useState<Mode>(initialMode === 'signup' ? 'signup' : 'login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');

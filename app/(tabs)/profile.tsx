@@ -1002,7 +1002,7 @@ ${petsSection || '<p>Nenhum pet cadastrado.</p>'}
                 /* Estado 3: nunca criou conta */
                 <TouchableOpacity
                   style={[styles.modalItem, { backgroundColor: colors.background }]}
-                  onPress={() => { setSettingsVisible(false); setTimeout(() => router.push('/auth/login'), 400); }}
+                  onPress={() => { setSettingsVisible(false); setTimeout(() => router.push({ pathname: '/auth/login', params: { mode: 'signup' } }), 400); }}
                 >
                   <View style={[styles.modalItemIcon, { backgroundColor: Theme.primary + '18' }]}>
                     <Ionicons name="cloud-outline" size={20} color={Theme.primary} />
