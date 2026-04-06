@@ -11,6 +11,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../../services/supabase';
 import { useTheme, useIsDarkMode } from '../../hooks/useTheme';
 import { Theme } from '../../constants/Colors';
+import { useTranslation } from 'react-i18next';
 
 const { height } = Dimensions.get('window');
 
@@ -20,6 +21,7 @@ export default function LoginScreen() {
   const { colors } = useTheme();
   const isDark = useIsDarkMode();
   const router = useRouter();
+  const { t } = useTranslation();
 
   const { mode: initialMode } = useLocalSearchParams<{ mode?: Mode }>();
   const [mode, setMode] = useState<Mode>(initialMode === 'signup' ? 'signup' : 'login');
@@ -49,11 +51,11 @@ export default function LoginScreen() {
 
   const handleSubmit = async () => {
     if (isBlocked) {
-      Alert.alert('Muitas tentativas', `Aguarde ${blockSecondsLeft}s antes de tentar novamente.`);
+      Alert.alert(t('auth.blockedTitle'), t('auth.blockedMsg', { seconds: blockSecondsLeft }));
       return;
     }
     if (!email.trim()) {
-      Alert.alert('Atenção', 'Informe seu e-mail.');
+      Alert.alert(t('common.attention'), t('auth.errorEmailRequired'));
       return;
     }
 
@@ -63,12 +65,12 @@ export default function LoginScreen() {
         const { error } = await supabase.auth.resetPasswordForEmail(email.trim());
         if (error) throw error;
         Alert.alert(
-          '📧 E-mail enviado!',
-          'Verifique sua caixa de entrada para redefinir a senha.',
+          t('auth.emailSentTitle'),
+          t('auth.emailSentMsg'),
           [{ text: 'OK', onPress: () => switchMode('login') }]
         );
       } catch (e: any) {
-        Alert.alert('Erro', e.message || 'Não foi possível enviar o e-mail.');
+        Alert.alert(t('common.error'), e.message || t('auth.errorGeneric'));
       } finally {
         setLoading(false);
       }
@@ -76,15 +78,15 @@ export default function LoginScreen() {
     }
 
     if (!password.trim()) {
-      Alert.alert('Atenção', 'Informe sua senha.');
+      Alert.alert(t('common.attention'), t('auth.errorPasswordRequired'));
       return;
     }
     if (password.length < 6) {
-      Alert.alert('Atenção', 'A senha deve ter pelo menos 6 caracteres.');
+      Alert.alert(t('common.attention'), t('auth.errorPasswordLength'));
       return;
     }
     if (mode === 'signup' && password !== confirmPassword) {
-      Alert.alert('Atenção', 'As senhas não coincidem.');
+      Alert.alert(t('common.attention'), t('auth.errorPasswordMatch'));
       return;
     }
 
@@ -104,29 +106,29 @@ export default function LoginScreen() {
         });
         if (error) throw error;
         Alert.alert(
-          '✅ Conta criada!',
-          'Verifique seu e-mail para confirmar a conta antes de fazer login.',
+          t('auth.accountCreatedTitle'),
+          t('auth.accountCreatedMsg'),
           [{ text: 'OK', onPress: () => switchMode('login') }]
         );
       }
     } catch (e: any) {
       const msg =
-        e.message?.includes('Invalid login credentials') ? 'E-mail ou senha incorretos.' :
-        e.message?.includes('User already registered')   ? 'Este e-mail já está cadastrado.' :
-        e.message?.includes('Email not confirmed')       ? 'Confirme seu e-mail antes de entrar.' :
-        e.message || 'Erro inesperado. Tente novamente.';
+        e.message?.includes('Invalid login credentials') ? t('auth.errorInvalidCredentials') :
+        e.message?.includes('User already registered')   ? t('auth.errorAlreadyRegistered') :
+        e.message?.includes('Email not confirmed')       ? t('auth.errorEmailNotConfirmed') :
+        e.message || t('auth.errorGeneric');
       if (mode === 'login') {
         const next = failCount + 1;
         setFailCount(next);
         if (next >= 3) {
           setBlockedUntil(Date.now() + 30_000);
           setFailCount(0);
-          Alert.alert('Muitas tentativas', 'Aguarde 30 segundos antes de tentar novamente.\n\n' + msg);
+          Alert.alert(t('auth.blockedTitle'), t('auth.blockedMsgFull') + '\n\n' + msg);
         } else {
-          Alert.alert('Erro', `${msg} (tentativa ${next}/3)`);
+          Alert.alert(t('common.error'), `${msg} ${t('auth.errorAttempt', { count: next })}`);
         }
       } else {
-        Alert.alert('Erro', msg);
+        Alert.alert(t('common.error'), msg);
       }
     } finally {
       setLoading(false);
@@ -134,19 +136,19 @@ export default function LoginScreen() {
   };
 
   const titles: Record<Mode, string> = {
-    login:  'Bem-vindo de volta',
-    signup: 'Criar conta',
-    forgot: 'Redefinir senha',
+    login:  t('auth.loginTitle'),
+    signup: t('auth.signupTitle'),
+    forgot: t('auth.forgotTitle'),
   };
   const subtitles: Record<Mode, string> = {
-    login:  'Acesse seus dados sincronizados entre dispositivos.',
-    signup: 'Crie sua conta gratuita e mantenha os dados dos seus pets seguros na nuvem.',
-    forgot: 'Informe seu e-mail e enviaremos um link para redefinir sua senha.',
+    login:  t('auth.loginSubtitle'),
+    signup: t('auth.signupSubtitle'),
+    forgot: t('auth.forgotSubtitle'),
   };
   const btnLabels: Record<Mode, string> = {
-    login:  'Entrar',
-    signup: 'Criar conta',
-    forgot: 'Enviar link',
+    login:  t('auth.loginBtn'),
+    signup: t('auth.signupBtn'),
+    forgot: t('auth.sendLinkBtn'),
   };
 
   return (
@@ -186,7 +188,7 @@ export default function LoginScreen() {
               <MaterialCommunityIcons name="paw" size={36} color="#fff" />
             </View>
             <Text style={styles.appName}>Pet Agenda</Text>
-            <Text style={styles.appTagline}>Cuide bem de quem você ama</Text>
+            <Text style={styles.appTagline}>{t('auth.appTagline')}</Text>
           </View>
 
           {/* Card principal */}
@@ -200,7 +202,7 @@ export default function LoginScreen() {
                   onPress={() => switchMode('login')}
                 >
                   <Text style={[styles.tabText, { color: mode === 'login' ? Theme.primary : colors.text.secondary }]}>
-                    Entrar
+                    {t('auth.loginTab')}
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
@@ -208,7 +210,7 @@ export default function LoginScreen() {
                   onPress={() => switchMode('signup')}
                 >
                   <Text style={[styles.tabText, { color: mode === 'signup' ? Theme.primary : colors.text.secondary }]}>
-                    Criar conta
+                    {t('auth.signupTab')}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -217,22 +219,12 @@ export default function LoginScreen() {
             <Text style={[styles.title, { color: colors.text.primary }]}>{titles[mode]}</Text>
             <Text style={[styles.subtitle, { color: colors.text.secondary }]}>{subtitles[mode]}</Text>
 
-            {/* Banner: cadastro em implementação */}
-            {mode === 'signup' && (
-              <View style={styles.wipBanner}>
-                <Ionicons name="construct-outline" size={16} color="#FF9800" />
-                <Text style={styles.wipText}>
-                  Esta funcionalidade está sendo implementada e em breve estará disponível.
-                </Text>
-              </View>
-            )}
-
             {/* E-mail */}
             <View style={[styles.inputGroup, { borderColor: colors.border, backgroundColor: colors.background }]}>
               <Ionicons name="mail-outline" size={18} color={colors.text.secondary} style={styles.inputIcon} />
               <TextInput
                 style={[styles.input, { color: colors.text.primary }]}
-                placeholder="E-mail"
+                placeholder={t('auth.emailPlaceholder')}
                 placeholderTextColor={colors.text.secondary}
                 value={email}
                 onChangeText={setEmail}
@@ -248,7 +240,7 @@ export default function LoginScreen() {
                 <Ionicons name="lock-closed-outline" size={18} color={colors.text.secondary} style={styles.inputIcon} />
                 <TextInput
                   style={[styles.input, { color: colors.text.primary }]}
-                  placeholder="Senha"
+                  placeholder={t('auth.passwordPlaceholder')}
                   placeholderTextColor={colors.text.secondary}
                   value={password}
                   onChangeText={setPassword}
@@ -267,7 +259,7 @@ export default function LoginScreen() {
                 <Ionicons name="lock-closed-outline" size={18} color={colors.text.secondary} style={styles.inputIcon} />
                 <TextInput
                   style={[styles.input, { color: colors.text.primary }]}
-                  placeholder="Confirmar senha"
+                  placeholder={t('auth.confirmPasswordPlaceholder')}
                   placeholderTextColor={colors.text.secondary}
                   value={confirmPassword}
                   onChangeText={setConfirmPassword}
@@ -283,7 +275,7 @@ export default function LoginScreen() {
             {/* Esqueci a senha */}
             {mode === 'login' && (
               <TouchableOpacity style={styles.forgotBtn} onPress={() => switchMode('forgot')}>
-                <Text style={[styles.forgotText, { color: Theme.primary }]}>Esqueceu a senha?</Text>
+                <Text style={[styles.forgotText, { color: Theme.primary }]}>{t('auth.forgotLink')}</Text>
               </TouchableOpacity>
             )}
 
@@ -291,7 +283,7 @@ export default function LoginScreen() {
             {isBlocked && (
               <View style={styles.blockedBanner}>
                 <Ionicons name="time-outline" size={14} color="#c0392b" />
-                <Text style={styles.blockedText}>Aguarde {blockSecondsLeft}s para tentar novamente</Text>
+                <Text style={styles.blockedText}>{t('auth.blockedBanner', { seconds: blockSecondsLeft })}</Text>
               </View>
             )}
 
@@ -319,45 +311,16 @@ export default function LoginScreen() {
             {mode === 'forgot' && (
               <TouchableOpacity style={styles.switchBtn} onPress={() => switchMode('login')}>
                 <Ionicons name="arrow-back-outline" size={14} color={colors.text.secondary} />
-                <Text style={[styles.switchText, { color: colors.text.secondary }]}> Voltar para o login</Text>
+                <Text style={[styles.switchText, { color: colors.text.secondary }]}> {t('auth.backToLogin')}</Text>
               </TouchableOpacity>
-            )}
-
-            {/* Divisor social (placeholder) */}
-            {mode !== 'forgot' && (
-              <>
-                <View style={styles.divider}>
-                  <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
-                  <Text style={[styles.dividerText, { color: colors.text.secondary }]}>ou continue com</Text>
-                  <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
-                </View>
-
-                {/* Botões sociais — em breve */}
-                <View style={styles.socialRow}>
-                  <TouchableOpacity
-                    style={[styles.socialBtn, { borderColor: colors.border, backgroundColor: colors.background }]}
-                    onPress={() => Alert.alert('Em breve', 'Login com Google será disponibilizado em breve.')}
-                  >
-                    <Text style={styles.socialIcon}>G</Text>
-                    <Text style={[styles.socialLabel, { color: colors.text.primary }]}>Google</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.socialBtn, { borderColor: colors.border, backgroundColor: colors.background }]}
-                    onPress={() => Alert.alert('Em breve', 'Login com Apple será disponibilizado em breve.')}
-                  >
-                    <Ionicons name="logo-apple" size={18} color={colors.text.primary} />
-                    <Text style={[styles.socialLabel, { color: colors.text.primary }]}>Apple</Text>
-                  </TouchableOpacity>
-                </View>
-              </>
             )}
 
             {/* Info privacidade */}
             <Text style={[styles.privacyText, { color: colors.text.secondary }]}>
-              Ao continuar, você concorda com nossos{' '}
-              <Text style={{ color: Theme.primary }}>Termos de Uso</Text>
-              {' '}e{' '}
-              <Text style={{ color: Theme.primary }}>Política de Privacidade</Text>.
+              {t('auth.privacyText')}{' '}
+              <Text style={{ color: Theme.primary }}>{t('auth.termsLink')}</Text>
+              {' '}{t('auth.privacyAnd')}{' '}
+              <Text style={{ color: Theme.primary }}>{t('auth.privacyLink')}</Text>.
             </Text>
           </View>
         </ScrollView>
@@ -414,22 +377,7 @@ const styles = StyleSheet.create({
   submitText: { color: '#fff', fontSize: 16, fontWeight: '800', letterSpacing: 0.3 },
   switchBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 16 },
   switchText: { fontSize: 13 },
-  divider: { flexDirection: 'row', alignItems: 'center', marginVertical: 20, gap: 10 },
-  dividerLine: { flex: 1, height: 1 },
-  dividerText: { fontSize: 12, fontWeight: '500' },
-  socialRow: { flexDirection: 'row', gap: 12, marginBottom: 4 },
-  socialBtn: {
-    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: 8, borderWidth: 1.5, borderRadius: 12, paddingVertical: 12,
-  },
-  socialIcon: { fontSize: 16, fontWeight: '800', color: '#EA4335' },
-  socialLabel: { fontSize: 14, fontWeight: '600' },
   privacyText: { fontSize: 11, textAlign: 'center', lineHeight: 16, marginTop: 16 },
-  wipBanner: {
-    flexDirection: 'row', alignItems: 'flex-start', gap: 8,
-    backgroundColor: '#FFF3E0', borderRadius: 10, padding: 12, marginBottom: 16,
-  },
-  wipText: { flex: 1, fontSize: 13, color: '#E65100', lineHeight: 18 },
   blockedBanner: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     backgroundColor: '#FDEDEC', borderRadius: 10, padding: 10, marginBottom: 12,
