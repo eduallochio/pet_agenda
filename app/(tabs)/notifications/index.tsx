@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
+import { useTheme } from '../../../hooks/useTheme';
 import {
   NotificationHistoryItem,
   getHistory,
@@ -61,27 +62,28 @@ const TYPE_CONFIG: Record<NotificationHistoryItem['type'], { icon: string; iconC
 function NotifItem({
   item,
   onPress,
+  colors,
 }: {
   item: NotificationHistoryItem;
   onPress: () => void;
+  colors: any;
 }) {
   const cfg = TYPE_CONFIG[item.type];
 
   return (
-    <TouchableOpacity style={styles.item} onPress={onPress} activeOpacity={0.75}>
-      {/* Unread dot */}
+    <TouchableOpacity
+      style={[styles.item, { backgroundColor: colors.surface, borderColor: colors.border }]}
+      onPress={onPress}
+      activeOpacity={0.75}
+    >
       {!item.read && <View style={styles.unreadDot} />}
-
-      {/* Icon */}
       <View style={[styles.itemIcon, { backgroundColor: cfg.bgColor }]}>
         <MaterialCommunityIcons name={cfg.icon as any} size={18} color={cfg.iconColor} />
       </View>
-
-      {/* Content */}
       <View style={styles.itemContent}>
-        <Text style={styles.itemTitle} numberOfLines={1}>{item.title}</Text>
-        <Text style={styles.itemBody} numberOfLines={2}>{item.body}</Text>
-        <Text style={styles.itemTime}>{formatRelativeTime(item.createdAt)}</Text>
+        <Text style={[styles.itemTitle, { color: colors.text.primary }]} numberOfLines={1}>{item.title}</Text>
+        <Text style={[styles.itemBody, { color: colors.text.secondary }]} numberOfLines={2}>{item.body}</Text>
+        <Text style={[styles.itemTime, { color: colors.text.light }]}>{formatRelativeTime(item.createdAt)}</Text>
       </View>
     </TouchableOpacity>
   );
@@ -92,6 +94,7 @@ function NotifItem({
 export default function NotificationsScreen() {
   const { t } = useTranslation();
   const router = useRouter();
+  const { colors } = useTheme();
   const [history, setHistory] = useState<NotificationHistoryItem[]>([]);
 
   useFocusEffect(useCallback(() => {
@@ -131,7 +134,6 @@ export default function NotificationsScreen() {
 
   const groups = groupByDate(history);
 
-  // Flatten groups for FlatList with headers
   type FlatItem =
     | { kind: 'header'; label: string; key: string }
     | { kind: 'item'; data: NotificationHistoryItem; key: string };
@@ -142,10 +144,10 @@ export default function NotificationsScreen() {
   ]);
 
   return (
-    <SafeAreaView edges={["top"]} style={styles.container}>
+    <SafeAreaView edges={['top']} style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>{t('tabs.notifications')}</Text>
+        <Text style={[styles.headerTitle, { color: colors.text.primary }]}>{t('tabs.notifications')}</Text>
         {history.length > 0 && (
           <TouchableOpacity onPress={handleClearAll}>
             <Text style={styles.clearBtnText}>{t('common.clearAll')}</Text>
@@ -155,11 +157,11 @@ export default function NotificationsScreen() {
 
       {history.length === 0 ? (
         <View style={styles.empty}>
-          <View style={styles.emptyIcon}>
-            <MaterialCommunityIcons name="bell-outline" size={44} color="#999999" />
+          <View style={[styles.emptyIcon, { backgroundColor: colors.surface }]}>
+            <MaterialCommunityIcons name="bell-outline" size={44} color={colors.text.light} />
           </View>
-          <Text style={styles.emptyTitle}>{t('notifications.emptyTitle')}</Text>
-          <Text style={styles.emptyDesc}>{t('notifications.emptyDesc')}</Text>
+          <Text style={[styles.emptyTitle, { color: colors.text.primary }]}>{t('notifications.emptyTitle')}</Text>
+          <Text style={[styles.emptyDesc, { color: colors.text.secondary }]}>{t('notifications.emptyDesc')}</Text>
         </View>
       ) : (
         <FlatList
@@ -169,12 +171,13 @@ export default function NotificationsScreen() {
           contentContainerStyle={styles.list}
           renderItem={({ item }) => {
             if (item.kind === 'header') {
-              return <Text style={styles.groupLabel}>{item.label}</Text>;
+              return <Text style={[styles.groupLabel, { color: colors.text.secondary }]}>{item.label}</Text>;
             }
             return (
               <NotifItem
                 item={item.data}
                 onPress={() => handlePress(item.data)}
+                colors={colors}
               />
             );
           }}
@@ -185,9 +188,8 @@ export default function NotificationsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8F9FA' },
+  container: { flex: 1 },
 
-  // Header
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -196,27 +198,22 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     paddingBottom: 16,
   },
-  headerTitle: { fontSize: 22, fontWeight: '700', color: '#111111' },
+  headerTitle: { fontSize: 22, fontWeight: '700' },
   clearBtnText: { fontSize: 13, fontWeight: '600', color: '#40E0D0' },
 
-  // List
   list: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 100 },
   groupLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#666666',
     marginTop: 16,
     marginBottom: 10,
   },
 
-  // Item — white card with border, matches design
   item: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#E8E8E8',
     padding: 14,
     marginBottom: 10,
     gap: 12,
@@ -230,16 +227,15 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   itemContent: { flex: 1 },
-  itemTitle: { fontSize: 14, fontWeight: '600', color: '#111111', marginBottom: 3 },
-  itemBody: { fontSize: 12, color: '#666666', lineHeight: 17, marginBottom: 3 },
-  itemTime: { fontSize: 11, color: '#999999' },
+  itemTitle: { fontSize: 14, fontWeight: '600', marginBottom: 3 },
+  itemBody: { fontSize: 12, lineHeight: 17, marginBottom: 3 },
+  itemTime: { fontSize: 11 },
   unreadDot: {
     width: 8, height: 8, borderRadius: 4,
     backgroundColor: '#40E0D0',
     flexShrink: 0,
   },
 
-  // Empty
   empty: {
     flex: 1,
     alignItems: 'center',
@@ -251,11 +247,10 @@ const styles = StyleSheet.create({
     width: 88,
     height: 88,
     borderRadius: 44,
-    backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 20,
   },
-  emptyTitle: { fontSize: 18, fontWeight: '700', color: '#111111', marginBottom: 8, textAlign: 'center' },
-  emptyDesc: { fontSize: 14, color: '#666666', textAlign: 'center', lineHeight: 21 },
+  emptyTitle: { fontSize: 18, fontWeight: '700', marginBottom: 8, textAlign: 'center' },
+  emptyDesc: { fontSize: 14, textAlign: 'center', lineHeight: 21 },
 });
