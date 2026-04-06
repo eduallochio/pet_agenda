@@ -145,10 +145,10 @@ export default function NotificationsScreen() {
     <SafeAreaView edges={["top"]} style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Notificações</Text>
+        <Text style={styles.headerTitle}>{t('tabs.notifications')}</Text>
         {history.length > 0 && (
           <TouchableOpacity onPress={handleClearAll}>
-            <Text style={styles.clearBtnText}>Limpar tudo</Text>
+            <Text style={styles.clearBtnText}>{t('common.clearAll')}</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -158,10 +158,8 @@ export default function NotificationsScreen() {
           <View style={styles.emptyIcon}>
             <MaterialCommunityIcons name="bell-outline" size={44} color="#999999" />
           </View>
-          <Text style={styles.emptyTitle}>Tudo tranquilo por aqui</Text>
-          <Text style={styles.emptyDesc}>
-            Suas notificações de lembretes, vacinas e aniversários vão aparecer aqui.
-          </Text>
+          <Text style={styles.emptyTitle}>{t('notifications.emptyTitle')}</Text>
+          <Text style={styles.emptyDesc}>{t('notifications.emptyDesc')}</Text>
         </View>
       ) : (
         <FlatList

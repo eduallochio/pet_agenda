@@ -393,7 +393,7 @@ export default function AddPetScreen() {
 
         {/* Castrado */}
         <View style={styles.fieldGroup}>
-          <Text style={[styles.fieldLabel, { color: colors.text.primary }]}>Castrado</Text>
+          <Text style={[styles.fieldLabel, { color: colors.text.primary }]}>{t('addPet.castratedLabel')}</Text>
           <View style={styles.genderRow}>
             {[{ label: 'Sim', value: true }, { label: 'Não', value: false }].map(opt => {
               const selected = castrated === opt.value;
@@ -423,7 +423,7 @@ export default function AddPetScreen() {
 
         {/* Microchip */}
         <View style={styles.fieldGroup}>
-          <Text style={[styles.fieldLabel, { color: colors.text.primary }]}>Microchip</Text>
+          <Text style={[styles.fieldLabel, { color: colors.text.primary }]}>{t('addPet.microchipLabel')}</Text>
           <View style={[styles.inputRow, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <Ionicons name="barcode-outline" size={18} color={colors.text.light} style={styles.inputIcon} />
             <TextInput

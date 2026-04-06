@@ -128,12 +128,12 @@ export default function ProfileScreen() {
       return;
     }
     Alert.alert(
-      'Restaurar dados',
-      'Os dados locais serão substituídos pelos dados da nuvem. Deseja continuar?',
+      t('profile.settings.restoreTitle'),
+      t('profile.settings.restoreMsg'),
       [
         { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Restaurar',
+          text: t('profile.settings.restoreBtn'),
           style: 'destructive',
           onPress: async () => {
             setSyncLoading(true);
@@ -152,10 +152,10 @@ export default function ProfileScreen() {
   };
 
   const handleLogout = async () => {
-    Alert.alert('Sair da conta', 'Deseja desconectar da conta de backup?', [
+    Alert.alert(t('profile.settings.logoutTitle'), t('profile.settings.logoutMsg'), [
       { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Sair',
+        text: t('profile.settings.logoutBtn'),
         style: 'destructive',
         onPress: async () => {
           await supabase.auth.signOut();
@@ -613,7 +613,7 @@ ${petsSection || '<p>Nenhum pet cadastrado.</p>'}
                           onPress={() => markReminderDone(r.id)}
                         >
                           <Ionicons name="checkmark" size={14} color={Theme.primary} />
-                          <Text style={[styles.markDoneBtnText, { color: Theme.primary }]}>Feito</Text>
+                          <Text style={[styles.markDoneBtnText, { color: Theme.primary }]}>{t('profile.markDoneBtn')}</Text>
                         </TouchableOpacity>
                       </View>
                     );
@@ -621,7 +621,7 @@ ${petsSection || '<p>Nenhum pet cadastrado.</p>'}
                   {overdueReminders.length > 5 && (
                     <View style={[styles.urgencyRow, { paddingTop: 4 }]}>
                       <Text style={[styles.urgencyText, { color: colors.text.light }]}>
-                        +{overdueReminders.length - 5} lembretes atrasados
+                        {t('profile.overdueRemindersMore', { count: overdueReminders.length - 5 })}
                       </Text>
                     </View>
                   )}
@@ -816,7 +816,7 @@ ${petsSection || '<p>Nenhum pet cadastrado.</p>'}
               {t('profile.achievements', { defaultValue: 'Conquistas Recentes' })}
             </Text>
             <TouchableOpacity onPress={() => router.push('/conquistas')}>
-              <Text style={[styles.seeAllText, { color: Theme.primary }]}>Ver todas</Text>
+              <Text style={[styles.seeAllText, { color: Theme.primary }]}>{t('profile.seeAll')}</Text>
             </TouchableOpacity>
           </View>
           {unlockedAchievements.length === 0 ? (
@@ -941,7 +941,7 @@ ${petsSection || '<p>Nenhum pet cadastrado.</p>'}
               </TouchableOpacity>
 
               {/* ── Backup na Nuvem ── */}
-              <Text style={[styles.modalSectionLabel, { color: colors.text.secondary, marginTop: 20 }]}>Backup na nuvem</Text>
+              <Text style={[styles.modalSectionLabel, { color: colors.text.secondary, marginTop: 20 }]}>{t('profile.settings.cloudBackup')}</Text>
 
               {authUser ? (
                 /* Estado 1: logado */
@@ -958,7 +958,7 @@ ${petsSection || '<p>Nenhum pet cadastrado.</p>'}
                     >
                       <Ionicons name="cloud-upload-outline" size={16} color={Theme.primary} />
                       <Text style={[styles.syncBtnText, { color: Theme.primary }]}>
-                        {syncLoading ? 'Salvando...' : 'Fazer backup'}
+                        {syncLoading ? t('profile.settings.backupSaving') : t('profile.settings.backupBtn')}
                       </Text>
                     </TouchableOpacity>
                     <TouchableOpacity
@@ -967,11 +967,11 @@ ${petsSection || '<p>Nenhum pet cadastrado.</p>'}
                       disabled={syncLoading}
                     >
                       <Ionicons name="cloud-download-outline" size={16} color="#FF9800" />
-                      <Text style={[styles.syncBtnText, { color: '#FF9800' }]}>Restaurar</Text>
+                      <Text style={[styles.syncBtnText, { color: '#FF9800' }]}>{t('profile.settings.restoreBtn')}</Text>
                     </TouchableOpacity>
                   </View>
                   <TouchableOpacity onPress={handleLogout}>
-                    <Text style={{ color: colors.text.secondary, fontSize: 11 }}>Sair da conta</Text>
+                    <Text style={{ color: colors.text.secondary, fontSize: 11 }}>{t('profile.settings.logoutBtn')}</Text>
                   </TouchableOpacity>
                 </View>
               ) : hadAccount ? (
@@ -979,22 +979,22 @@ ${petsSection || '<p>Nenhum pet cadastrado.</p>'}
                 <View style={[styles.modalItem, { backgroundColor: colors.background, flexDirection: 'column', alignItems: 'flex-start', gap: 6 }]}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 2 }}>
                     <Ionicons name="cloud-offline-outline" size={16} color="#FF9800" />
-                    <Text style={{ color: '#FF9800', fontSize: 12, fontWeight: '600' }}>Desconectado</Text>
+                    <Text style={{ color: '#FF9800', fontSize: 12, fontWeight: '600' }}>{t('profile.settings.disconnected')}</Text>
                   </View>
                   {lastEmail ? (
                     <Text style={{ color: colors.text.secondary, fontSize: 11 }} numberOfLines={1}>
-                      Última conta: {lastEmail}
+                      {t('profile.settings.lastAccount', { email: lastEmail })}
                     </Text>
                   ) : null}
                   <Text style={{ color: colors.text.secondary, fontSize: 11, lineHeight: 16 }}>
-                    Seus dados locais estão seguros. Entre novamente para sincronizar com a nuvem.
+                    {t('profile.settings.localDataSafe')}
                   </Text>
                   <TouchableOpacity
                     style={[styles.syncBtn, { backgroundColor: Theme.primary + '18', marginTop: 4 }]}
                     onPress={() => { setSettingsVisible(false); setTimeout(() => router.push('/auth/login'), 400); }}
                   >
                     <Ionicons name="log-in-outline" size={16} color={Theme.primary} />
-                    <Text style={[styles.syncBtnText, { color: Theme.primary }]}>Entrar novamente</Text>
+                    <Text style={[styles.syncBtnText, { color: Theme.primary }]}>{t('profile.settings.loginAgain')}</Text>
                   </TouchableOpacity>
                 </View>
               ) : (
@@ -1007,8 +1007,8 @@ ${petsSection || '<p>Nenhum pet cadastrado.</p>'}
                     <Ionicons name="cloud-outline" size={20} color={Theme.primary} />
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={[styles.modalItemText, { color: colors.text.primary }]}>Criar conta gratuita</Text>
-                    <Text style={{ color: colors.text.secondary, fontSize: 11, marginTop: 2 }}>Faça backup dos seus dados na nuvem</Text>
+                    <Text style={[styles.modalItemText, { color: colors.text.primary }]}>{t('profile.settings.createAccount')}</Text>
+                    <Text style={{ color: colors.text.secondary, fontSize: 11, marginTop: 2 }}>{t('profile.settings.createAccountDesc')}</Text>
                   </View>
                   <Ionicons name="chevron-forward" size={18} color={colors.text.light} />
                 </TouchableOpacity>
