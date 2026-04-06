@@ -49,6 +49,8 @@ export default {
     profile: 'Perfil',
     addPet: 'Nueva Mascota',
     notifications: 'Notificaciones',
+    agenda: 'Agenda',
+    stats: 'Estadísticas',
   },
 
   notifications: {
@@ -89,6 +91,14 @@ export default {
     noResults: 'Sin resultados',
     noResultsMsg: 'No se encontraron mascotas. Intenta ajustar tu búsqueda.',
     seeMyPets: 'Ver Mis Mascotas',
+    addPet: 'Nueva Mascota',
+  },
+
+  settings: {
+    theme: 'Tema',
+    light: 'Claro',
+    dark: 'Oscuro',
+    language: 'Idioma',
   },
 
   // ── Home ──────────────────────────────────────────────────────────────────
@@ -98,9 +108,16 @@ export default {
     noPetsMsg: 'Todo gran amor comienza con un primer encuentro. ¡Agrega tu mascota y comienza esta aventura!',
     noPetsHint: '💡 Tarda menos de 1 minuto registrar tu mascota',
     addPet: 'Agregar Mascota',
+    greeting: 'Hola',
+    greetingSubtitle: '¡Tus mascotas están bien!',
+    upcoming: 'próximos',
+    reminders: 'Recordatorios',
+    vaccines: 'Vacunas',
+    consultations: 'Consultas',
+    viewAll: 'Ver todos',
     nearbyServices: 'Servicios Cercanos',
-    nearbyServicesDesc: 'Pet shops, clínicas y peluquería',
-    searchPlaceholder: 'Buscar por nombre, especie o raza...',
+    nearbyServicesDesc: 'Vets, pet shops y más cerca de ti',
+    searchPlaceholder: 'Buscar mascotas...',
     filterBy: 'Filtrar por especie',
     deleteConfirmTitle: 'Confirmar Eliminación',
     deleteConfirmMsg: '¿Eliminar a {{name}}? Esta acción no se puede deshacer.',
@@ -459,6 +476,8 @@ export default {
     achievements: 'Logros',
     complete: '% completado',
     challengeDone: '¡Desafío de esta semana completado!',
+    exportData: 'Exportar Datos',
+    noAchievements: '¡Completa desafíos para desbloquear logros!',
     challengeDoneTitle: '🎉 ¡Desafío completado!',
     challengeDoneMsg: '¡Felicitaciones! Completaste el desafío de esta semana.',
     contactTitle: 'Contacto',
@@ -790,7 +809,9 @@ export default {
 
   // ── Calendar ───────────────────────────────────────────────────────────────
   calendar: {
-    title: 'Calendario',
+    title: 'Agenda',
+    today: 'Hoy',
+    events: 'eventos',
     legend: {
       health: 'Salud',
       hygiene: 'Higiene',

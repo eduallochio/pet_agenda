@@ -49,6 +49,8 @@ export default {
     profile: 'Perfil',
     addPet: 'Novo Pet',
     notifications: 'Notificações',
+    agenda: 'Agenda',
+    stats: 'Estatísticas',
   },
 
   // ── Comum ─────────────────────────────────────────────────────────────────
@@ -89,6 +91,15 @@ export default {
     noResults: 'Nenhum resultado',
     noResultsMsg: 'Nenhum pet encontrado. Tente ajustar sua busca.',
     seeMyPets: 'Ver Meus Pets',
+    addPet: 'Novo Pet',
+  },
+
+  // ── Settings (shortcuts usados fora de profile.settings) ──────────────────
+  settings: {
+    theme: 'Tema',
+    light: 'Claro',
+    dark: 'Escuro',
+    language: 'Idioma',
   },
 
   // ── Home (index) ───────────────────────────────────────────────────────────
@@ -98,9 +109,16 @@ export default {
     noPetsMsg: 'Todo grande amor começa com um primeiro encontro. Adicione seu pet e comece essa jornada!',
     noPetsHint: '💡 Leva menos de 1 minuto para cadastrar seu pet',
     addPet: 'Adicionar Pet',
+    greeting: 'Olá',
+    greetingSubtitle: 'Seus pets estão bem!',
+    upcoming: 'próximos',
+    reminders: 'Lembretes',
+    vaccines: 'Vacinas',
+    consultations: 'Consultas',
+    viewAll: 'Ver todos',
     nearbyServices: 'Serviços Próximos',
-    nearbyServicesDesc: 'Pet shops, clínicas e banho & tosa',
-    searchPlaceholder: 'Buscar por nome, espécie ou raça...',
+    nearbyServicesDesc: 'Vets, pet shops e mais perto de você',
+    searchPlaceholder: 'Buscar pets...',
     filterBy: 'Filtrar por espécie',
     deleteConfirmTitle: 'Confirmar Exclusão',
     deleteConfirmMsg: 'Excluir {{name}}? Esta ação não pode ser desfeita.',
@@ -527,6 +545,8 @@ export default {
       createAccount: 'Criar conta gratuita',
       createAccountDesc: 'Faça backup dos seus dados na nuvem',
     },
+    exportData: 'Exportar Dados',
+    noAchievements: 'Complete desafios para desbloquear conquistas!',
     seeAll: 'Ver todas',
     markDoneBtn: 'Feito',
     overdueRemindersMore: '+{{count}} lembretes atrasados',
@@ -790,7 +810,9 @@ export default {
 
   // ── Calendar ───────────────────────────────────────────────────────────────
   calendar: {
-    title: 'Calendário',
+    title: 'Agenda',
+    today: 'Hoje',
+    events: 'eventos',
     legend: {
       health: 'Saúde',
       hygiene: 'Higiene',

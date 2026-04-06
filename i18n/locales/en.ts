@@ -49,6 +49,8 @@ export default {
     profile: 'Profile',
     addPet: 'New Pet',
     notifications: 'Notifications',
+    agenda: 'Agenda',
+    stats: 'Statistics',
   },
 
   notifications: {
@@ -89,6 +91,14 @@ export default {
     noResults: 'No results',
     noResultsMsg: 'No pets found. Try adjusting your search.',
     seeMyPets: 'See My Pets',
+    addPet: 'New Pet',
+  },
+
+  settings: {
+    theme: 'Theme',
+    light: 'Light',
+    dark: 'Dark',
+    language: 'Language',
   },
 
   // ── Home ──────────────────────────────────────────────────────────────────
@@ -98,9 +108,16 @@ export default {
     noPetsMsg: 'Every great love starts with a first meeting. Add your pet and begin this journey!',
     noPetsHint: '💡 Takes less than 1 minute to register your pet',
     addPet: 'Add Pet',
+    greeting: 'Hello',
+    greetingSubtitle: 'Your pets are doing well!',
+    upcoming: 'upcoming',
+    reminders: 'Reminders',
+    vaccines: 'Vaccines',
+    consultations: 'Consultations',
+    viewAll: 'View all',
     nearbyServices: 'Nearby Services',
-    nearbyServicesDesc: 'Pet shops, clinics and grooming',
-    searchPlaceholder: 'Search by name, species or breed...',
+    nearbyServicesDesc: 'Vets, pet shops and more near you',
+    searchPlaceholder: 'Search pets...',
     filterBy: 'Filter by species',
     deleteConfirmTitle: 'Confirm Deletion',
     deleteConfirmMsg: 'Delete {{name}}? This action cannot be undone.',
@@ -459,6 +476,8 @@ export default {
     achievements: 'Achievements',
     complete: '% complete',
     challengeDone: 'This week\'s challenge completed!',
+    exportData: 'Export Data',
+    noAchievements: 'Complete challenges to unlock achievements!',
     challengeDoneTitle: '🎉 Challenge completed!',
     challengeDoneMsg: 'Congratulations! You completed this week\'s challenge.',
     contactTitle: 'Contact',
@@ -790,7 +809,9 @@ export default {
 
   // ── Calendar ───────────────────────────────────────────────────────────────
   calendar: {
-    title: 'Calendar',
+    title: 'Agenda',
+    today: 'Today',
+    events: 'events',
     legend: {
       health: 'Health',
       hygiene: 'Hygiene',
