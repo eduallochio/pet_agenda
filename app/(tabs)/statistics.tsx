@@ -224,25 +224,27 @@ export default function StatisticsScreen() {
             {(totalVaccines > 0 || overdueVaccines > 0) && (
               <View>
                 <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>
-                  {t('statistics.sections.vaccineStatus', { defaultValue: 'Status das Vacinas' })}
+                  {t('statistics.sections.boosters')}
                 </Text>
                 <View style={styles.boosterRow}>
                   <View style={[styles.boosterItem, { backgroundColor: '#E8F5E9' }]}>
-                    <Text style={[styles.boosterNum, { color: '#4CAF50' }]}>{totalVaccines - overdueVaccines - vaccinesUpcoming}</Text>
+                    <Text style={[styles.boosterNum, { color: '#4CAF50' }]}>
+                      {Math.max(0, totalVaccines - overdueVaccines - vaccinesUpcoming)}
+                    </Text>
                     <Text style={[styles.boosterLabel, { color: '#388E3C' }]}>
-                      {t('statistics.boosters.onTime', { defaultValue: 'Em dia' })}
+                      {t('statistics.boosters.onTime')}
                     </Text>
                   </View>
                   <View style={[styles.boosterItem, { backgroundColor: '#FFF3E0' }]}>
                     <Text style={[styles.boosterNum, { color: '#FF9800' }]}>{vaccinesUpcoming}</Text>
                     <Text style={[styles.boosterLabel, { color: '#E65100' }]}>
-                      {t('statistics.boosters.upcoming', { defaultValue: 'Próximas' })}
+                      {t('statistics.boosters.upcoming')}
                     </Text>
                   </View>
                   <View style={[styles.boosterItem, { backgroundColor: '#FFEBEE' }]}>
                     <Text style={[styles.boosterNum, { color: '#F44336' }]}>{overdueVaccines}</Text>
                     <Text style={[styles.boosterLabel, { color: '#C62828' }]}>
-                      {t('statistics.boosters.overdue', { defaultValue: 'Vencida' })}
+                      {t('statistics.boosters.overdue')}
                     </Text>
                   </View>
                 </View>
