@@ -29,6 +29,7 @@ import { requestBiometricAuth } from '../../services/biometricAuth';
 import { supabase } from '../../services/supabase';
 import { uploadToSupabase, downloadFromSupabase } from '../../services/syncService';
 import Constants from 'expo-constants';
+import { isBiometricAvailable } from '../../services/biometricAuth';
 
 type MCIName = keyof typeof MaterialCommunityIcons.glyphMap;
 
@@ -334,6 +335,9 @@ export default function ProfileScreen() {
     };
   };
 
+  const escapeHtml = (s: string) =>
+    s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
   const exportAsPDF = async () => {
     try {
       const data = await loadExportData();
@@ -343,15 +347,15 @@ export default function ProfileScreen() {
         const petReminders = data.reminders.filter(r => r.petId === p.id);
         const petVaccines = data.vaccines.filter(v => v.petId === p.id);
         const remindersRows = petReminders.length
-          ? petReminders.map(r => `<tr><td>${r.description}</td><td>${r.date ?? '—'}</td><td>${r.completed ? '✓' : '—'}</td></tr>`).join('')
+          ? petReminders.map(r => `<tr><td>${escapeHtml(r.description)}</td><td>${escapeHtml(r.date ?? '—')}</td><td>${r.completed ? '✓' : '—'}</td></tr>`).join('')
           : `<tr><td colspan="3" style="color:#999">Nenhum lembrete</td></tr>`;
         const vaccinesRows = petVaccines.length
-          ? petVaccines.map(v => `<tr><td>${v.vaccineName}</td><td>${v.dateAdministered}</td><td>${v.nextDueDate ?? '—'}</td></tr>`).join('')
+          ? petVaccines.map(v => `<tr><td>${escapeHtml(v.vaccineName)}</td><td>${escapeHtml(v.dateAdministered)}</td><td>${escapeHtml(v.nextDueDate ?? '—')}</td></tr>`).join('')
           : `<tr><td colspan="3" style="color:#999">Nenhuma vacina</td></tr>`;
         return `
           <div class="pet-card">
-            <h2>${p.name}</h2>
-            <p class="meta">${[p.species, p.breed].filter(Boolean).join(' · ')}</p>
+            <h2>${escapeHtml(p.name)}</h2>
+            <p class="meta">${escapeHtml([p.species, p.breed].filter(Boolean).join(' · '))}</p>
             <h3>Lembretes</h3>
             <table><tr><th>Título</th><th>Data</th><th>Feito</th></tr>${remindersRows}</table>
             <h3>Vacinas</h3>
@@ -410,8 +414,24 @@ ${petsSection || '<p>Nenhum pet cadastrado.</p>'}
       Alert.alert('Export', t('profile.settings.exportWebUnsupported'));
       return;
     }
-    const authed = await requestBiometricAuth(t('profile.settings.exportBiometricPrompt'));
-    if (!authed) return;
+    const biometricAvailable = await isBiometricAvailable();
+    if (biometricAvailable) {
+      const authed = await requestBiometricAuth(t('profile.settings.exportBiometricPrompt'));
+      if (!authed) return;
+    } else {
+      // Sem biometria: pede confirmação explícita antes de exportar dados sensíveis
+      const confirmed = await new Promise<boolean>(resolve =>
+        Alert.alert(
+          t('profile.settings.exportPrivacyTitle'),
+          'Você está prestes a exportar todos os dados dos seus pets. Confirme para continuar.',
+          [
+            { text: t('common.cancel'), style: 'cancel', onPress: () => resolve(false) },
+            { text: 'Confirmar', onPress: () => resolve(true) },
+          ]
+        )
+      );
+      if (!confirmed) return;
+    }
     // Aviso de privacidade antes de exportar
     Alert.alert(
       t('profile.settings.exportPrivacyTitle'),

@@ -29,6 +29,11 @@ export default function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [failCount, setFailCount] = useState(0);
+  const [blockedUntil, setBlockedUntil] = useState<number | null>(null);
+
+  const isBlocked = blockedUntil !== null && Date.now() < blockedUntil;
+  const blockSecondsLeft = isBlocked ? Math.ceil((blockedUntil! - Date.now()) / 1000) : 0;
 
   const resetFields = () => {
     setPassword('');
@@ -43,6 +48,10 @@ export default function LoginScreen() {
   };
 
   const handleSubmit = async () => {
+    if (isBlocked) {
+      Alert.alert('Muitas tentativas', `Aguarde ${blockSecondsLeft}s antes de tentar novamente.`);
+      return;
+    }
     if (!email.trim()) {
       Alert.alert('Atenção', 'Informe seu e-mail.');
       return;
@@ -106,7 +115,19 @@ export default function LoginScreen() {
         e.message?.includes('User already registered')   ? 'Este e-mail já está cadastrado.' :
         e.message?.includes('Email not confirmed')       ? 'Confirme seu e-mail antes de entrar.' :
         e.message || 'Erro inesperado. Tente novamente.';
-      Alert.alert('Erro', msg);
+      if (mode === 'login') {
+        const next = failCount + 1;
+        setFailCount(next);
+        if (next >= 3) {
+          setBlockedUntil(Date.now() + 30_000);
+          setFailCount(0);
+          Alert.alert('Muitas tentativas', 'Aguarde 30 segundos antes de tentar novamente.\n\n' + msg);
+        } else {
+          Alert.alert('Erro', `${msg} (tentativa ${next}/3)`);
+        }
+      } else {
+        Alert.alert('Erro', msg);
+      }
     } finally {
       setLoading(false);
     }
@@ -266,11 +287,19 @@ export default function LoginScreen() {
               </TouchableOpacity>
             )}
 
+            {/* Aviso de bloqueio */}
+            {isBlocked && (
+              <View style={styles.blockedBanner}>
+                <Ionicons name="time-outline" size={14} color="#c0392b" />
+                <Text style={styles.blockedText}>Aguarde {blockSecondsLeft}s para tentar novamente</Text>
+              </View>
+            )}
+
             {/* Botão principal */}
             <TouchableOpacity
-              style={[styles.submitBtn, loading && { opacity: 0.7 }]}
+              style={[styles.submitBtn, (loading || isBlocked) && { opacity: 0.5 }]}
               onPress={handleSubmit}
-              disabled={loading}
+              disabled={loading || isBlocked}
               activeOpacity={0.85}
             >
               <LinearGradient
@@ -401,4 +430,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF3E0', borderRadius: 10, padding: 12, marginBottom: 16,
   },
   wipText: { flex: 1, fontSize: 13, color: '#E65100', lineHeight: 18 },
+  blockedBanner: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: '#FDEDEC', borderRadius: 10, padding: 10, marginBottom: 12,
+  },
+  blockedText: { fontSize: 13, color: '#c0392b', flex: 1 },
 });
