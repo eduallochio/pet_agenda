@@ -23,6 +23,7 @@ import { useTranslation } from 'react-i18next';
 import { Shadows } from '../../constants/Shadows';
 import { PetDocument } from '../../types/pet';
 import DatePickerInput from '../../components/DatePickerInput';
+import { syncPetDocuments } from '../../services/syncService';
 
 const STORAGE_KEY = 'petDocuments';
 
@@ -178,7 +179,7 @@ export default function PetDocumentsScreen() {
         note: formNote.trim() || undefined,
       };
       all.push(newDoc);
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(all));
+      await syncPetDocuments(all);
       setDocuments(prev => [...prev, newDoc]);
       closeAddModal();
     } catch (e) {
@@ -208,7 +209,7 @@ export default function PetDocumentsScreen() {
       const json = await AsyncStorage.getItem(STORAGE_KEY);
       const all: PetDocument[] = json ? JSON.parse(json) : [];
       const updated = all.filter(d => d.id !== id);
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+      await syncPetDocuments(updated);
       setDocuments(prev => prev.filter(d => d.id !== id));
       if (viewModalVisible) {
         setViewModalVisible(false);

@@ -14,6 +14,7 @@ import { useTranslation } from 'react-i18next';
 import { PetPhoto } from '../../types/pet';
 import { Shadows } from '../../constants/Shadows';
 import { Theme } from '../../constants/Colors';
+import { syncPetPhotos } from '../../services/syncService';
 
 const STORAGE_KEY = 'petPhotos';
 const NUM_COLS = 3;
@@ -51,7 +52,7 @@ export default function PetPhotosScreen() {
 		const json = await AsyncStorage.getItem(STORAGE_KEY);
 		const all: PetPhoto[] = json ? JSON.parse(json) : [];
 		const others = all.filter(p => p.petId !== petId);
-		await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify([...others, ...updated]));
+		await syncPetPhotos([...others, ...updated]);
 		setPhotos(updated.sort((a, b) => b.createdAt.localeCompare(a.createdAt)));
 	};
 

@@ -11,6 +11,7 @@ import { useTheme } from '../../hooks/useTheme';
 import { Shadows } from '../../constants/Shadows';
 import { DiaryEntry } from '../../types/pet';
 import { useTranslation } from 'react-i18next';
+import { syncDiaryEntries } from '../../services/syncService';
 
 const MOOD_CONFIG: {
   key: DiaryEntry['mood'];
@@ -71,7 +72,7 @@ export default function DiaryScreen() {
         createdAt: new Date().toISOString(),
       };
       all.push(newEntry);
-      await AsyncStorage.setItem('petDiary', JSON.stringify(all));
+      await syncDiaryEntries(all);
       setSelectedMood(null);
       setNotes('');
       load();
@@ -90,7 +91,7 @@ export default function DiaryScreen() {
           try {
             const json = await AsyncStorage.getItem('petDiary');
             const all: DiaryEntry[] = json ? JSON.parse(json) : [];
-            await AsyncStorage.setItem('petDiary', JSON.stringify(all.filter(e => e.id !== entry.id)));
+            await syncDiaryEntries(all.filter(e => e.id !== entry.id));
             load();
           } catch { /* silent */ }
         },

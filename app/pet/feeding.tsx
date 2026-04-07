@@ -13,6 +13,7 @@ import { useTranslation } from 'react-i18next';
 import { FeedingRecord } from '../../types/pet';
 import { Shadows } from '../../constants/Shadows';
 import { Theme } from '../../constants/Colors';
+import { syncFeedingRecords } from '../../services/syncService';
 
 const STORAGE_KEY = 'petFeeding';
 
@@ -48,7 +49,7 @@ export default function FeedingScreen() {
 		const json = await AsyncStorage.getItem(STORAGE_KEY);
 		const all: FeedingRecord[] = json ? JSON.parse(json) : [];
 		const others = all.filter(r => r.petId !== petId);
-		await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify([...others, ...updated]));
+		await syncFeedingRecords([...others, ...updated]);
 		setRecords(updated.sort((a, b) => b.createdAt.localeCompare(a.createdAt)));
 	};
 

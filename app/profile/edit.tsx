@@ -17,6 +17,7 @@ import { useTheme } from '../../hooks/useTheme';
 import AnimatedButton from '../../components/animations/AnimatedButton';
 import SuccessAnimation from '../../components/animations/SuccessAnimation';
 import { useTranslation } from 'react-i18next';
+import { syncUserProfile } from '../../services/syncService';
 
 type MCIName = keyof typeof MaterialCommunityIcons.glyphMap;
 
@@ -152,6 +153,7 @@ export default function EditProfileScreen() {
 
     try {
       await secureSet('userProfile', JSON.stringify(newProfile));
+      syncUserProfile(newProfile); // sync em background — não bloqueia
       setShowSuccess(true);
       setTimeout(() => { try { goBack(); } catch {} }, 1800);
     } catch {
