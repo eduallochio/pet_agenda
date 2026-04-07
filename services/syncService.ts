@@ -1,12 +1,10 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from './supabase';
-import { Pet, Reminder, VaccineRecord, WeightRecord, MedicationRecord } from '../types/pet';
-
-type EmergencyContact = {
-  id: string; petId: string;
-  type: 'vet' | 'clinic' | 'emergency';
-  name: string; phone: string; address?: string; notes?: string;
-};
+import {
+  Pet, Reminder, VaccineRecord, WeightRecord, MedicationRecord,
+  DiaryEntry, PetDocument, PetPhoto, FeedingRecord, UserProfile,
+  EmergencyContact,
+} from '../types/pet';
 
 // ─── Helper: verifica se usuário está logado ───────────────────────────────────
 
@@ -17,10 +15,11 @@ async function getUid(): Promise<string | null> {
 
 // ─── Mapeadores local → Supabase ──────────────────────────────────────────────
 
-const toSupabasePet    = (uid: string, p: Pet) => ({
+const toSupabasePet = (uid: string, p: Pet) => ({
   id: p.id, user_id: uid, name: p.name, species: p.species, breed: p.breed,
   dob: p.dob, photo_uri: p.photoUri, food_allergies: p.foodAllergies,
   med_allergies: p.medAllergies, restrictions: p.restrictions,
+  gender: p.gender, castrated: p.castrated ?? false, microchip: p.microchip,
   updated_at: new Date().toISOString(),
 });
 
@@ -49,6 +48,34 @@ const toSupabaseMed = (uid: string, m: MedicationRecord) => ({
 const toSupabaseContact = (uid: string, c: EmergencyContact) => ({
   id: c.id, user_id: uid, pet_id: c.petId, type: c.type,
   name: c.name, phone: c.phone, address: c.address, notes: c.notes,
+});
+
+const toSupabaseDiary = (uid: string, d: DiaryEntry) => ({
+  id: d.id, user_id: uid, pet_id: d.petId,
+  date: d.date, mood: d.mood, notes: d.notes,
+});
+
+const toSupabaseDocument = (uid: string, d: PetDocument) => ({
+  id: d.id, user_id: uid, pet_id: d.petId,
+  title: d.title, type: d.type, photo_uri: d.photoUri, date: d.date, note: d.note,
+});
+
+const toSupabasePhoto = (uid: string, p: PetPhoto) => ({
+  id: p.id, user_id: uid, pet_id: p.petId,
+  uri: p.uri, date: p.date, caption: p.caption,
+});
+
+const toSupabaseFeeding = (uid: string, f: FeedingRecord) => ({
+  id: f.id, user_id: uid, pet_id: f.petId,
+  brand: f.brand, daily_amount: f.dailyAmount,
+  last_refill_date: f.lastRefillDate, note: f.note,
+});
+
+const toSupabaseProfile = (uid: string, p: UserProfile) => ({
+  user_id: uid, name: p.name, bio: p.bio, avatar_url: p.avatarUrl,
+  phone: p.phone, city: p.city, state: p.state, cep: p.cep,
+  birth_date: p.birthDate, experience: p.experience,
+  updated_at: new Date().toISOString(),
 });
 
 // ─── Sync automático por operação (offline-first) ────────────────────────────
@@ -103,6 +130,46 @@ export async function syncEmergencyContacts(contacts: EmergencyContact[]): Promi
     .then(({ error }) => { if (error) console.warn('[sync] contacts:', error.message); });
 }
 
+export async function syncDiaryEntries(entries: DiaryEntry[]): Promise<void> {
+  await AsyncStorage.setItem('diaryEntries', JSON.stringify(entries));
+  const uid = await getUid();
+  if (!uid) return;
+  supabase.from('pet_diary').upsert(entries.map(d => toSupabaseDiary(uid, d)), { onConflict: 'id' })
+    .then(({ error }) => { if (error) console.warn('[sync] diary:', error.message); });
+}
+
+export async function syncPetDocuments(docs: PetDocument[]): Promise<void> {
+  await AsyncStorage.setItem('petDocuments', JSON.stringify(docs));
+  const uid = await getUid();
+  if (!uid) return;
+  supabase.from('pet_documents').upsert(docs.map(d => toSupabaseDocument(uid, d)), { onConflict: 'id' })
+    .then(({ error }) => { if (error) console.warn('[sync] documents:', error.message); });
+}
+
+export async function syncPetPhotos(photos: PetPhoto[]): Promise<void> {
+  await AsyncStorage.setItem('petPhotos', JSON.stringify(photos));
+  const uid = await getUid();
+  if (!uid) return;
+  supabase.from('pet_photos').upsert(photos.map(p => toSupabasePhoto(uid, p)), { onConflict: 'id' })
+    .then(({ error }) => { if (error) console.warn('[sync] photos:', error.message); });
+}
+
+export async function syncFeedingRecords(feedings: FeedingRecord[]): Promise<void> {
+  await AsyncStorage.setItem('feedingRecords', JSON.stringify(feedings));
+  const uid = await getUid();
+  if (!uid) return;
+  supabase.from('pet_feedings').upsert(feedings.map(f => toSupabaseFeeding(uid, f)), { onConflict: 'id' })
+    .then(({ error }) => { if (error) console.warn('[sync] feedings:', error.message); });
+}
+
+export async function syncUserProfile(profile: UserProfile): Promise<void> {
+  await AsyncStorage.setItem('userProfile', JSON.stringify(profile));
+  const uid = await getUid();
+  if (!uid) return;
+  supabase.from('user_profiles').upsert(toSupabaseProfile(uid, profile), { onConflict: 'user_id' })
+    .then(({ error }) => { if (error) console.warn('[sync] profile:', error.message); });
+}
+
 // ─── Delete remoto ────────────────────────────────────────────────────────────
 
 export async function deleteRemote(table: string, id: string): Promise<void> {
@@ -125,6 +192,11 @@ export async function downloadFromSupabase(): Promise<void> {
     { data: weights },
     { data: meds },
     { data: contacts },
+    { data: diary },
+    { data: documents },
+    { data: photos },
+    { data: feedings },
+    { data: profile },
   ] = await Promise.all([
     supabase.from('pets').select('*'),
     supabase.from('reminders').select('*'),
@@ -132,12 +204,18 @@ export async function downloadFromSupabase(): Promise<void> {
     supabase.from('weight_records').select('*'),
     supabase.from('pet_medications').select('*'),
     supabase.from('emergency_contacts').select('*'),
+    supabase.from('pet_diary').select('*'),
+    supabase.from('pet_documents').select('*'),
+    supabase.from('pet_photos').select('*'),
+    supabase.from('pet_feedings').select('*'),
+    supabase.from('user_profiles').select('*').eq('user_id', uid).single(),
   ]);
 
   const mappedPets: Pet[] = (pets ?? []).map((p: any) => ({
     id: p.id, name: p.name, species: p.species, breed: p.breed, dob: p.dob,
     photoUri: p.photo_uri, foodAllergies: p.food_allergies,
     medAllergies: p.med_allergies, restrictions: p.restrictions,
+    gender: p.gender, castrated: p.castrated, microchip: p.microchip,
   }));
 
   const mappedReminders: Reminder[] = (reminders ?? []).map((r: any) => ({
@@ -167,14 +245,49 @@ export async function downloadFromSupabase(): Promise<void> {
     phone: c.phone, address: c.address, notes: c.notes,
   }));
 
-  await Promise.all([
+  const mappedDiary: DiaryEntry[] = (diary ?? []).map((d: any) => ({
+    id: d.id, petId: d.pet_id, date: d.date, mood: d.mood,
+    notes: d.notes, createdAt: d.created_at,
+  }));
+
+  const mappedDocuments: PetDocument[] = (documents ?? []).map((d: any) => ({
+    id: d.id, petId: d.pet_id, title: d.title, type: d.type,
+    photoUri: d.photo_uri, date: d.date, note: d.note,
+  }));
+
+  const mappedPhotos: PetPhoto[] = (photos ?? []).map((p: any) => ({
+    id: p.id, petId: p.pet_id, uri: p.uri, date: p.date,
+    caption: p.caption, createdAt: p.created_at,
+  }));
+
+  const mappedFeedings: FeedingRecord[] = (feedings ?? []).map((f: any) => ({
+    id: f.id, petId: f.pet_id, brand: f.brand, dailyAmount: f.daily_amount,
+    lastRefillDate: f.last_refill_date, note: f.note, createdAt: f.created_at,
+  }));
+
+  const saves: Promise<void>[] = [
     AsyncStorage.setItem('pets',                 JSON.stringify(mappedPets)),
     AsyncStorage.setItem('reminders',            JSON.stringify(mappedReminders)),
     AsyncStorage.setItem('vaccinations',         JSON.stringify(mappedVaccinations)),
     AsyncStorage.setItem('weightRecords',        JSON.stringify(mappedWeights)),
     AsyncStorage.setItem('petMedications',       JSON.stringify(mappedMeds)),
     AsyncStorage.setItem('petEmergencyContacts', JSON.stringify(mappedContacts)),
-  ]);
+    AsyncStorage.setItem('diaryEntries',         JSON.stringify(mappedDiary)),
+    AsyncStorage.setItem('petDocuments',         JSON.stringify(mappedDocuments)),
+    AsyncStorage.setItem('petPhotos',            JSON.stringify(mappedPhotos)),
+    AsyncStorage.setItem('feedingRecords',       JSON.stringify(mappedFeedings)),
+  ];
+
+  if (profile) {
+    const mappedProfile: UserProfile = {
+      name: profile.name, bio: profile.bio, avatarUrl: profile.avatar_url,
+      phone: profile.phone, city: profile.city, state: profile.state,
+      cep: profile.cep, birthDate: profile.birth_date, experience: profile.experience,
+    };
+    saves.push(AsyncStorage.setItem('userProfile', JSON.stringify(mappedProfile)));
+  }
+
+  await Promise.all(saves);
 }
 
 // ─── Upload manual completo (botão "Fazer backup") ────────────────────────────
@@ -183,13 +296,21 @@ export async function uploadToSupabase(): Promise<void> {
   const uid = await getUid();
   if (!uid) throw new Error('Usuário não autenticado.');
 
-  const [petsJ, remindersJ, vaccJ, weightJ, medsJ, contactsJ] = await Promise.all([
+  const [
+    petsJ, remindersJ, vaccJ, weightJ, medsJ, contactsJ,
+    diaryJ, docsJ, photosJ, feedingsJ, profileJ,
+  ] = await Promise.all([
     AsyncStorage.getItem('pets'),
     AsyncStorage.getItem('reminders'),
     AsyncStorage.getItem('vaccinations'),
     AsyncStorage.getItem('weightRecords'),
     AsyncStorage.getItem('petMedications'),
     AsyncStorage.getItem('petEmergencyContacts'),
+    AsyncStorage.getItem('diaryEntries'),
+    AsyncStorage.getItem('petDocuments'),
+    AsyncStorage.getItem('petPhotos'),
+    AsyncStorage.getItem('feedingRecords'),
+    AsyncStorage.getItem('userProfile'),
   ]);
 
   const pets: Pet[]                   = petsJ      ? JSON.parse(petsJ)      : [];
@@ -198,6 +319,11 @@ export async function uploadToSupabase(): Promise<void> {
   const weights: WeightRecord[]       = weightJ    ? JSON.parse(weightJ)    : [];
   const meds: MedicationRecord[]      = medsJ      ? JSON.parse(medsJ)      : [];
   const contacts: EmergencyContact[]  = contactsJ  ? JSON.parse(contactsJ)  : [];
+  const diary: DiaryEntry[]           = diaryJ     ? JSON.parse(diaryJ)     : [];
+  const docs: PetDocument[]           = docsJ      ? JSON.parse(docsJ)      : [];
+  const photos: PetPhoto[]            = photosJ    ? JSON.parse(photosJ)    : [];
+  const feedings: FeedingRecord[]     = feedingsJ  ? JSON.parse(feedingsJ)  : [];
+  const profile: UserProfile | null   = profileJ   ? JSON.parse(profileJ)   : null;
 
   const ops = [];
   if (pets.length)        ops.push(supabase.from('pets').upsert(pets.map(p => toSupabasePet(uid, p)), { onConflict: 'id' }));
@@ -206,6 +332,11 @@ export async function uploadToSupabase(): Promise<void> {
   if (weights.length)     ops.push(supabase.from('weight_records').upsert(weights.map(w => toSupabaseWeight(uid, w)), { onConflict: 'id' }));
   if (meds.length)        ops.push(supabase.from('pet_medications').upsert(meds.map(m => toSupabaseMed(uid, m)), { onConflict: 'id' }));
   if (contacts.length)    ops.push(supabase.from('emergency_contacts').upsert(contacts.map(c => toSupabaseContact(uid, c)), { onConflict: 'id' }));
+  if (diary.length)       ops.push(supabase.from('pet_diary').upsert(diary.map(d => toSupabaseDiary(uid, d)), { onConflict: 'id' }));
+  if (docs.length)        ops.push(supabase.from('pet_documents').upsert(docs.map(d => toSupabaseDocument(uid, d)), { onConflict: 'id' }));
+  if (photos.length)      ops.push(supabase.from('pet_photos').upsert(photos.map(p => toSupabasePhoto(uid, p)), { onConflict: 'id' }));
+  if (feedings.length)    ops.push(supabase.from('pet_feedings').upsert(feedings.map(f => toSupabaseFeeding(uid, f)), { onConflict: 'id' }));
+  if (profile)            ops.push(supabase.from('user_profiles').upsert(toSupabaseProfile(uid, profile), { onConflict: 'user_id' }));
 
   const results = await Promise.all(ops);
   const failed = results.find(r => r.error);
