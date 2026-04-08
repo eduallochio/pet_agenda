@@ -102,7 +102,7 @@ export async function requestNotificationPermissions(): Promise<boolean> {
 
     if (Platform.OS === 'android') {
       await Notifications.setNotificationChannelAsync('default', {
-        name: 'Pet Agenda',
+        name: 'Zupet',
         importance: Notifications.AndroidImportance.HIGH,
         vibrationPattern: [0, 250, 250, 250],
         lightColor: '#40E0D0',
@@ -335,7 +335,7 @@ export async function scheduleBirthdayNotification(
 const REENGAGEMENT_MESSAGES = [
   {
     title: '🐾 Seu pet está com saudade!',
-    body: 'Faz alguns dias que você não abre o Pet Agenda. Que tal dar uma olhada nos lembretes?',
+    body: 'Faz alguns dias que você não abre o Zupet. Que tal dar uma olhada nos lembretes?',
   },
   {
     title: '🌟 Novidades te esperando!',
@@ -343,7 +343,7 @@ const REENGAGEMENT_MESSAGES = [
   },
   {
     title: '💛 O carinho não pode esperar',
-    body: 'Abra o Pet Agenda e veja se há algo pendente para o seu pet.',
+    body: 'Abra o Zupet e veja se há algo pendente para o seu pet.',
   },
   {
     title: '🩺 Tudo em dia com a saúde?',

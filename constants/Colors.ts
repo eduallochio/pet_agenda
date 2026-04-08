@@ -25,7 +25,7 @@ export const Colors = {
   },
 };
 
-// ====== TEMA PET AGENDA ======
+// ====== TEMA ZUPET ======
 
 // MODO LEGADO (será migrado para ThemeContext)
 export const Theme = {

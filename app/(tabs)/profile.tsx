@@ -28,6 +28,7 @@ import { Share } from 'react-native';
 import { requestBiometricAuth } from '../../services/biometricAuth';
 import { supabase } from '../../services/supabase';
 import { uploadToSupabase, downloadFromSupabase } from '../../services/syncService';
+import { useNetworkSync, SyncStatus } from '../../hooks/useNetworkSync';
 import Constants from 'expo-constants';
 import { isBiometricAvailable } from '../../services/biometricAuth';
 
@@ -70,6 +71,7 @@ export default function ProfileScreen() {
   const [hadAccount, setHadAccount] = useState(false);
   const [lastEmail, setLastEmail] = useState<string | null>(null);
   const [syncLoading, setSyncLoading] = useState(false);
+  const { status: syncStatus, lastSyncedAt } = useNetworkSync();
   const { t } = useTranslation();
 
   useEffect(() => {
@@ -378,10 +380,10 @@ export default function ProfileScreen() {
   .footer{color:#aaa;font-size:11px;text-align:center;margin-top:24px}
 </style>
 </head><body>
-<h1>Pet Agenda — Meus Dados</h1>
+<h1>Zupet — Meus Dados</h1>
 <p>Exportado em ${now} · ${data.pets.length} pet(s)</p>
 ${petsSection || '<p>Nenhum pet cadastrado.</p>'}
-<div class="footer">Pet Agenda · Exportado em ${now}</div>
+<div class="footer">Zupet · Exportado em ${now}</div>
 </body></html>`;
 
       const { uri } = await Print.printToFileAsync({ html, base64: false });
@@ -389,7 +391,7 @@ ${petsSection || '<p>Nenhum pet cadastrado.</p>'}
       if (canShare) {
         await Sharing.shareAsync(uri, {
           mimeType: 'application/pdf',
-          dialogTitle: 'Pet Agenda — Meus Dados',
+          dialogTitle: 'Zupet — Meus Dados',
           UTI: 'com.adobe.pdf',
         });
       }
@@ -403,7 +405,7 @@ ${petsSection || '<p>Nenhum pet cadastrado.</p>'}
       const data = await loadExportData();
       const exportObj = { exportedAt: new Date().toISOString(), ...data };
       const json = JSON.stringify(exportObj, null, 2);
-      await Share.share({ message: json, title: 'Pet Agenda — Backup' });
+      await Share.share({ message: json, title: 'Zupet — Backup' });
     } catch {
       Alert.alert(t('common.error'), t('profile.settings.exportError'));
     }
@@ -971,6 +973,30 @@ ${petsSection || '<p>Nenhum pet cadastrado.</p>'}
                     <Ionicons name="cloud-done-outline" size={16} color={Theme.primary} />
                     <Text style={{ color: colors.text.secondary, fontSize: 12 }} numberOfLines={1}>{authUser.email}</Text>
                   </View>
+
+                  {/* Status da sincronização automática */}
+                  {syncStatus === 'synced' && (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                      <Ionicons name="checkmark-circle" size={14} color="#4CAF50" />
+                      <Text style={{ color: '#4CAF50', fontSize: 12 }}>
+                        {t('profile.settings.syncSynced')}
+                        {lastSyncedAt ? ` — ${new Date(lastSyncedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : ''}
+                      </Text>
+                    </View>
+                  )}
+                  {syncStatus === 'syncing' && (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                      <Ionicons name="sync-outline" size={14} color={Theme.primary} />
+                      <Text style={{ color: Theme.primary, fontSize: 12 }}>{t('profile.settings.syncSyncing')}</Text>
+                    </View>
+                  )}
+                  {(syncStatus === 'pending' || syncStatus === 'offline') && (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                      <Ionicons name="cloud-offline-outline" size={14} color="#FF9800" />
+                      <Text style={{ color: '#FF9800', fontSize: 12 }}>{t('profile.settings.syncPending')}</Text>
+                    </View>
+                  )}
+
                   <View style={{ flexDirection: 'row', gap: 8, width: '100%' }}>
                     <TouchableOpacity
                       style={[styles.syncBtn, { backgroundColor: Theme.primary + '18', flex: 1 }]}
@@ -1057,7 +1083,7 @@ ${petsSection || '<p>Nenhum pet cadastrado.</p>'}
                 <View style={[styles.aboutIconCircle, { backgroundColor: Theme.primary + '18' }]}>
                   <MaterialCommunityIcons name="paw" size={18} color={Theme.primary} />
                 </View>
-                <Text style={[styles.aboutAppName, { color: colors.text.primary }]}>Pet Agenda</Text>
+                <Text style={[styles.aboutAppName, { color: colors.text.primary }]}>Zupet</Text>
                 <Text style={[styles.aboutVersion, { color: colors.text.secondary }]}>v{Constants.expoConfig?.version ?? '1.1.0'}</Text>
               </View>
 

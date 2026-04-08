@@ -197,7 +197,7 @@ function buildPassportHtml(data: PassportData): string {
 
   <!-- HEADER -->
   <div style="background:linear-gradient(135deg, ${primary} 0%, ${dark} 100%);padding:40px 32px;text-align:center;">
-    <p style="color:rgba(255,255,255,0.85);font-size:14px;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px;">🐾 Pet Agenda</p>
+    <p style="color:rgba(255,255,255,0.85);font-size:14px;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px;">🐾 Zupet</p>
     <h1 style="color:#fff;font-size:32px;font-weight:800;margin-bottom:4px;">Passaporte do Pet</h1>
     <p style="color:rgba(255,255,255,0.75);font-size:14px;">Documento de saúde e informações do animal</p>
   </div>
@@ -337,7 +337,7 @@ function buildPassportHtml(data: PassportData): string {
         <p style="font-size:18px;font-weight:700;color:#222;margin-bottom:6px;">${pet.name}</p>
         ${pet.species ? `<p style="font-size:14px;color:#555;margin-bottom:4px;">${pet.species}${pet.breed ? ` · ${pet.breed}` : ''}</p>` : ''}
         ${pet.dob ? `<p style="font-size:14px;color:#555;margin-bottom:4px;">Nascimento: ${pet.dob}</p>` : ''}
-        <p style="font-size:12px;color:#999;margin-top:10px;font-style:italic;">Use o aplicativo Pet Agenda para escanear o QR Code de identificação.</p>
+        <p style="font-size:12px;color:#999;margin-top:10px;font-style:italic;">Use o aplicativo Zupet para escanear o QR Code de identificação.</p>
       </div>
     </div>
 
@@ -345,7 +345,7 @@ function buildPassportHtml(data: PassportData): string {
 
   <!-- FOOTER -->
   <div style="background:${dark};padding:20px 32px;text-align:center;margin-top:8px;">
-    <p style="color:rgba(255,255,255,0.9);font-size:13px;margin-bottom:4px;">🐾 Pet Agenda — Passaporte do Pet</p>
+    <p style="color:rgba(255,255,255,0.9);font-size:13px;margin-bottom:4px;">🐾 Zupet — Passaporte do Pet</p>
     <p style="color:rgba(255,255,255,0.6);font-size:12px;">Gerado em ${generatedAt} · Documento de uso pessoal</p>
   </div>
 

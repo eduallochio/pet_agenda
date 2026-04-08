@@ -8,10 +8,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as WebBrowser from 'expo-web-browser';
+import * as Linking from 'expo-linking';
 import { supabase } from '../../services/supabase';
 import { useTheme, useIsDarkMode } from '../../hooks/useTheme';
 import { Theme } from '../../constants/Colors';
 import { useTranslation } from 'react-i18next';
+
+WebBrowser.maybeCompleteAuthSession();
 
 const { height } = Dimensions.get('window');
 
@@ -47,6 +51,48 @@ export default function LoginScreen() {
   const switchMode = (m: Mode) => {
     setMode(m);
     resetFields();
+  };
+
+  const handleOAuthLogin = async (provider: 'google' | 'apple') => {
+    try {
+      const appCallback = Linking.createURL('auth/callback');
+
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: { redirectTo: appCallback, skipBrowserRedirect: true },
+      });
+      if (error || !data.url) throw error ?? new Error('No URL');
+
+      const result = await WebBrowser.openAuthSessionAsync(data.url, appCallback);
+
+      if (result.type === 'success' && result.url) {
+        // tenta extrair tokens da URL de retorno (hash ou query)
+        const url = new URL(result.url);
+        const hash = Object.fromEntries(new URLSearchParams(url.hash.slice(1)));
+        const query = Object.fromEntries(url.searchParams);
+        const access_token = hash.access_token ?? query.access_token;
+        const refresh_token = hash.refresh_token ?? query.refresh_token;
+
+        if (access_token && refresh_token) {
+          await supabase.auth.setSession({ access_token, refresh_token });
+          router.back();
+          return;
+        }
+      }
+
+      // fallback: verifica se o Supabase já estabeleceu sessão
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (sessionData?.session) {
+        router.back();
+        return;
+      }
+
+      if (result.type !== 'cancel') {
+        Alert.alert(t('common.error'), t('auth.errorGeneric'));
+      }
+    } catch (e: any) {
+      Alert.alert(t('common.error'), e.message || t('auth.errorGeneric'));
+    }
   };
 
   const handleSubmit = async () => {
@@ -187,7 +233,7 @@ export default function LoginScreen() {
             <View style={styles.logoCircle}>
               <MaterialCommunityIcons name="paw" size={36} color="#fff" />
             </View>
-            <Text style={styles.appName}>Pet Agenda</Text>
+            <Text style={styles.appName}>Zupet</Text>
             <Text style={styles.appTagline}>{t('auth.appTagline')}</Text>
           </View>
 
@@ -315,6 +361,35 @@ export default function LoginScreen() {
               </TouchableOpacity>
             )}
 
+            {/* Social login */}
+            {mode !== 'forgot' && (
+              <>
+                <View style={styles.divider}>
+                  <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
+                  <Text style={[styles.dividerText, { color: colors.text.secondary }]}>{t('auth.orContinueWith')}</Text>
+                  <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
+                </View>
+
+                <TouchableOpacity
+                  style={[styles.socialBtn, { borderColor: colors.border, backgroundColor: colors.background }]}
+                  onPress={() => handleOAuthLogin('google')}
+                >
+                  <Ionicons name="logo-google" size={20} color="#DB4437" />
+                  <Text style={[styles.socialBtnText, { color: colors.text.primary }]}>{t('auth.continueWithGoogle')}</Text>
+                </TouchableOpacity>
+
+                {Platform.OS === 'ios' && (
+                  <TouchableOpacity
+                    style={[styles.socialBtn, { borderColor: colors.border, backgroundColor: colors.background }]}
+                    onPress={() => handleOAuthLogin('apple')}
+                  >
+                    <Ionicons name="logo-apple" size={20} color={colors.text.primary} />
+                    <Text style={[styles.socialBtnText, { color: colors.text.primary }]}>{t('auth.continueWithApple')}</Text>
+                  </TouchableOpacity>
+                )}
+              </>
+            )}
+
             {/* Info privacidade */}
             <Text style={[styles.privacyText, { color: colors.text.secondary }]}>
               {t('auth.privacyText')}{' '}
@@ -383,4 +458,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#FDEDEC', borderRadius: 10, padding: 10, marginBottom: 12,
   },
   blockedText: { fontSize: 13, color: '#c0392b', flex: 1 },
+  divider: { flexDirection: 'row', alignItems: 'center', marginVertical: 20, gap: 10 },
+  dividerLine: { flex: 1, height: 1 },
+  dividerText: { fontSize: 12 },
+  socialBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 10, borderWidth: 1.5, borderRadius: 12,
+    paddingVertical: 13, marginBottom: 10,
+  },
+  socialBtnText: { fontSize: 15, fontWeight: '600' },
 });

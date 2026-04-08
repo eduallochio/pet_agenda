@@ -47,6 +47,8 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 import { ThemeProvider } from '../contexts/ThemeContext';
 import { initI18n } from '../i18n';
 import { migrateToSecureStore } from '../services/secureStorage';
+import * as Linking from 'expo-linking';
+import { supabase } from '../services/supabase';
 
 // Suprimir warnings conhecidos do React Native Web em desenvolvimento
 if (__DEV__ && Platform.OS === 'web') {
@@ -90,6 +92,27 @@ export default function RootLayout() {
   useEffect(() => {
     initI18n().then(setI18nInstance);
     migrateToSecureStore().catch(() => {});
+  }, []);
+
+  // Captura deep link OAuth (zupet://auth/callback#access_token=...)
+  useEffect(() => {
+    const handleUrl = async (url: string) => {
+      if (!url.includes('auth/callback')) return;
+      try {
+        const parsed = new URL(url);
+        const hash = Object.fromEntries(new URLSearchParams(parsed.hash.slice(1)));
+        const query = Object.fromEntries(parsed.searchParams);
+        const access_token = hash.access_token ?? query.access_token;
+        const refresh_token = hash.refresh_token ?? query.refresh_token;
+        if (access_token && refresh_token) {
+          await supabase.auth.setSession({ access_token, refresh_token });
+        }
+      } catch {}
+    };
+
+    Linking.getInitialURL().then(url => { if (url) handleUrl(url); });
+    const sub = Linking.addEventListener('url', ({ url }) => handleUrl(url));
+    return () => sub.remove();
   }, []);
 
   // Notificação de reengajamento: agenda ao abrir o app
