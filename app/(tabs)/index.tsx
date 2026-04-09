@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { syncPets } from '../../services/syncService';
+import { showRewardedAd } from '../../services/adService';
 import { secureGet } from '../../services/secureStorage';
 import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useState, useMemo, useRef } from 'react';
@@ -309,6 +310,17 @@ export default function PetDashboard() {
   const { colors } = useTheme();
   const { t } = useTranslation();
   const [pets, setPets] = useState<Pet[]>([]);
+
+  const handleAddPet = async () => {
+    if (pets.length >= 2) {
+      const rewarded = await showRewardedAd();
+      if (!rewarded) {
+        Alert.alert('Anúncio necessário', 'Assista ao vídeo completo para adicionar mais pets.');
+        return;
+      }
+    }
+    router.push('/(tabs)/add-pet');
+  };
   const [reminders, setReminders] = useState<Reminder[]>([]);
   const [vaccines, setVaccines] = useState<VaccineRecord[]>([]);
   const [userName, setUserName] = useState<string>('');
@@ -510,7 +522,7 @@ export default function PetDashboard() {
           message={t('home.noPetsMsg')}
           hint={t('home.noPetsHint')}
           actionLabel={t('home.addPet')}
-          onAction={() => router.push('/(tabs)/add-pet')}
+          onAction={() => handleAddPet()}
         />
       </SafeAreaView>
     );
@@ -737,7 +749,7 @@ export default function PetDashboard() {
               ? { boxShadow: '0 4px 12px rgba(0,0,0,0.2)' }
               : { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 6, elevation: 6 }),
           }]}
-          onPress={() => { toggleFab(); router.push('/(tabs)/add-pet'); }}
+          onPress={() => { toggleFab(); handleAddPet(); }}
           activeOpacity={0.85}
         >
           <Ionicons name="paw-outline" size={20} color={Theme.primary} />

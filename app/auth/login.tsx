@@ -63,10 +63,19 @@ export default function LoginScreen() {
       });
       if (error || !data.url) throw error ?? new Error('No URL');
 
+      // Escuta mudança de sessão ANTES de abrir o browser
+      // Assim captura o login independente de como o browser retorna
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+        if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session) {
+          subscription.unsubscribe();
+          router.back();
+        }
+      });
+
       const result = await WebBrowser.openAuthSessionAsync(data.url, appCallback);
 
+      // Se o browser retornou URL com tokens, processa manualmente
       if (result.type === 'success' && result.url) {
-        // tenta extrair tokens da URL de retorno (hash ou query)
         const url = new URL(result.url);
         const hash = Object.fromEntries(new URLSearchParams(url.hash.slice(1)));
         const query = Object.fromEntries(url.searchParams);
@@ -75,20 +84,18 @@ export default function LoginScreen() {
 
         if (access_token && refresh_token) {
           await supabase.auth.setSession({ access_token, refresh_token });
-          router.back();
+          // onAuthStateChange vai disparar e navegar
           return;
         }
       }
 
-      // fallback: verifica se o Supabase já estabeleceu sessão
+      // Se browser fechou sem sucesso e sessão não foi criada, limpa listener
       const { data: sessionData } = await supabase.auth.getSession();
-      if (sessionData?.session) {
-        router.back();
-        return;
-      }
-
-      if (result.type !== 'cancel') {
-        Alert.alert(t('common.error'), t('auth.errorGeneric'));
+      if (!sessionData?.session) {
+        subscription.unsubscribe();
+        if (result.type !== 'cancel' && result.type !== 'dismiss') {
+          Alert.alert(t('common.error'), t('auth.errorGeneric'));
+        }
       }
     } catch (e: any) {
       Alert.alert(t('common.error'), e.message || t('auth.errorGeneric'));

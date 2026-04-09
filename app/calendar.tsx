@@ -8,6 +8,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { getCategoryColor, Theme } from '../constants/Colors';
 import { Pet, Reminder, VaccineRecord } from '../types/pet';
+import AdBanner from '../components/AdBanner';
 import { useTranslation } from 'react-i18next';
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
@@ -329,6 +330,7 @@ export default function CalendarScreen() {
           )}
         </View>
       </ScrollView>
+      <AdBanner />
     </SafeAreaView>
   );
 }

@@ -1,7 +1,8 @@
 /**
- * AdBanner — desabilitado temporariamente para o build de teste.
- * Reativar quando react-native-google-mobile-ads tiver compatibilidade
- * com Kotlin 2.2+ / Expo 53.
+ * AdBanner — aguardando versão compatível com Expo 53 / RN 0.79.
+ * IDs configurados: App ca-app-pub-4896814460874070~6475595426
+ * Banner: ca-app-pub-4896814460874070/8156342753
+ * Rewarded: ca-app-pub-4896814460874070/1840112770
  */
 export default function AdBanner() {
   return null;
