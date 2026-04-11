@@ -16,7 +16,7 @@ export default function EntryPoint() {
 						await NS.requestNotificationPermissions();
 						await NS.scheduleReengagementNotification(5);
 					} catch (notifError) {
-						console.warn('Erro ao configurar notificações:', notifError);
+						if (__DEV__) console.warn('Erro ao configurar notificações:', notifError);
 					}
 				}
 
@@ -35,7 +35,7 @@ export default function EntryPoint() {
 					router.replace('/(tabs)');
 				}
 			} catch (error) {
-				console.error("Erro ao verificar status do usuário:", error);
+				if (__DEV__) console.error("Erro ao verificar status do usuário:", error);
 				// Em caso de erro, manda para a tela de adicionar por segurança
 				router.replace('/add-pet');
 			}

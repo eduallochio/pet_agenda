@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 import { supabase } from './supabase';
 import {
   Pet, Reminder, VaccineRecord, WeightRecord, MedicationRecord,
@@ -75,6 +76,7 @@ const toSupabaseProfile = (uid: string, p: UserProfile) => ({
   user_id: uid, name: p.name, bio: p.bio, avatar_url: p.avatarUrl,
   phone: p.phone, city: p.city, state: p.state, cep: p.cep,
   birth_date: p.birthDate, experience: p.experience,
+  platform: Platform.OS, // 'android' | 'ios'
   updated_at: new Date().toISOString(),
 });
 
@@ -87,7 +89,7 @@ export async function syncPets(pets: Pet[]): Promise<void> {
   const uid = await getUid();
   if (!uid) return;
   supabase.from('pets').upsert(pets.map(p => toSupabasePet(uid, p)), { onConflict: 'id' })
-    .then(({ error }) => { if (error) console.warn('[sync] pets:', error.message); });
+    .then(({ error }) => { if (error) if (__DEV__) console.warn('[sync] pets:', error.message); });
 }
 
 export async function syncReminders(reminders: Reminder[]): Promise<void> {
@@ -95,7 +97,7 @@ export async function syncReminders(reminders: Reminder[]): Promise<void> {
   const uid = await getUid();
   if (!uid) return;
   supabase.from('reminders').upsert(reminders.map(r => toSupabaseReminder(uid, r)), { onConflict: 'id' })
-    .then(({ error }) => { if (error) console.warn('[sync] reminders:', error.message); });
+    .then(({ error }) => { if (error) if (__DEV__) console.warn('[sync] reminders:', error.message); });
 }
 
 export async function syncVaccinations(vaccinations: VaccineRecord[]): Promise<void> {
@@ -103,7 +105,7 @@ export async function syncVaccinations(vaccinations: VaccineRecord[]): Promise<v
   const uid = await getUid();
   if (!uid) return;
   supabase.from('vaccinations').upsert(vaccinations.map(v => toSupabaseVaccine(uid, v)), { onConflict: 'id' })
-    .then(({ error }) => { if (error) console.warn('[sync] vaccinations:', error.message); });
+    .then(({ error }) => { if (error) if (__DEV__) console.warn('[sync] vaccinations:', error.message); });
 }
 
 export async function syncWeightRecords(weights: WeightRecord[]): Promise<void> {
@@ -111,7 +113,7 @@ export async function syncWeightRecords(weights: WeightRecord[]): Promise<void> 
   const uid = await getUid();
   if (!uid) return;
   supabase.from('weight_records').upsert(weights.map(w => toSupabaseWeight(uid, w)), { onConflict: 'id' })
-    .then(({ error }) => { if (error) console.warn('[sync] weights:', error.message); });
+    .then(({ error }) => { if (error) if (__DEV__) console.warn('[sync] weights:', error.message); });
 }
 
 export async function syncMedications(meds: MedicationRecord[]): Promise<void> {
@@ -119,7 +121,7 @@ export async function syncMedications(meds: MedicationRecord[]): Promise<void> {
   const uid = await getUid();
   if (!uid) return;
   supabase.from('pet_medications').upsert(meds.map(m => toSupabaseMed(uid, m)), { onConflict: 'id' })
-    .then(({ error }) => { if (error) console.warn('[sync] medications:', error.message); });
+    .then(({ error }) => { if (error) if (__DEV__) console.warn('[sync] medications:', error.message); });
 }
 
 export async function syncEmergencyContacts(contacts: EmergencyContact[]): Promise<void> {
@@ -127,7 +129,7 @@ export async function syncEmergencyContacts(contacts: EmergencyContact[]): Promi
   const uid = await getUid();
   if (!uid) return;
   supabase.from('emergency_contacts').upsert(contacts.map(c => toSupabaseContact(uid, c)), { onConflict: 'id' })
-    .then(({ error }) => { if (error) console.warn('[sync] contacts:', error.message); });
+    .then(({ error }) => { if (error) if (__DEV__) console.warn('[sync] contacts:', error.message); });
 }
 
 export async function syncDiaryEntries(entries: DiaryEntry[]): Promise<void> {
@@ -135,7 +137,7 @@ export async function syncDiaryEntries(entries: DiaryEntry[]): Promise<void> {
   const uid = await getUid();
   if (!uid) return;
   supabase.from('pet_diary').upsert(entries.map(d => toSupabaseDiary(uid, d)), { onConflict: 'id' })
-    .then(({ error }) => { if (error) console.warn('[sync] diary:', error.message); });
+    .then(({ error }) => { if (error) if (__DEV__) console.warn('[sync] diary:', error.message); });
 }
 
 export async function syncPetDocuments(docs: PetDocument[]): Promise<void> {
@@ -143,7 +145,7 @@ export async function syncPetDocuments(docs: PetDocument[]): Promise<void> {
   const uid = await getUid();
   if (!uid) return;
   supabase.from('pet_documents').upsert(docs.map(d => toSupabaseDocument(uid, d)), { onConflict: 'id' })
-    .then(({ error }) => { if (error) console.warn('[sync] documents:', error.message); });
+    .then(({ error }) => { if (error) if (__DEV__) console.warn('[sync] documents:', error.message); });
 }
 
 export async function syncPetPhotos(photos: PetPhoto[]): Promise<void> {
@@ -151,7 +153,7 @@ export async function syncPetPhotos(photos: PetPhoto[]): Promise<void> {
   const uid = await getUid();
   if (!uid) return;
   supabase.from('pet_photos').upsert(photos.map(p => toSupabasePhoto(uid, p)), { onConflict: 'id' })
-    .then(({ error }) => { if (error) console.warn('[sync] photos:', error.message); });
+    .then(({ error }) => { if (error) if (__DEV__) console.warn('[sync] photos:', error.message); });
 }
 
 export async function syncFeedingRecords(feedings: FeedingRecord[]): Promise<void> {
@@ -159,7 +161,7 @@ export async function syncFeedingRecords(feedings: FeedingRecord[]): Promise<voi
   const uid = await getUid();
   if (!uid) return;
   supabase.from('pet_feedings').upsert(feedings.map(f => toSupabaseFeeding(uid, f)), { onConflict: 'id' })
-    .then(({ error }) => { if (error) console.warn('[sync] feedings:', error.message); });
+    .then(({ error }) => { if (error) if (__DEV__) console.warn('[sync] feedings:', error.message); });
 }
 
 export async function syncUserProfile(profile: UserProfile): Promise<void> {
@@ -167,7 +169,7 @@ export async function syncUserProfile(profile: UserProfile): Promise<void> {
   const uid = await getUid();
   if (!uid) return;
   supabase.from('user_profiles').upsert(toSupabaseProfile(uid, profile), { onConflict: 'user_id' })
-    .then(({ error }) => { if (error) console.warn('[sync] profile:', error.message); });
+    .then(({ error }) => { if (error) if (__DEV__) console.warn('[sync] profile:', error.message); });
 }
 
 // ─── Delete remoto ────────────────────────────────────────────────────────────
@@ -176,7 +178,7 @@ export async function deleteRemote(table: string, id: string): Promise<void> {
   const uid = await getUid();
   if (!uid) return;
   supabase.from(table).delete().eq('id', id).eq('user_id', uid)
-    .then(({ error }) => { if (error) console.warn(`[sync] delete ${table}:`, error.message); });
+    .then(({ error }) => { if (error) if (__DEV__) console.warn(`[sync] delete ${table}:`, error.message); });
 }
 
 // ─── Download na abertura do app (Supabase → local) ──────────────────────────

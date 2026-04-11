@@ -27,7 +27,7 @@ const getStorage = () => {
 };
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn('[Supabase] Env vars missing — offline mode, auth features disabled.');
+  if (__DEV__) console.warn('[Supabase] Env vars missing — offline mode, auth features disabled.');
 }
 
 export const supabase = createClient(supabaseUrl || 'https://placeholder.supabase.co', supabaseAnonKey || 'placeholder', {

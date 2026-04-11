@@ -122,7 +122,7 @@ export async function requestNotificationPermissions(): Promise<boolean> {
 
     return true;
   } catch (error) {
-    console.error('Erro ao solicitar permissões de notificação:', error);
+    if (__DEV__) console.error('Erro ao solicitar permissões de notificação:', error);
     return false;
   }
 }
@@ -188,7 +188,7 @@ export async function scheduleReminderNotification(
 
     return notificationIds;
   } catch (error) {
-    console.error('Erro ao agendar notificação de lembrete:', error);
+    if (__DEV__) console.error('Erro ao agendar notificação de lembrete:', error);
     return [];
   }
 }
@@ -257,7 +257,7 @@ export async function scheduleVaccineNotification(
 
     return notificationIds;
   } catch (error) {
-    console.error('Erro ao agendar notificação de vacina:', error);
+    if (__DEV__) console.error('Erro ao agendar notificação de vacina:', error);
     return [];
   }
 }
@@ -325,7 +325,7 @@ export async function scheduleBirthdayNotification(
 
     return id;
   } catch (error) {
-    console.error('Erro ao agendar notificação de aniversário:', error);
+    if (__DEV__) console.error('Erro ao agendar notificação de aniversário:', error);
     return null;
   }
 }
@@ -390,7 +390,7 @@ export async function scheduleReengagementNotification(daysInactive = 5): Promis
       },
     });
   } catch (error) {
-    console.error('Erro ao agendar notificação de reengajamento:', error);
+    if (__DEV__) console.error('Erro ao agendar notificação de reengajamento:', error);
   }
 }
 
@@ -402,7 +402,7 @@ export async function cancelNotifications(notificationIds: string[]): Promise<vo
       await Notifications.cancelScheduledNotificationAsync(id);
     }
   } catch (error) {
-    console.error('Erro ao cancelar notificações:', error);
+    if (__DEV__) console.error('Erro ao cancelar notificações:', error);
   }
 }
 
@@ -410,7 +410,7 @@ export async function cancelAllNotifications(): Promise<void> {
   try {
     await Notifications.cancelAllScheduledNotificationsAsync();
   } catch (error) {
-    console.error('Erro ao cancelar todas as notificações:', error);
+    if (__DEV__) console.error('Erro ao cancelar todas as notificações:', error);
   }
 }
 
@@ -418,7 +418,7 @@ export async function getAllScheduledNotifications(): Promise<Notifications.Noti
   try {
     return await Notifications.getAllScheduledNotificationsAsync();
   } catch (error) {
-    console.error('Erro ao listar notificações:', error);
+    if (__DEV__) console.error('Erro ao listar notificações:', error);
     return [];
   }
 }

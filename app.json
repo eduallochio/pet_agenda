@@ -21,6 +21,7 @@
     },
     "android": {
       "package": "com.zupet.app",
+      "versionCode": 1,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
@@ -70,6 +71,25 @@
       "expo-localization",
       "expo-secure-store",
       "expo-web-browser",
+      [
+        "react-native-google-mobile-ads",
+        {
+          "androidAppId": "ca-app-pub-4896814460874070~6475595426",
+          "iosAppId": "ca-app-pub-4896814460874070~6475595426",
+          "userTrackingUsageDescription": "Esse identificador será usado para exibir anúncios personalizados para você.",
+          "skAdNetworkItems": []
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "compileSdkVersion": 35,
+            "targetSdkVersion": 35,
+            "minSdkVersion": 24
+          }
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
@@ -78,7 +98,9 @@
       "router": {},
       "eas": {
         "projectId": "89b056d3-a79b-4c93-a26b-cbff4afe007a"
-      }
+      },
+      "privacyPolicyUrl": "https://zupet.io/privacidade",
+      "termsOfServiceUrl": "https://zupet.io/termos"
     }
   }
 }

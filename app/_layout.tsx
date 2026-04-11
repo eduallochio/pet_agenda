@@ -49,6 +49,7 @@ import { initI18n } from '../i18n';
 import { migrateToSecureStore } from '../services/secureStorage';
 import * as Linking from 'expo-linking';
 import { supabase } from '../services/supabase';
+import { requestAdsConsent } from '../services/adsConsentService';
 
 // Suprimir warnings conhecidos do React Native Web em desenvolvimento
 if (__DEV__ && Platform.OS === 'web') {
@@ -92,6 +93,9 @@ export default function RootLayout() {
   useEffect(() => {
     initI18n().then(setI18nInstance);
     migrateToSecureStore().catch(() => {});
+    if (Platform.OS !== 'web') {
+      requestAdsConsent();
+    }
   }, []);
 
   // Captura deep link OAuth (zupet://auth/callback#access_token=...)

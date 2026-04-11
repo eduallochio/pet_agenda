@@ -472,7 +472,7 @@ export default function EditPetScreen() {
 
       <SuccessAnimation
         visible={showSuccess}
-        onAnimationEnd={() => { setShowSuccess(false); try { goBack(); } catch (e) { console.error('nav error:', e); } }}
+        onAnimationEnd={() => { setShowSuccess(false); try { goBack(); } catch (e) { if (__DEV__) console.error('nav error:', e); } }}
       />
     </SafeAreaView>
   );
