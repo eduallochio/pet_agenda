@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { syncPets } from '../../services/syncService';
+import { syncPets, deleteRemote } from '../../services/syncService';
 import { secureGet } from '../../services/secureStorage';
 import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useState, useMemo, useRef } from 'react';
@@ -22,6 +22,7 @@ import FadeIn from '../../components/animations/FadeIn';
 import EmptyState from '../../components/EmptyState';
 import { SkeletonCard } from '../../components/Skeleton';
 import AdBanner from '../../components/AdBanner';
+import FarewellModal from '../../components/FarewellModal';
 import { AppBottomSheetModal } from '../../components/AppBottomSheet';
 import { useTheme } from '../../hooks/useTheme';
 import { Ionicons } from '@expo/vector-icons';
@@ -309,6 +310,7 @@ export default function PetDashboard() {
   const { colors } = useTheme();
   const { t } = useTranslation();
   const [pets, setPets] = useState<Pet[]>([]);
+  const [farewell, setFarewell] = useState<{ name: string } | null>(null);
 
   const handleAddPet = () => {
     router.push('/(tabs)/add-pet');
@@ -399,10 +401,14 @@ export default function PetDashboard() {
 
   const handleDeletePet = async (petId: string) => {
     try {
+      const pet = pets.find(p => p.id === petId);
       const updated = pets.filter(p => p.id !== petId);
       await syncPets(updated);
+      // Remove do Supabase — garante que não volta na próxima sincronização
+      await deleteRemote('pets', petId);
       setPets(updated);
       if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      if (pet) setFarewell({ name: pet.name });
     } catch {
       Alert.alert(t('common.error'), t('home.deleteError'));
     }
@@ -711,6 +717,12 @@ export default function PetDashboard() {
 
       {/* Banner AdMob */}
       <AdBanner />
+
+      <FarewellModal
+        visible={farewell !== null}
+        petName={farewell?.name ?? ''}
+        onClose={() => setFarewell(null)}
+      />
 
       {/* FAB Expandível */}
       {fabOpen && (
