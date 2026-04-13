@@ -182,6 +182,46 @@ export async function deleteRemote(table: string, id: string): Promise<void> {
     .then(({ error }) => { if (error) if (__DEV__) console.warn(`[sync] delete ${table}:`, error.message); });
 }
 
+// ─── Conquistas ───────────────────────────────────────────────────────────────
+
+export async function syncAchievements(achievements: { id: string; unlockedAt: string }[]): Promise<void> {
+  await AsyncStorage.setItem('achievements', JSON.stringify(achievements));
+  const uid = await getUid();
+  if (!uid) return;
+  if (achievements.length === 0) return;
+  supabase.from('user_achievements').upsert(
+    achievements.map(a => ({
+      user_id:        uid,
+      achievement_id: a.id,
+      unlocked_at:    a.unlockedAt,
+    })),
+    { onConflict: 'user_id,achievement_id' }
+  ).then(({ error }) => { if (error) if (__DEV__) console.warn('[sync] achievements:', error.message); });
+}
+
+// ─── Registro de motivo de exclusão ──────────────────────────────────────────
+
+export async function recordDeletion(params: {
+  petId: string;
+  petName: string;
+  petSpecies: string;
+  reason: string;
+  isMemorial: boolean;
+}): Promise<void> {
+  const uid = await getUid();
+  if (!uid) return;
+  supabase.from('pet_deletions').insert({
+    user_id:    uid,
+    pet_id:     params.petId,
+    pet_name:   params.petName,
+    pet_species: params.petSpecies,
+    reason:     params.reason,
+    is_memorial: params.isMemorial,
+  }).then(({ error }) => {
+    if (error) if (__DEV__) console.warn('[sync] recordDeletion:', error.message);
+  });
+}
+
 // ─── Download na abertura do app (Supabase → local) ──────────────────────────
 
 export async function downloadFromSupabase(): Promise<void> {
@@ -200,6 +240,7 @@ export async function downloadFromSupabase(): Promise<void> {
     { data: photos },
     { data: feedings },
     { data: profile },
+    { data: achievementsRemote },
   ] = await Promise.all([
     supabase.from('pets').select('*'),
     supabase.from('reminders').select('*'),
@@ -212,6 +253,7 @@ export async function downloadFromSupabase(): Promise<void> {
     supabase.from('pet_photos').select('*'),
     supabase.from('pet_feedings').select('*'),
     supabase.from('user_profiles').select('*').eq('user_id', uid).single(),
+    supabase.from('user_achievements').select('achievement_id, unlocked_at'),
   ]);
 
   const mappedPets: Pet[] = (pets ?? []).map((p: any) => ({
@@ -268,6 +310,11 @@ export async function downloadFromSupabase(): Promise<void> {
     lastRefillDate: f.last_refill_date, note: f.note, createdAt: f.created_at,
   }));
 
+  const mappedAchievements = (achievementsRemote ?? []).map((a: any) => ({
+    id: a.achievement_id,
+    unlockedAt: a.unlocked_at,
+  }));
+
   const saves: Promise<void>[] = [
     AsyncStorage.setItem('pets',                 JSON.stringify(mappedPets)),
     AsyncStorage.setItem('reminders',            JSON.stringify(mappedReminders)),
@@ -279,6 +326,7 @@ export async function downloadFromSupabase(): Promise<void> {
     AsyncStorage.setItem('petDocuments',         JSON.stringify(mappedDocuments)),
     AsyncStorage.setItem('petPhotos',            JSON.stringify(mappedPhotos)),
     AsyncStorage.setItem('feedingRecords',       JSON.stringify(mappedFeedings)),
+    AsyncStorage.setItem('achievements',         JSON.stringify(mappedAchievements)),
   ];
 
   if (profile) {

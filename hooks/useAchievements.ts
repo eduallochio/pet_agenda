@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Pet, Reminder, VaccineRecord, Achievement, WeightRecord } from '../types/pet';
 import { StreakData } from './useStreak';
+import { syncAchievements } from '../services/syncService';
 
 export type AchievementDef = {
   id: string;
@@ -458,6 +459,7 @@ export async function checkAndUnlockAchievements(
     if (newlyUnlocked.length > 0) {
       const updated = [...existing, ...newlyUnlocked];
       await AsyncStorage.setItem('achievements', JSON.stringify(updated));
+      syncAchievements(updated); // fire-and-forget sync to Supabase
     }
 
     return newlyUnlocked.map(a => a.id);
