@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 import { supabase } from './supabase';
+import { secureSet, secureGet } from './secureStorage';
 import {
   Pet, Reminder, VaccineRecord, WeightRecord, MedicationRecord,
   DiaryEntry, PetDocument, PetPhoto, FeedingRecord, UserProfile,
@@ -125,7 +126,7 @@ export async function syncMedications(meds: MedicationRecord[]): Promise<void> {
 }
 
 export async function syncEmergencyContacts(contacts: EmergencyContact[]): Promise<void> {
-  await AsyncStorage.setItem('petEmergencyContacts', JSON.stringify(contacts));
+  await secureSet('petEmergencyContacts', JSON.stringify(contacts));
   const uid = await getUid();
   if (!uid) return;
   supabase.from('emergency_contacts').upsert(contacts.map(c => toSupabaseContact(uid, c)), { onConflict: 'id' })
@@ -165,7 +166,7 @@ export async function syncFeedingRecords(feedings: FeedingRecord[]): Promise<voi
 }
 
 export async function syncUserProfile(profile: UserProfile): Promise<void> {
-  await AsyncStorage.setItem('userProfile', JSON.stringify(profile));
+  await secureSet('userProfile', JSON.stringify(profile));
   const uid = await getUid();
   if (!uid) return;
   supabase.from('user_profiles').upsert(toSupabaseProfile(uid, profile), { onConflict: 'user_id' })
@@ -273,7 +274,7 @@ export async function downloadFromSupabase(): Promise<void> {
     AsyncStorage.setItem('vaccinations',         JSON.stringify(mappedVaccinations)),
     AsyncStorage.setItem('weightRecords',        JSON.stringify(mappedWeights)),
     AsyncStorage.setItem('petMedications',       JSON.stringify(mappedMeds)),
-    AsyncStorage.setItem('petEmergencyContacts', JSON.stringify(mappedContacts)),
+    secureSet('petEmergencyContacts', JSON.stringify(mappedContacts)),
     AsyncStorage.setItem('diaryEntries',         JSON.stringify(mappedDiary)),
     AsyncStorage.setItem('petDocuments',         JSON.stringify(mappedDocuments)),
     AsyncStorage.setItem('petPhotos',            JSON.stringify(mappedPhotos)),
@@ -286,7 +287,7 @@ export async function downloadFromSupabase(): Promise<void> {
       phone: profile.phone, city: profile.city, state: profile.state,
       cep: profile.cep, birthDate: profile.birth_date, experience: profile.experience,
     };
-    saves.push(AsyncStorage.setItem('userProfile', JSON.stringify(mappedProfile)));
+    saves.push(secureSet('userProfile', JSON.stringify(mappedProfile)));
   }
 
   await Promise.all(saves);
@@ -307,12 +308,12 @@ export async function uploadToSupabase(): Promise<void> {
     AsyncStorage.getItem('vaccinations'),
     AsyncStorage.getItem('weightRecords'),
     AsyncStorage.getItem('petMedications'),
-    AsyncStorage.getItem('petEmergencyContacts'),
+    secureGet('petEmergencyContacts'),
     AsyncStorage.getItem('diaryEntries'),
     AsyncStorage.getItem('petDocuments'),
     AsyncStorage.getItem('petPhotos'),
     AsyncStorage.getItem('feedingRecords'),
-    AsyncStorage.getItem('userProfile'),
+    secureGet('userProfile'),
   ]);
 
   const pets: Pet[]                   = petsJ      ? JSON.parse(petsJ)      : [];

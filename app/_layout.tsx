@@ -167,16 +167,32 @@ export default function RootLayout() {
     };
   }, []);
 
-  // Sync de download ao abrir o app — só executa se houver sessão ativa
+  // Sync de download: ao abrir com sessão ativa E ao logar
   useEffect(() => {
+    let unsubscribe: (() => void) | undefined;
+
     import('../services/supabase').then(({ supabase }) => {
+      // Baixa na abertura se já há sessão
       supabase.auth.getSession().then(({ data: { session } }) => {
-        if (!session) return;
-        import('../services/syncService').then(({ downloadFromSupabase }) => {
-          downloadFromSupabase().catch(() => {});
-        });
+        if (session) {
+          import('../services/syncService').then(({ downloadFromSupabase }) => {
+            downloadFromSupabase().catch(() => {});
+          });
+        }
       });
+
+      // Baixa sempre que o usuário fizer login
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+        if (event === 'SIGNED_IN') {
+          import('../services/syncService').then(({ downloadFromSupabase }) => {
+            downloadFromSupabase().catch(() => {});
+          });
+        }
+      });
+      unsubscribe = () => subscription.unsubscribe();
     });
+
+    return () => unsubscribe?.();
   }, []);
 
   if (!loaded || !i18nInstance) {

@@ -6,6 +6,9 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { syncPets } from '../../services/syncService';
+import { showRewardedAd, preloadRewardedAd } from '../../services/adService';
+import SupportModal from '../../components/SupportModal';
+import NoticeModal from '../../components/NoticeModal';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useGoBack } from '../../hooks/useGoBack';
 import * as ImagePicker from 'expo-image-picker';
@@ -61,6 +64,11 @@ export default function AddPetScreen() {
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [showSuccess, setShowSuccess]             = useState(false);
   const [unlockedAchievementId, setUnlockedAchievementId] = useState<string | null>(null);
+  const [showSupportModal, setShowSupportModal]   = useState(false);
+  const [adLoading, setAdLoading]                 = useState(false);
+  const [notice, setNotice] = useState<{ type: 'info'|'warning'|'error'; title: string; message: string } | null>(null);
+  const showNotice = (type: 'info'|'warning'|'error', title: string, message: string) =>
+    setNotice({ type, title, message });
 
   const { validateAll, getFieldError, touchField, clearAllErrors } = useFormValidation({
     name:    { required: true, minLength: 2, maxLength: 50 },
@@ -80,6 +88,8 @@ export default function AddPetScreen() {
     setPhotoUri(null);
     setShowSuccess(false);
     clearAllErrors();
+    // Pré-carrega o anúncio recompensado enquanto o usuário preenche o formulário
+    preloadRewardedAd();
   }, []));
 
   const pickImage = async (useCamera: boolean) => {
@@ -89,10 +99,8 @@ export default function AddPetScreen() {
         : await ImagePicker.requestMediaLibraryPermissionsAsync();
 
       if (!permission.granted) {
-        Alert.alert(
-          t('addPet.permissionError'),
-          useCamera ? t('addPet.cameraPermission') : t('addPet.galleryPermission'),
-        );
+        showNotice('warning', t('addPet.permissionError'),
+          useCamera ? t('addPet.cameraPermission') : t('addPet.galleryPermission'));
         return;
       }
 
@@ -104,7 +112,7 @@ export default function AddPetScreen() {
         setPhotoUri(result.assets[0].uri);
       }
     } catch {
-      Alert.alert(t('common.error'), t('addPet.imageError'));
+      showNotice('error', t('common.error'), t('addPet.imageError'));
     }
   };
 
@@ -116,30 +124,8 @@ export default function AddPetScreen() {
     ]);
   };
 
-  const handleSavePet = async () => {
-    const isValid = validateAll({ name, species, breed });
-    if (!isValid) {
-      Alert.alert(t('common.attention'), t('addPet.validationError'));
-      return;
-    }
-
-    const formattedDob = dob
-      ? `${dob.getDate().toString().padStart(2, '0')}/${(dob.getMonth() + 1).toString().padStart(2, '0')}/${dob.getFullYear()}`
-      : '';
-
-    const newPet: Pet = {
-      id: Date.now().toString(),
-      name: name.trim().slice(0, 60),
-      species: species.trim().slice(0, 40),
-      breed: breed.trim().slice(0, 60),
-      dob: formattedDob,
-      gender: gender || undefined,
-      weight: weight ? parseFloat(weight.replace(',', '.')) : undefined,
-      castrated: castrated ?? undefined,
-      microchip: microchip.trim() || undefined,
-      photoUri: photoUri || undefined,
-    };
-
+  // Lógica central de salvar o pet (chamada após validação e anúncio)
+  const doSavePet = async (newPet: Pet) => {
     try {
       const existingPetsJSON = await AsyncStorage.getItem('pets');
       const existingPets: Pet[] = existingPetsJSON ? JSON.parse(existingPetsJSON) : [];
@@ -170,7 +156,6 @@ export default function AddPetScreen() {
       });
 
       await autoCompleteChallenge('add_pet');
-
       if (newlyUnlocked.length > 0) setUnlockedAchievementId(newlyUnlocked[0]);
 
       setShowSuccess(true);
@@ -183,9 +168,64 @@ export default function AddPetScreen() {
         }
       }, 2000);
     } catch {
-      Alert.alert(t('common.error'), t('addPet.saveError'));
+      showNotice('error', t('common.error'), t('addPet.saveError'));
     }
   };
+
+  const buildNewPet = (): Pet => {
+    const formattedDob = dob
+      ? `${dob.getDate().toString().padStart(2, '0')}/${(dob.getMonth() + 1).toString().padStart(2, '0')}/${dob.getFullYear()}`
+      : '';
+    return {
+      id: Date.now().toString(),
+      name: name.trim().slice(0, 60),
+      species: species.trim().slice(0, 40),
+      breed: breed.trim().slice(0, 60),
+      dob: formattedDob,
+      gender: gender || undefined,
+      weight: weight ? parseFloat(weight.replace(',', '.')) : undefined,
+      castrated: castrated ?? undefined,
+      microchip: microchip.trim() || undefined,
+      photoUri: photoUri || undefined,
+    };
+  };
+
+  const handleSavePet = async () => {
+    const isValid = validateAll({ name, species, breed });
+    if (!isValid) {
+      showNotice('warning', t('common.attention'), t('addPet.validationError'));
+      return;
+    }
+
+    const existingPetsJSON = await AsyncStorage.getItem('pets');
+    const existingPets: Pet[] = existingPetsJSON ? JSON.parse(existingPetsJSON) : [];
+
+    // A partir do 3º pet, mostra modal de suporte antes de salvar
+    if (existingPets.length >= 2) {
+      setShowSupportModal(true);
+      return;
+    }
+
+    await doSavePet(buildNewPet());
+  };
+
+  // Handler: usuário quer assistir o anúncio
+  const handleWatchAd = async () => {
+    setAdLoading(true);
+    let rewarded = false;
+    try {
+      rewarded = await showRewardedAd();
+    } catch {
+      rewarded = false;
+    }
+    setAdLoading(false);
+    setShowSupportModal(false);
+    if (rewarded) {
+      await doSavePet(buildNewPet());
+    }
+    // Se não assistiu, modal fecha e o usuário pode tentar de novo
+  };
+
 
   const selectedSpeciesData = SPECIES_OPTIONS.find(s => s.value === species);
 
@@ -449,6 +489,19 @@ export default function AddPetScreen() {
       <AchievementUnlockModal
         achievementId={unlockedAchievementId}
         onClose={() => setUnlockedAchievementId(null)}
+      />
+      <SupportModal
+        visible={showSupportModal}
+        loading={adLoading}
+        onWatchAd={handleWatchAd}
+        onClose={() => setShowSupportModal(false)}
+      />
+      <NoticeModal
+        visible={notice !== null}
+        type={notice?.type ?? 'warning'}
+        title={notice?.title ?? ''}
+        message={notice?.message ?? ''}
+        onConfirm={() => setNotice(null)}
       />
     </SafeAreaView>
   );

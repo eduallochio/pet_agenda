@@ -4,6 +4,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useRouter } from 'expo-router';
+import AdBanner from '../../../components/AdBanner';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../../hooks/useTheme';
@@ -183,6 +184,7 @@ export default function NotificationsScreen() {
           }}
         />
       )}
+      <AdBanner />
     </SafeAreaView>
   );
 }

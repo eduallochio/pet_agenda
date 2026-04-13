@@ -5,6 +5,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from 'expo-router';
+import AdBanner from '../../components/AdBanner';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Pet, Reminder, VaccineRecord } from '../../types/pet';
 import { Theme, getCategoryColor } from '../../constants/Colors';
@@ -253,6 +254,7 @@ export default function StatisticsScreen() {
           </>
         )}
       </ScrollView>
+      <AdBanner />
     </SafeAreaView>
   );
 }

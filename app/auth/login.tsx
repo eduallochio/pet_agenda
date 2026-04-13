@@ -11,6 +11,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
 import { supabase } from '../../services/supabase';
+import { downloadFromSupabase } from '../../services/syncService';
 import { useTheme, useIsDarkMode } from '../../hooks/useTheme';
 import { Theme } from '../../constants/Colors';
 import { useTranslation } from 'react-i18next';
@@ -68,7 +69,7 @@ export default function LoginScreen() {
       const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
         if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session) {
           subscription.unsubscribe();
-          router.back();
+          downloadFromSupabase().catch(() => {}).finally(() => router.back());
         }
       });
 
@@ -151,6 +152,7 @@ export default function LoginScreen() {
           password,
         });
         if (error) throw error;
+        await downloadFromSupabase().catch(() => {});
         router.back();
       } else {
         const { error } = await supabase.auth.signUp({

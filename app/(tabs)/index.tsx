@@ -1,6 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { syncPets } from '../../services/syncService';
-import { showRewardedAd } from '../../services/adService';
 import { secureGet } from '../../services/secureStorage';
 import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useState, useMemo, useRef } from 'react';
@@ -311,14 +310,7 @@ export default function PetDashboard() {
   const { t } = useTranslation();
   const [pets, setPets] = useState<Pet[]>([]);
 
-  const handleAddPet = async () => {
-    if (pets.length >= 2) {
-      const rewarded = await showRewardedAd();
-      if (!rewarded) {
-        Alert.alert('Anúncio necessário', 'Assista ao vídeo completo para adicionar mais pets.');
-        return;
-      }
-    }
+  const handleAddPet = () => {
     router.push('/(tabs)/add-pet');
   };
   const [reminders, setReminders] = useState<Reminder[]>([]);

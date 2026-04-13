@@ -8,6 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { secureGet } from '../../services/secureStorage';
+import AdBanner from '../../components/AdBanner';
 import { Pet, UserProfile, Reminder, VaccineRecord, Achievement, WeightRecord } from '../../types/pet';
 import { StreakData } from '../../hooks/useStreak';
 import { Theme } from '../../constants/Colors';
@@ -1093,6 +1094,7 @@ ${petsSection || '<p>Nenhum pet cadastrado.</p>'}
         </View>
       </Modal>
 
+      <AdBanner />
       <AchievementUnlockModal
         achievementId={unlockedAchievementId}
         onClose={() => setUnlockedAchievementId(null)}

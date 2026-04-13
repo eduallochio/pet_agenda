@@ -3,7 +3,7 @@ import { BannerAd, BannerAdSize, TestIds } from "react-native-google-mobile-ads"
 
 const BANNER_ID = __DEV__
   ? TestIds.ADAPTIVE_BANNER
-  : "ca-app-pub-4896814460874070/8156342753";
+  : "ca-app-pub-4896814460874070/7531211120";
 
 export default function AdBanner() {
   if (Platform.OS === "ios") return null; // iOS em breve

@@ -4,6 +4,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useRouter } from 'expo-router';
+import AdBanner from '../../components/AdBanner';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { getCategoryColor, Theme } from '../../constants/Colors';
@@ -306,6 +307,7 @@ export default function AgendaScreen() {
           )}
         </View>
       </ScrollView>
+      <AdBanner />
     </SafeAreaView>
   );
 }
