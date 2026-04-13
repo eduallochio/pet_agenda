@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { syncPets, deleteRemote } from '../../services/syncService';
+import { syncPets, deleteRemote, recordDeletion } from '../../services/syncService';
 import { secureGet } from '../../services/secureStorage';
 import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useState, useMemo, useRef } from 'react';
@@ -411,12 +411,13 @@ export default function PetDashboard() {
     loadData();
   }, []));
 
-  const handleDeletePet = async (petId: string) => {
+  const handleDeletePet = async (petId: string, reason = 'other') => {
     try {
       const pet = pets.find(p => p.id === petId);
       const updated = pets.filter(p => p.id !== petId);
       await syncPets(updated);
       await deleteRemote('pets', petId);
+      if (pet) recordDeletion({ petId, petName: pet.name, petSpecies: pet.species, reason, isMemorial: false }).catch(() => {});
       setPets(updated);
       if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       if (pet) setFarewell({ name: pet.name });
@@ -431,15 +432,16 @@ export default function PetDashboard() {
       const dd = String(today.getDate()).padStart(2, '0');
       const mm = String(today.getMonth() + 1).padStart(2, '0');
       const yyyy = today.getFullYear();
+      const pet = pets.find(p => p.id === petId);
       const updated = pets.map(p =>
         p.id === petId
           ? { ...p, isMemorial: true, memorialDate: `${dd}/${mm}/${yyyy}` }
           : p
       );
       await syncPets(updated);
+      if (pet) recordDeletion({ petId, petName: pet.name, petSpecies: pet.species, reason: 'passed_away', isMemorial: true }).catch(() => {});
       setPets(updated);
       if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      const pet = pets.find(p => p.id === petId);
       if (pet) setFarewell({ name: pet.name });
     } catch {
       setNotice({ type: 'error', title: t('common.error'), message: t('home.deleteError') });
@@ -746,10 +748,10 @@ export default function PetDashboard() {
       <DeleteReasonModal
         visible={deleteReason !== null}
         petName={deleteReason?.pet.name ?? ''}
-        onConfirmDelete={(_reason) => {
+        onConfirmDelete={(reason) => {
           const pet = deleteReason?.pet;
           setDeleteReason(null);
-          if (pet) handleDeletePet(pet.id);
+          if (pet) handleDeletePet(pet.id, reason);
         }}
         onMemorial={() => {
           const pet = deleteReason?.pet;
