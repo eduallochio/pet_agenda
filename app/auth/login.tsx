@@ -65,11 +65,12 @@ export default function LoginScreen() {
       if (error || !data.url) throw error ?? new Error('No URL');
 
       // Escuta mudança de sessão ANTES de abrir o browser
-      // Assim captura o login independente de como o browser retorna
       const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
         if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session) {
           subscription.unsubscribe();
-          downloadFromSupabase().catch(() => {}).finally(() => router.back());
+          downloadFromSupabase().catch(() => {}).finally(() => {
+            router.replace('/(tabs)' as any);
+          });
         }
       });
 
@@ -85,7 +86,13 @@ export default function LoginScreen() {
 
         if (access_token && refresh_token) {
           await supabase.auth.setSession({ access_token, refresh_token });
-          // onAuthStateChange vai disparar e navegar
+          // onAuthStateChange vai disparar e navegar — mas garante fallback
+          const { data: s } = await supabase.auth.getSession();
+          if (s.session) {
+            subscription.unsubscribe();
+            await downloadFromSupabase().catch(() => {});
+            router.replace('/(tabs)' as any);
+          }
           return;
         }
       }
