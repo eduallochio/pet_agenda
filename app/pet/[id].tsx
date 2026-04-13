@@ -6,6 +6,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { autoCompleteChallenge } from '../../hooks/useChallenges';
 import { Ionicons } from '@expo/vector-icons';
 import { Pet, Reminder } from '../../types/pet';
+import AdBanner from '../../components/AdBanner';
 import { Theme, getCategoryColor } from '../../constants/Colors';
 import PetAvatar from '../../components/PetAvatar';
 import EmptyState from '../../components/EmptyState';
@@ -271,6 +272,11 @@ export default function PetDetailScreen() {
 						</TouchableOpacity>
 					))}
 				</View>
+			</View>
+
+			{/* Banner de anúncio */}
+			<View style={{ alignItems: 'center', marginVertical: 8 }}>
+				<AdBanner />
 			</View>
 
 			{/* Próximos Eventos */}

@@ -17,6 +17,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { requestBiometricAuth } from '../../services/biometricAuth';
+import AdBanner from '../../components/AdBanner';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
 import { useGoBack } from '../../hooks/useGoBack';
@@ -595,6 +596,11 @@ export default function PetPassportScreen() {
               );
             })
           )}
+        </View>
+
+        {/* Banner de anúncio */}
+        <View style={{ alignItems: 'center', marginTop: 8, marginBottom: 4 }}>
+          <AdBanner />
         </View>
 
       </ScrollView>
