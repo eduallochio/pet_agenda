@@ -20,7 +20,7 @@
       }
     },
     "android": {
-      "package": "com.zupet.app",
+      "package": "io.zupet.app",
       "versionCode": 1,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
@@ -74,8 +74,8 @@
       [
         "react-native-google-mobile-ads",
         {
-          "androidAppId": "ca-app-pub-4896814460874070~6475595426",
-          "iosAppId": "ca-app-pub-4896814460874070~6475595426",
+          "androidAppId": "ca-app-pub-4896814460874070~9642369147",
+          "iosAppId": "ca-app-pub-4896814460874070~9642369147",
           "userTrackingUsageDescription": "Esse identificador será usado para exibir anúncios personalizados para você.",
           "skAdNetworkItems": []
         }
@@ -86,7 +86,8 @@
           "android": {
             "compileSdkVersion": 35,
             "targetSdkVersion": 35,
-            "minSdkVersion": 24
+            "minSdkVersion": 24,
+            "kotlinVersion": "2.2.0"
           }
         }
       ]
