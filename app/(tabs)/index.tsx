@@ -4,7 +4,7 @@ import { secureGet } from '../../services/secureStorage';
 import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useState, useMemo, useRef } from 'react';
 import {
-  Alert, FlatList, Platform,
+  FlatList, Platform,
   StyleSheet, Text, TextInput, TouchableOpacity, View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -24,6 +24,8 @@ import { SkeletonCard } from '../../components/Skeleton';
 import AdBanner from '../../components/AdBanner';
 import FarewellModal from '../../components/FarewellModal';
 import DeleteReasonModal from '../../components/DeleteReasonModal';
+import NoticeModal from '../../components/NoticeModal';
+import SelectPetModal from '../../components/SelectPetModal';
 import { AppBottomSheetModal } from '../../components/AppBottomSheet';
 import { useTheme } from '../../hooks/useTheme';
 import { Ionicons } from '@expo/vector-icons';
@@ -323,6 +325,8 @@ export default function PetDashboard() {
   const [pets, setPets] = useState<Pet[]>([]);
   const [farewell, setFarewell] = useState<{ name: string } | null>(null);
   const [deleteReason, setDeleteReason] = useState<{ pet: Pet } | null>(null);
+  const [notice, setNotice] = useState<{ type: 'info'|'warning'|'error'|'success'; title: string; message: string } | null>(null);
+  const [selectPetVisible, setSelectPetVisible] = useState(false);
 
   const handleAddPet = () => {
     router.push('/(tabs)/add-pet');
@@ -372,11 +376,7 @@ export default function PetDashboard() {
     if (pets.length === 1) {
       router.push({ pathname: '/reminder/new', params: { petId: pets[0].id } });
     } else {
-      Alert.alert(
-        t('common.selectPet'),
-        undefined,
-        [...pets.map(p => ({ text: p.name, onPress: () => router.push({ pathname: '/reminder/new', params: { petId: p.id } }) })), { text: t('common.cancel'), style: 'cancel' as const, onPress: () => {} }] as any
-      );
+      setSelectPetVisible(true);
     }
   };
 
@@ -421,7 +421,7 @@ export default function PetDashboard() {
       if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       if (pet) setFarewell({ name: pet.name });
     } catch {
-      Alert.alert(t('common.error'), t('home.deleteError'));
+      setNotice({ type: 'error', title: t('common.error'), message: t('home.deleteError') });
     }
   };
 
@@ -442,7 +442,7 @@ export default function PetDashboard() {
       const pet = pets.find(p => p.id === petId);
       if (pet) setFarewell({ name: pet.name });
     } catch {
-      Alert.alert(t('common.error'), t('home.deleteError'));
+      setNotice({ type: 'error', title: t('common.error'), message: t('home.deleteError') });
     }
   };
 
@@ -757,6 +757,25 @@ export default function PetDashboard() {
           if (pet) handleMemorialPet(pet.id);
         }}
         onClose={() => setDeleteReason(null)}
+      />
+
+      <SelectPetModal
+        visible={selectPetVisible}
+        pets={pets.filter(p => !p.isMemorial)}
+        title={t('common.selectPet')}
+        onSelect={(pet) => {
+          setSelectPetVisible(false);
+          router.push({ pathname: '/reminder/new', params: { petId: pet.id } });
+        }}
+        onClose={() => setSelectPetVisible(false)}
+      />
+
+      <NoticeModal
+        visible={notice !== null}
+        type={notice?.type ?? 'error'}
+        title={notice?.title ?? ''}
+        message={notice?.message ?? ''}
+        onConfirm={() => setNotice(null)}
       />
 
       <FarewellModal

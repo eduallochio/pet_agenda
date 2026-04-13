@@ -3,6 +3,8 @@ import {
   View, Text, TouchableOpacity, StyleSheet, Alert,
   Platform, ScrollView, TextInput,
 } from 'react-native';
+import NoticeModal from '../../components/NoticeModal';
+import ConfirmModal from '../../components/ConfirmModal';
 import { useLocalSearchParams, Stack, useRouter } from 'expo-router';
 import { useGoBack } from '../../hooks/useGoBack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -178,6 +180,9 @@ export default function ReminderFormScreen() {
   const [selectedPetId, setSelectedPetId] = useState<string>(petId || '');
   const [category, setCategory]       = useState<Category>('Saúde');
   const [description, setDescription] = useState('');
+  const [notice, setNotice]           = useState<{ type: 'info'|'warning'|'error'|'success'; title: string; message: string } | null>(null);
+  const [confirm, setConfirm]         = useState<{ title: string; message: string; onConfirm: () => void } | null>(null);
+  const [vaccineConfirm, setVaccineConfirm] = useState<{ petId: string; desc: string } | null>(null);
   const [notes, setNotes]             = useState('');
   const [date, setDate]               = useState<Date | null>(null);
   const [time, setTime]               = useState('');
@@ -231,31 +236,29 @@ export default function ReminderFormScreen() {
   }, [reminderId, isEditing]);
 
   const handleDelete = async () => {
-    Alert.alert(t('petDetail.deleteReminder'), t('petDetail.deleteReminderMsg'), [
-      { text: t('common.cancel'), style: 'cancel' },
-      {
-        text: t('common.delete'),
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            const json = await AsyncStorage.getItem('reminders');
-            let all: Reminder[] = json ? JSON.parse(json) : [];
-            const toDelete = all.find(r => r.id === reminderId);
-            if (toDelete?.notificationIds && Platform.OS !== 'web') {
-              try {
-                const NS = await import('../../services/notificationService');
-                await NS.cancelNotifications(toDelete.notificationIds);
-              } catch { /* ignore */ }
-            }
-            all = all.filter(r => r.id !== reminderId);
-            await syncReminders(all);
-            goBack();
-          } catch {
-            Alert.alert(t('common.error'), t('reminder.deleteError'));
+    setConfirm({
+      title: t('petDetail.deleteReminder'),
+      message: t('petDetail.deleteReminderMsg'),
+      onConfirm: async () => {
+        setConfirm(null);
+        try {
+          const json = await AsyncStorage.getItem('reminders');
+          let all: Reminder[] = json ? JSON.parse(json) : [];
+          const toDelete = all.find(r => r.id === reminderId);
+          if (toDelete?.notificationIds && Platform.OS !== 'web') {
+            try {
+              const NS = await import('../../services/notificationService');
+              await NS.cancelNotifications(toDelete.notificationIds);
+            } catch { /* ignore */ }
           }
-        },
+          all = all.filter(r => r.id !== reminderId);
+          await syncReminders(all);
+          goBack();
+        } catch {
+          setNotice({ type: 'error', title: t('common.error'), message: t('reminder.deleteError') });
+        }
       },
-    ]);
+    });
   };
 
   const buildDateWithTime = (d: Date, t: string): Date => {
@@ -269,11 +272,11 @@ export default function ReminderFormScreen() {
   const handleSave = async () => {
     const isValid = validateAll({ description });
     if (!isValid) {
-      Alert.alert(t('common.attention'), t('addPet.validationError'));
+      setNotice({ type: 'warning', title: t('common.attention'), message: t('addPet.validationError') });
       return;
     }
     if (!date) {
-      Alert.alert(t('common.attention'), t('reminder.datePlaceholder') + '.');
+      setNotice({ type: 'warning', title: t('common.attention'), message: t('reminder.datePlaceholder') + '.' });
       return;
     }
 
@@ -292,7 +295,7 @@ export default function ReminderFormScreen() {
         r.id !== reminderId
       );
       if (duplicate) {
-        Alert.alert(t('reminder.duplicateTitle'), t('reminder.duplicateMessage'));
+        setNotice({ type: 'warning', title: t('reminder.duplicateTitle'), message: t('reminder.duplicateMessage') });
         return;
       }
     } catch { /* prossegue */ }
@@ -388,7 +391,7 @@ export default function ReminderFormScreen() {
       setTimeout(() => { try { goBack(); } catch (e) { if (__DEV__) console.error('nav error:', e); } }, 1800);
     } catch (err) {
       if (__DEV__) console.error('Erro ao salvar lembrete:', err);
-      Alert.alert(t('common.error'), t('reminder.saveError'));
+      setNotice({ type: 'error', title: t('common.error'), message: t('reminder.saveError') });
     }
   };
 
@@ -707,21 +710,7 @@ export default function ReminderFormScreen() {
 
                 if (current?.category === 'Saúde') {
                   setTimeout(() => {
-                    Alert.alert(
-                      '💉 Registrar vacina?',
-                      `Deseja registrar "${current.description}" no histórico de vacinas do pet?`,
-                      [
-                        { text: 'Não', style: 'cancel', onPress: () => { try { goBack(); } catch { /* ignore */ } } },
-                        {
-                          text: 'Registrar vacina',
-                          onPress: () => {
-                            try {
-                              router.replace({ pathname: '/vaccines/new', params: { petId: current.petId, prefillName: current.description } });
-                            } catch { goBack(); }
-                          },
-                        },
-                      ]
-                    );
+                    setVaccineConfirm({ petId: current.petId, desc: current.description });
                   }, 1800);
                 } else {
                   setTimeout(() => { try { goBack(); } catch { /* ignore */ } }, 1800);
@@ -746,6 +735,42 @@ export default function ReminderFormScreen() {
       </ScrollView>
 
       <SuccessAnimation visible={showSuccess} onAnimationEnd={() => setShowSuccess(false)} />
+
+      <NoticeModal
+        visible={notice !== null}
+        type={notice?.type ?? 'warning'}
+        title={notice?.title ?? ''}
+        message={notice?.message ?? ''}
+        onConfirm={() => setNotice(null)}
+      />
+
+      <ConfirmModal
+        visible={confirm !== null}
+        type="danger"
+        title={confirm?.title ?? ''}
+        message={confirm?.message ?? ''}
+        confirmLabel={t('common.delete')}
+        cancelLabel={t('common.cancel')}
+        onConfirm={() => confirm?.onConfirm()}
+        onCancel={() => setConfirm(null)}
+      />
+
+      <ConfirmModal
+        visible={vaccineConfirm !== null}
+        type="info"
+        title="💉 Registrar vacina?"
+        message={`Deseja registrar "${vaccineConfirm?.desc}" no histórico de vacinas do pet?`}
+        confirmLabel="Registrar vacina"
+        cancelLabel="Não"
+        onConfirm={() => {
+          const vc = vaccineConfirm;
+          setVaccineConfirm(null);
+          try {
+            router.replace({ pathname: '/vaccines/new', params: { petId: vc!.petId, prefillName: vc!.desc } });
+          } catch { goBack(); }
+        }}
+        onCancel={() => { setVaccineConfirm(null); try { goBack(); } catch { /* ignore */ } }}
+      />
     </SafeAreaView>
   );
 }
