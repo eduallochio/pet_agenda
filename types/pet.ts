@@ -14,6 +14,8 @@ export type Pet = {
   foodAllergies?: string[]   // Alergias alimentares
   medAllergies?: string[]    // Alergias a medicamentos
   restrictions?: string      // Restrições/observações adicionais
+  isMemorial?: boolean       // Pet falecido — dados preservados como recordação
+  memorialDate?: string      // Data do falecimento (DD/MM/YYYY)
 }
 
 export type Reminder = {
@@ -22,6 +24,11 @@ export type Reminder = {
   category: "Saúde" | "Higiene" | "Consulta" | "Prevenção" | "Outro"
   description: string
   date: string // Vamos guardar a data como texto por enquanto
+  time?: string // HH:MM — hora da notificação
+  notes?: string // Observações adicionais
+  // Campos específicos para Remédio (Saúde/Prevenção)
+  medicationDose?: string    // Ex: "2 comprimidos", "5ml"
+  medicationInterval?: string // Ex: "8 em 8 horas", "1x ao dia"
   notificationIds?: string[] // IDs das notificações agendadas
   recurrence?: RecurrenceType
   completed?: boolean

@@ -23,6 +23,7 @@ import EmptyState from '../../components/EmptyState';
 import { SkeletonCard } from '../../components/Skeleton';
 import AdBanner from '../../components/AdBanner';
 import FarewellModal from '../../components/FarewellModal';
+import DeleteReasonModal from '../../components/DeleteReasonModal';
 import { AppBottomSheetModal } from '../../components/AppBottomSheet';
 import { useTheme } from '../../hooks/useTheme';
 import { Ionicons } from '@expo/vector-icons';
@@ -120,6 +121,7 @@ function SwipePetCard({
   const panGesture = Gesture.Pan()
     .activeOffsetX([-8, 8])
     .failOffsetY([-20, 20])
+    .enabled(!pet.isMemorial)
     .onUpdate((e) => {
       if (e.translationX < 0) {
         translateX.value = Math.max(e.translationX, -DELETE_WIDTH - 10);
@@ -173,20 +175,22 @@ function SwipePetCard({
   return (
     <FadeIn delay={index * 60}>
       <View style={styles.swipeContainer}>
-        {/* Fundo vermelho */}
-        <Animated.View style={[styles.deleteBackground, deleteStyle]}>
-          <TouchableOpacity
-            style={styles.deleteBtn}
-            onPress={() => {
-              translateX.value = withSpring(0);
-              deleteOpacity.value = withTiming(0);
-              triggerDelete();
-            }}
-          >
-            <Ionicons name="trash" size={22} color="#fff" />
-            <Text style={styles.deleteBackgroundText}>{t('common.delete')}</Text>
-          </TouchableOpacity>
-        </Animated.View>
+        {/* Fundo vermelho — oculto para pets memorial */}
+        {!pet.isMemorial && (
+          <Animated.View style={[styles.deleteBackground, deleteStyle]}>
+            <TouchableOpacity
+              style={styles.deleteBtn}
+              onPress={() => {
+                translateX.value = withSpring(0);
+                deleteOpacity.value = withTiming(0);
+                triggerDelete();
+              }}
+            >
+              <Ionicons name="trash" size={22} color="#fff" />
+              <Text style={styles.deleteBackgroundText}>{t('common.delete')}</Text>
+            </TouchableOpacity>
+          </Animated.View>
+        )}
 
         {/* Card deslizável */}
         <GestureDetector gesture={Gesture.Race(panGesture, tapGesture)}>
@@ -214,10 +218,17 @@ function SwipePetCard({
               {/* Nome + health score em linha */}
               <View style={styles.petNameRow}>
                 <Text style={[styles.petName, { color: colors.text.primary }]} numberOfLines={1}>{pet.name}</Text>
-                <View style={[styles.healthBadge, { backgroundColor: healthScore.color + '18' }]}>
-                  <View style={[styles.healthDot, { backgroundColor: healthScore.color }]} />
-                  <Text style={[styles.healthBadgeText, { color: healthScore.color }]}>{healthScore.score}</Text>
-                </View>
+                {pet.isMemorial ? (
+                  <View style={[styles.healthBadge, { backgroundColor: '#9C27B018' }]}>
+                    <Text style={{ fontSize: 10 }}>🌈</Text>
+                    <Text style={[styles.healthBadgeText, { color: '#9C27B0' }]}>Memorial</Text>
+                  </View>
+                ) : (
+                  <View style={[styles.healthBadge, { backgroundColor: healthScore.color + '18' }]}>
+                    <View style={[styles.healthDot, { backgroundColor: healthScore.color }]} />
+                    <Text style={[styles.healthBadgeText, { color: healthScore.color }]}>{healthScore.score}</Text>
+                  </View>
+                )}
               </View>
 
               {/* Espécie · Raça + Idade em linha */}
@@ -311,6 +322,7 @@ export default function PetDashboard() {
   const { t } = useTranslation();
   const [pets, setPets] = useState<Pet[]>([]);
   const [farewell, setFarewell] = useState<{ name: string } | null>(null);
+  const [deleteReason, setDeleteReason] = useState<{ pet: Pet } | null>(null);
 
   const handleAddPet = () => {
     router.push('/(tabs)/add-pet');
@@ -404,7 +416,6 @@ export default function PetDashboard() {
       const pet = pets.find(p => p.id === petId);
       const updated = pets.filter(p => p.id !== petId);
       await syncPets(updated);
-      // Remove do Supabase — garante que não volta na próxima sincronização
       await deleteRemote('pets', petId);
       setPets(updated);
       if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -414,16 +425,30 @@ export default function PetDashboard() {
     }
   };
 
+  const handleMemorialPet = async (petId: string) => {
+    try {
+      const today = new Date();
+      const dd = String(today.getDate()).padStart(2, '0');
+      const mm = String(today.getMonth() + 1).padStart(2, '0');
+      const yyyy = today.getFullYear();
+      const updated = pets.map(p =>
+        p.id === petId
+          ? { ...p, isMemorial: true, memorialDate: `${dd}/${mm}/${yyyy}` }
+          : p
+      );
+      await syncPets(updated);
+      setPets(updated);
+      if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      const pet = pets.find(p => p.id === petId);
+      if (pet) setFarewell({ name: pet.name });
+    } catch {
+      Alert.alert(t('common.error'), t('home.deleteError'));
+    }
+  };
+
   const confirmDelete = (pet: Pet) => {
     if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-    Alert.alert(
-      t('home.deleteConfirmTitle'),
-      t('home.deleteConfirmMsg', { name: pet.name }),
-      [
-        { text: t('common.cancel'), style: 'cancel' },
-        { text: t('common.delete'), style: 'destructive', onPress: () => handleDeletePet(pet.id) },
-      ]
-    );
+    setDeleteReason({ pet });
   };
 
   const getPetStats = (petId: string) => {
@@ -717,6 +742,22 @@ export default function PetDashboard() {
 
       {/* Banner AdMob */}
       <AdBanner />
+
+      <DeleteReasonModal
+        visible={deleteReason !== null}
+        petName={deleteReason?.pet.name ?? ''}
+        onConfirmDelete={(_reason) => {
+          const pet = deleteReason?.pet;
+          setDeleteReason(null);
+          if (pet) handleDeletePet(pet.id);
+        }}
+        onMemorial={() => {
+          const pet = deleteReason?.pet;
+          setDeleteReason(null);
+          if (pet) handleMemorialPet(pet.id);
+        }}
+        onClose={() => setDeleteReason(null)}
+      />
 
       <FarewellModal
         visible={farewell !== null}
