@@ -22,6 +22,9 @@ const toSupabasePet = (uid: string, p: Pet) => ({
   dob: p.dob, photo_uri: p.photoUri, food_allergies: p.foodAllergies,
   med_allergies: p.medAllergies, restrictions: p.restrictions,
   gender: p.gender, castrated: p.castrated ?? false, microchip: p.microchip,
+  weight: p.weight ?? null,
+  is_memorial: p.isMemorial ?? false,
+  memorial_date: p.memorialDate ?? null,
   updated_at: new Date().toISOString(),
 });
 
@@ -29,6 +32,10 @@ const toSupabaseReminder = (uid: string, r: Reminder) => ({
   id: r.id, user_id: uid, pet_id: r.petId, category: r.category,
   description: r.description, date: r.date, recurrence: r.recurrence ?? 'none',
   completed: r.completed ?? false, completed_at: r.completedAt,
+  time: r.time ?? null,
+  notes: r.notes ?? null,
+  medication_dose: r.medicationDose ?? null,
+  medication_interval: r.medicationInterval ?? null,
 });
 
 const toSupabaseVaccine = (uid: string, v: VaccineRecord) => ({
@@ -261,12 +268,19 @@ export async function downloadFromSupabase(): Promise<void> {
     photoUri: p.photo_uri, foodAllergies: p.food_allergies,
     medAllergies: p.med_allergies, restrictions: p.restrictions,
     gender: p.gender, castrated: p.castrated, microchip: p.microchip,
+    weight: p.weight ?? undefined,
+    isMemorial: p.is_memorial ?? false,
+    memorialDate: p.memorial_date ?? undefined,
   }));
 
   const mappedReminders: Reminder[] = (reminders ?? []).map((r: any) => ({
     id: r.id, petId: r.pet_id, category: r.category, description: r.description,
     date: r.date, recurrence: r.recurrence, completed: r.completed,
     completedAt: r.completed_at, notificationIds: [],
+    time: r.time ?? undefined,
+    notes: r.notes ?? undefined,
+    medicationDose: r.medication_dose ?? undefined,
+    medicationInterval: r.medication_interval ?? undefined,
   }));
 
   const mappedVaccinations: VaccineRecord[] = (vaccinations ?? []).map((v: any) => ({
