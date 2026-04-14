@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, Alert, Image,
-  ScrollView, Platform, TextInput as RNTextInput,
+  ScrollView, TextInput as RNTextInput,
 } from 'react-native';
-import { useRouter, Stack } from 'expo-router';
+import { Stack } from 'expo-router';
 import { useGoBack } from '../../hooks/useGoBack';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { secureGet, secureSet } from '../../services/secureStorage';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
@@ -18,6 +17,7 @@ import AnimatedButton from '../../components/animations/AnimatedButton';
 import SuccessAnimation from '../../components/animations/SuccessAnimation';
 import { useTranslation } from 'react-i18next';
 import { syncUserProfile } from '../../services/syncService';
+import CountryPicker, { Country, ALL_COUNTRIES } from '../../components/CountryPicker';
 
 type MCIName = keyof typeof MaterialCommunityIcons.glyphMap;
 
@@ -30,24 +30,33 @@ const EXPERIENCE_OPTIONS: { value: UserProfile['experience']; icon: MCIName; lab
   { value: 'expert',       icon: 'trophy-outline', labelKey: 'editProfile.exp.expert' },
 ];
 
-export default function EditProfileScreen() {
-  const router = useRouter();
-  const goBack = useGoBack('/(tabs)');
-  const { colors } = useTheme();
-  const { t } = useTranslation();
 
-  const [name, setName]           = useState('');
-  const [bio, setBio]             = useState('');
-  const [phone, setPhone]         = useState('');
-  const [city, setCity]           = useState('');
-  const [state, setState]         = useState('');
-  const [cep, setCep]             = useState('');
-  const [birthDate, setBirthDate] = useState('');
+export default function EditProfileScreen() {
+  const goBack  = useGoBack('/(tabs)');
+  const { colors } = useTheme();
+  const { t }   = useTranslation();
+
+  const [name, setName]             = useState('');
+  const [bio, setBio]               = useState('');
+  const [phone, setPhone]           = useState('');
+  const [city, setCity]             = useState('');
+  // Campos exclusivos Brasil
+  const [state, setState]           = useState('');
+  const [cep, setCep]               = useState('');
+  // Campos para fora do Brasil
+  const [region, setRegion]         = useState('');
+  const [postalCode, setPostalCode] = useState('');
+  // País
+  const [country, setCountry]       = useState<Country | null>(null);
+  // Outros
+  const [birthDate, setBirthDate]   = useState('');
   const [experience, setExperience] = useState<UserProfile['experience']>(undefined);
-  const [avatarUrl, setAvatarUrl] = useState<string | undefined>(undefined);
+  const [avatarUrl, setAvatarUrl]   = useState<string | undefined>(undefined);
   const [showSuccess, setShowSuccess] = useState(false);
-  const [nameError, setNameError] = useState('');
+  const [nameError, setNameError]   = useState('');
   const [phoneError, setPhoneError] = useState('');
+
+  const isBrazil = country?.code === 'BR';
 
   useEffect(() => {
     secureGet('userProfile').then(json => {
@@ -59,11 +68,41 @@ export default function EditProfileScreen() {
       setCity(p.city || '');
       setState(p.state || '');
       setCep(p.cep || '');
+      setRegion(p.region || '');
+      setPostalCode(p.postalCode || '');
       setBirthDate(p.birthDate || '');
       setExperience(p.experience);
       setAvatarUrl(p.avatarUrl);
+      // Restaurar país salvo
+      if (p.countryCode) {
+        const found = ALL_COUNTRIES.find(c => c.code === p.countryCode);
+        if (found) setCountry(found);
+      }
     });
   }, []);
+
+  // Ao trocar de país, limpar campos do modo anterior
+  const handleCountryChange = (c: Country) => {
+    const wasInternational = country && country.code !== 'BR';
+    const goingToBR = c.code === 'BR';
+    const leavingBR = country?.code === 'BR';
+
+    if (goingToBR) {
+      // Saindo do internacional para o Brasil
+      setRegion('');
+      setPostalCode('');
+      setPhone('');
+    } else if (leavingBR) {
+      // Saindo do Brasil para internacional
+      setState('');
+      setCep('');
+      setPhone('');
+    } else if (wasInternational) {
+      // Trocando entre países internacionais — limpa só o telefone (dial code muda)
+      setPhone('');
+    }
+    setCountry(c);
+  };
 
   const pickAvatar = async (useCamera: boolean) => {
     try {
@@ -92,13 +131,21 @@ export default function EditProfileScreen() {
     ]);
   };
 
-  // Formata data enquanto digita: DD/MM/YYYY
-  const handleBirthDateChange = (text: string) => {
-    const digits = text.replace(/\D/g, '').slice(0, 8);
-    let formatted = digits;
-    if (digits.length > 2) formatted = digits.slice(0, 2) + '/' + digits.slice(2);
-    if (digits.length > 4) formatted = digits.slice(0, 2) + '/' + digits.slice(2, 4) + '/' + digits.slice(4);
-    setBirthDate(formatted);
+  // ── Formatadores ──────────────────────────────────────────────────────────────
+
+  const handlePhoneBR = (text: string) => {
+    const digits = text.replace(/\D/g, '').slice(0, 11);
+    let f = digits;
+    if (digits.length > 2) f = '(' + digits.slice(0, 2) + ') ' + digits.slice(2);
+    if (digits.length > 7) f = '(' + digits.slice(0, 2) + ') ' + digits.slice(2, 7) + '-' + digits.slice(7);
+    setPhone(f);
+    if (phoneError) setPhoneError('');
+  };
+
+  const handlePhoneIntl = (text: string) => {
+    // Permite +, dígitos, espaços e hífens — sem máscara rígida
+    setPhone(text.replace(/[^\d\s\-\+\(\)]/g, '').slice(0, 20));
+    if (phoneError) setPhoneError('');
   };
 
   const handleCepChange = (text: string) => {
@@ -106,54 +153,67 @@ export default function EditProfileScreen() {
     setCep(digits.length > 5 ? digits.slice(0, 5) + '-' + digits.slice(5) : digits);
   };
 
-  const handleStateChange = (text: string) => {
+  const handleStateChange = (text: string) =>
     setState(text.replace(/[^a-zA-Z]/g, '').slice(0, 2).toUpperCase());
+
+  const handleBirthDateChange = (text: string) => {
+    const digits = text.replace(/\D/g, '').slice(0, 8);
+    let f = digits;
+    if (digits.length > 2) f = digits.slice(0, 2) + '/' + digits.slice(2);
+    if (digits.length > 4) f = digits.slice(0, 2) + '/' + digits.slice(2, 4) + '/' + digits.slice(4);
+    setBirthDate(f);
   };
 
-  const handlePhoneChange = (text: string) => {
-    const digits = text.replace(/\D/g, '').slice(0, 11);
-    let formatted = digits;
-    if (digits.length > 2)  formatted = '(' + digits.slice(0, 2) + ') ' + digits.slice(2);
-    if (digits.length > 7)  formatted = '(' + digits.slice(0, 2) + ') ' + digits.slice(2, 7) + '-' + digits.slice(7);
-    setPhone(formatted);
-    if (phoneError) setPhoneError('');
-  };
+  // ── Salvar ────────────────────────────────────────────────────────────────────
 
   const handleSave = async () => {
     let valid = true;
+
     if (!name.trim()) { setNameError(t('editProfile.nameRequired')); valid = false; }
     else if (name.trim().length < 2) { setNameError(t('editProfile.nameMinLength')); valid = false; }
     else setNameError('');
 
-    if (phone && phone.replace(/\D/g, '').length < 10) {
-      setPhoneError(t('editProfile.phoneInvalid')); valid = false;
+    const phoneDigits = phone.replace(/\D/g, '');
+    if (phone) {
+      if (isBrazil && phoneDigits.length < 10) {
+        setPhoneError(t('editProfile.phoneInvalid')); valid = false;
+      } else if (!isBrazil && phone.trim().length < 5) {
+        setPhoneError(t('editProfile.phoneInvalid')); valid = false;
+      } else setPhoneError('');
     } else setPhoneError('');
 
-    if (state && !/^[A-Za-z]{2}$/.test(state.trim())) {
-      Alert.alert(t('common.error'), t('editProfile.stateInvalid')); valid = false;
-    }
-
-    if (cep && !/^\d{5}-\d{3}$/.test(cep.trim())) {
-      Alert.alert(t('common.error'), t('editProfile.cepInvalid')); valid = false;
+    if (isBrazil) {
+      if (state && !/^[A-Za-z]{2}$/.test(state.trim())) {
+        Alert.alert(t('common.error'), t('editProfile.stateInvalid')); valid = false;
+      }
+      if (cep && !/^\d{5}-\d{3}$/.test(cep.trim())) {
+        Alert.alert(t('common.error'), t('editProfile.cepInvalid')); valid = false;
+      }
     }
 
     if (!valid) return;
 
     const newProfile: UserProfile = {
-      name: name.trim().slice(0, 60),
-      bio: bio.trim().slice(0, 200),
-      phone: phone.trim(),
-      city: city.trim().slice(0, 60),
-      state: state.trim().toUpperCase().slice(0, 2),
-      cep: cep.trim(),
-      birthDate: birthDate.trim(),
+      name:        name.trim().slice(0, 60),
+      bio:         bio.trim().slice(0, 200),
+      phone:       phone.trim(),
+      city:        city.trim().slice(0, 60),
+      country:     country?.name,
+      countryCode: country?.code,
+      // Campos BR — preenchidos só se Brasil, explicitamente vazios se não
+      state:       isBrazil ? state.trim().toUpperCase().slice(0, 2) : undefined,
+      cep:         isBrazil ? cep.trim() : undefined,
+      // Campos internacionais — preenchidos só se não-Brasil, explicitamente vazios se BR
+      region:      (!country || isBrazil) ? undefined : region.trim().slice(0, 80),
+      postalCode:  (!country || isBrazil) ? undefined : postalCode.trim().slice(0, 20),
+      birthDate:   birthDate.trim(),
       experience,
       avatarUrl,
     };
 
     try {
       await secureSet('userProfile', JSON.stringify(newProfile));
-      syncUserProfile(newProfile); // sync em background — não bloqueia
+      syncUserProfile(newProfile);
       setShowSuccess(true);
       setTimeout(() => { try { goBack(); } catch {} }, 1800);
     } catch {
@@ -195,10 +255,9 @@ export default function EditProfileScreen() {
           <Text style={[styles.avatarHint, { color: colors.text.light }]}>{t('editProfile.avatarHint')}</Text>
         </View>
 
-        {/* ── Seção: Informações Básicas ── */}
+        {/* ── Informações Básicas ── */}
         <SectionLabel label={t('editProfile.sectionBasic')} colors={colors} />
 
-        {/* Nome */}
         <FieldGroup colors={colors} label={t('editProfile.nameLabel')} required error={nameError} charCount={`${name.length}/50`}>
           <InputRow icon="person-outline" colors={colors} error={!!nameError}>
             <RNTextInput
@@ -213,7 +272,6 @@ export default function EditProfileScreen() {
           </InputRow>
         </FieldGroup>
 
-        {/* Bio */}
         <FieldGroup colors={colors} label={t('editProfile.bioLabel')} charCount={`${bio.length}/150`}>
           <InputRow icon="chatbubble-outline" colors={colors} multiline>
             <RNTextInput
@@ -230,77 +288,136 @@ export default function EditProfileScreen() {
           </InputRow>
         </FieldGroup>
 
-        {/* ── Seção: Contato ── */}
+        {/* ── Localização ── */}
+        <SectionLabel label={t('editProfile.sectionLocation', 'Localização')} colors={colors} />
+
+        {/* País — pivô principal */}
+        <FieldGroup colors={colors} label={t('editProfile.countryLabel', 'País')}>
+          <CountryPicker value={country} onChange={handleCountryChange} />
+        </FieldGroup>
+
+        {/* Cidade — campo sempre presente */}
+        <FieldGroup colors={colors} label={t('editProfile.cityLabel')}>
+          <InputRow icon="location-outline" colors={colors}>
+            <RNTextInput
+              value={city}
+              onChangeText={setCity}
+              placeholder={t('editProfile.cityPlaceholder')}
+              placeholderTextColor={colors.text.light}
+              style={[styles.textInput, { color: colors.text.primary }]}
+              autoCapitalize="words"
+              maxLength={60}
+            />
+          </InputRow>
+        </FieldGroup>
+
+        {/* Campos específicos BR */}
+        {isBrazil && (
+          <>
+            <View style={{ flexDirection: 'row', gap: 10 }}>
+              <View style={{ flex: 1 }}>
+                <FieldGroup colors={colors} label={t('editProfile.cepLabel')}>
+                  <InputRow icon="mail-outline" colors={colors}>
+                    <RNTextInput
+                      value={cep}
+                      onChangeText={handleCepChange}
+                      placeholder="00000-000"
+                      placeholderTextColor={colors.text.light}
+                      style={[styles.textInput, { color: colors.text.primary }]}
+                      keyboardType="numeric"
+                      maxLength={9}
+                    />
+                  </InputRow>
+                </FieldGroup>
+              </View>
+              <View style={{ width: 90 }}>
+                <FieldGroup colors={colors} label={t('editProfile.stateLabel')}>
+                  <InputRow icon="flag-outline" colors={colors}>
+                    <RNTextInput
+                      value={state}
+                      onChangeText={handleStateChange}
+                      placeholder="UF"
+                      placeholderTextColor={colors.text.light}
+                      style={[styles.textInput, { color: colors.text.primary }]}
+                      autoCapitalize="characters"
+                      maxLength={2}
+                    />
+                  </InputRow>
+                </FieldGroup>
+              </View>
+            </View>
+          </>
+        )}
+
+        {/* Campos específicos Internacional */}
+        {country && !isBrazil && (
+          <>
+            <View style={{ flexDirection: 'row', gap: 10 }}>
+              <View style={{ flex: 1 }}>
+                <FieldGroup colors={colors} label={t('editProfile.regionLabel', 'Estado / Região')}>
+                  <InputRow icon="map-outline" colors={colors}>
+                    <RNTextInput
+                      value={region}
+                      onChangeText={setRegion}
+                      placeholder={t('editProfile.regionPlaceholder', 'Ex: California, Ontario')}
+                      placeholderTextColor={colors.text.light}
+                      style={[styles.textInput, { color: colors.text.primary }]}
+                      autoCapitalize="words"
+                      maxLength={80}
+                    />
+                  </InputRow>
+                </FieldGroup>
+              </View>
+              <View style={{ width: 110 }}>
+                <FieldGroup colors={colors} label={t('editProfile.postalCodeLabel', 'Cód. Postal')}>
+                  <InputRow icon="mail-outline" colors={colors}>
+                    <RNTextInput
+                      value={postalCode}
+                      onChangeText={setPostalCode}
+                      placeholder="00000"
+                      placeholderTextColor={colors.text.light}
+                      style={[styles.textInput, { color: colors.text.primary }]}
+                      autoCapitalize="characters"
+                      maxLength={20}
+                    />
+                  </InputRow>
+                </FieldGroup>
+              </View>
+            </View>
+          </>
+        )}
+
+        {/* ── Contato ── */}
         <SectionLabel label={t('editProfile.sectionContact')} colors={colors} />
 
-        {/* Telefone */}
         <FieldGroup colors={colors} label={t('editProfile.phoneLabel')} error={phoneError}>
-          <InputRow icon="call-outline" colors={colors} error={!!phoneError}>
+          <View style={[
+            styles.inputRow,
+            { backgroundColor: colors.surface, borderColor: phoneError ? Theme.danger : colors.border },
+          ]}>
+            {/* Prefixo do país */}
+            <View style={[styles.dialCodeBadge, { backgroundColor: colors.background }]}>
+              <Text style={styles.dialCodeFlag}>{country?.flag ?? '🌍'}</Text>
+              <Text style={[styles.dialCodeText, { color: colors.text.secondary }]}>
+                {country?.dialCode ?? ''}
+              </Text>
+            </View>
             <RNTextInput
               value={phone}
-              onChangeText={handlePhoneChange}
-              placeholder={t('editProfile.phonePlaceholder')}
+              onChangeText={isBrazil ? handlePhoneBR : handlePhoneIntl}
+              placeholder={isBrazil ? '(00) 00000-0000' : t('editProfile.phonePlaceholder')}
               placeholderTextColor={colors.text.light}
               style={[styles.textInput, { color: colors.text.primary }]}
               keyboardType="phone-pad"
-              maxLength={15}
+              maxLength={isBrazil ? 15 : 20}
             />
-          </InputRow>
+          </View>
+          {!!phoneError && <Text style={styles.errorText}>{phoneError}</Text>}
         </FieldGroup>
 
-        {/* Cidade + Estado na mesma linha */}
-        <View style={{ flexDirection: 'row', gap: 10 }}>
-          <View style={{ flex: 1 }}>
-            <FieldGroup colors={colors} label={t('editProfile.cityLabel')}>
-              <InputRow icon="location-outline" colors={colors}>
-                <RNTextInput
-                  value={city}
-                  onChangeText={setCity}
-                  placeholder={t('editProfile.cityPlaceholder')}
-                  placeholderTextColor={colors.text.light}
-                  style={[styles.textInput, { color: colors.text.primary }]}
-                  autoCapitalize="words"
-                  maxLength={60}
-                />
-              </InputRow>
-            </FieldGroup>
-          </View>
-          <View style={{ width: 80 }}>
-            <FieldGroup colors={colors} label={t('editProfile.stateLabel')}>
-              <InputRow icon="flag-outline" colors={colors}>
-                <RNTextInput
-                  value={state}
-                  onChangeText={handleStateChange}
-                  placeholder="UF"
-                  placeholderTextColor={colors.text.light}
-                  style={[styles.textInput, { color: colors.text.primary }]}
-                  autoCapitalize="characters"
-                  maxLength={2}
-                />
-              </InputRow>
-            </FieldGroup>
-          </View>
-        </View>
-
-        {/* CEP */}
-        <FieldGroup colors={colors} label={t('editProfile.cepLabel')}>
-          <InputRow icon="mail-outline" colors={colors}>
-            <RNTextInput
-              value={cep}
-              onChangeText={handleCepChange}
-              placeholder="00000-000"
-              placeholderTextColor={colors.text.light}
-              style={[styles.textInput, { color: colors.text.primary }]}
-              keyboardType="numeric"
-              maxLength={9}
-            />
-          </InputRow>
-        </FieldGroup>
-
-        {/* ── Seção: Sobre você ── */}
+        {/* ── Sobre você ── */}
         <SectionLabel label={t('editProfile.sectionAbout')} colors={colors} />
 
-        {/* Data de nascimento */}
         <FieldGroup colors={colors} label={t('editProfile.birthDateLabel')}>
           <InputRow icon="calendar-outline" colors={colors}>
             <RNTextInput
@@ -358,10 +475,12 @@ export default function EditProfileScreen() {
               <Text style={[styles.previewName, { color: colors.text.primary }]} numberOfLines={1}>
                 {name.trim() || t('editProfile.defaultName')}
               </Text>
-              {!!city && (
+              {(!!city || !!country) && (
                 <View style={styles.previewRow}>
                   <Ionicons name="location-outline" size={11} color={colors.text.light} />
-                  <Text style={[styles.previewMeta, { color: colors.text.light }]}> {city}</Text>
+                  <Text style={[styles.previewMeta, { color: colors.text.light }]}>
+                    {' '}{[city, country?.name].filter(Boolean).join(', ')}
+                  </Text>
                 </View>
               )}
               {!!experience && (
@@ -393,7 +512,7 @@ export default function EditProfileScreen() {
   );
 }
 
-// ── Subcomponentes locais ──────────────────────────────────────────────────────
+// ── Subcomponentes ────────────────────────────────────────────────────────────
 
 function SectionLabel({ label, colors }: { label: string; colors: any }) {
   return (
@@ -448,7 +567,6 @@ const styles = StyleSheet.create({
   headerTitle: { fontSize: 20, fontWeight: 'bold' },
   scrollContent: { padding: 20, paddingBottom: 50 },
 
-  // Avatar
   avatarSection: { alignItems: 'center', marginBottom: 28 },
   avatarWrapper: { position: 'relative', marginBottom: 8 },
   avatar: {
@@ -466,7 +584,6 @@ const styles = StyleSheet.create({
   },
   avatarHint: { fontSize: 13 },
 
-  // Campos
   fieldGroup: { marginBottom: 18 },
   label: { fontSize: 14, fontWeight: '600' },
   inputRow: {
@@ -481,7 +598,15 @@ const styles = StyleSheet.create({
   errorText: { color: Theme.danger, fontSize: 12, marginTop: 4, marginLeft: 2 },
   charCount: { fontSize: 11, textAlign: 'right', marginTop: 4, color: '#9E9E9E' },
 
-  // Nível de experiência
+  // Dial code no campo de telefone
+  dialCodeBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    paddingVertical: 13, paddingRight: 10,
+    marginRight: 2, borderRightWidth: StyleSheet.hairlineWidth, borderRightColor: '#ccc',
+  },
+  dialCodeFlag: { fontSize: 18 },
+  dialCodeText: { fontSize: 13, fontWeight: '600' },
+
   expGrid: { flexDirection: 'row', gap: 8 },
   expChip: {
     flex: 1, alignItems: 'center', paddingVertical: 12, paddingHorizontal: 6,
@@ -489,7 +614,6 @@ const styles = StyleSheet.create({
   },
   expChipText: { fontSize: 12, textAlign: 'center' },
 
-  // Preview
   previewCard: { borderRadius: 12, borderWidth: 1, padding: 14, marginBottom: 20 },
   previewHeader: { flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 10 },
   previewLabel: { fontSize: 12, fontWeight: '600' },
@@ -505,7 +629,6 @@ const styles = StyleSheet.create({
   previewMeta: { fontSize: 11 },
   previewBio: { fontSize: 12, marginTop: 2 },
 
-  // Botão
   saveButton: {
     backgroundColor: Theme.primary, padding: 16, borderRadius: 12,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',

@@ -48,8 +48,12 @@ export type UserProfile = {
   avatarUrl?: string
   phone?: string
   city?: string
-  state?: string       // UF, ex: "ES", "SP"
-  cep?: string         // 00000-000
+  state?: string       // UF, ex: "ES", "SP" (apenas Brasil)
+  cep?: string         // 00000-000 (apenas Brasil)
+  region?: string      // Estado/Província/Região (fora do Brasil)
+  postalCode?: string  // Código postal genérico (fora do Brasil)
+  country?: string     // Nome do país, ex: "Brasil", "United States"
+  countryCode?: string // ISO 3166-1 alpha-2, ex: "BR", "US"
   birthDate?: string   // DD/MM/YYYY
   experience?: 'beginner' | 'intermediate' | 'expert'
 }

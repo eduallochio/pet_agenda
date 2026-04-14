@@ -81,11 +81,24 @@ const toSupabaseFeeding = (uid: string, f: FeedingRecord) => ({
 });
 
 const toSupabaseProfile = (uid: string, p: UserProfile) => ({
-  user_id: uid, name: p.name, bio: p.bio, avatar_url: p.avatarUrl,
-  phone: p.phone, city: p.city, state: p.state, cep: p.cep,
-  birth_date: p.birthDate, experience: p.experience,
-  platform: Platform.OS, // 'android' | 'ios'
-  updated_at: new Date().toISOString(),
+  user_id:      uid,
+  name:         p.name,
+  bio:          p.bio,
+  avatar_url:   p.avatarUrl,
+  phone:        p.phone ?? null,
+  city:         p.city ?? null,
+  country:      p.country ?? null,
+  country_code: p.countryCode ?? null,
+  // Campos Brasil — null quando não-BR (limpa valores antigos no Supabase)
+  state:        p.state ?? null,
+  cep:          p.cep ?? null,
+  // Campos internacionais — null quando BR (limpa valores antigos no Supabase)
+  region:       p.region ?? null,
+  postal_code:  p.postalCode ?? null,
+  birth_date:   p.birthDate ?? null,
+  experience:   p.experience ?? null,
+  platform:     Platform.OS,
+  updated_at:   new Date().toISOString(),
 });
 
 // ─── Sync automático por operação (offline-first) ────────────────────────────
