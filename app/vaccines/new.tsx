@@ -135,6 +135,17 @@ export default function NewVaccineScreen() {
       const pet = pets.find(p => p.id === petId);
       const petName = pet?.name || 'Seu pet';
 
+      // Cancelar notificações antigas ANTES de agendar novas
+      if (isEditing && Platform.OS !== 'web') {
+        const old = records.find(v => v.id === vaccineId);
+        if (old?.notificationIds) {
+          try {
+            const NS = await import('../../services/notificationService');
+            await NS.cancelNotifications(old.notificationIds);
+          } catch { /* ignore */ }
+        }
+      }
+
       let notificationIds: string[] = [];
       if (Platform.OS !== 'web' && nextDueDate && nextDueDate > new Date()) {
         try {
@@ -146,13 +157,6 @@ export default function NewVaccineScreen() {
       }
 
       if (isEditing) {
-        const old = records.find(v => v.id === vaccineId);
-        if (old?.notificationIds && Platform.OS !== 'web') {
-          try {
-            const NS = await import('../../services/notificationService');
-            await NS.cancelNotifications(old.notificationIds);
-          } catch { /* ignore */ }
-        }
         records = records.map(v =>
           v.id === vaccineId
             ? { ...v, vaccineName, dateAdministered: formattedAdmin, nextDueDate: formattedNext, notificationIds }
@@ -231,7 +235,7 @@ export default function NewVaccineScreen() {
         {/* Sugestões rápidas */}
         {!isEditing && (
           <View style={styles.suggestionsSection}>
-            <Text style={[styles.sectionLabel, { color: colors.text.secondary }]}>{t('reminder.suggestions')}</Text>
+            <Text style={[sectionStyles.text, { color: colors.text.secondary }]}>{t('reminder.suggestions')}</Text>
             <View style={styles.suggestionsGrid}>
               {COMMON_VACCINES.map(name => (
                 <TouchableOpacity
@@ -262,7 +266,6 @@ export default function NewVaccineScreen() {
 
         {/* Data de aplicação */}
         <DatePickerInput
-          label=""
           value={dateAdministered}
           onChange={setDateAdministered}
           placeholder={t('vaccine.appliedDatePlaceholder')}
@@ -273,7 +276,6 @@ export default function NewVaccineScreen() {
 
         {/* Próximo reforço */}
         <DatePickerInput
-          label=""
           value={nextDueDate}
           onChange={setNextDueDate}
           placeholder={t('vaccine.boosterPlaceholder')}
@@ -349,8 +351,6 @@ const styles = StyleSheet.create({
   headerBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
   headerTitle: { fontSize: 20, fontWeight: 'bold' },
   scrollContent: { padding: 20, paddingBottom: 50 },
-
-  sectionLabel: { fontSize: 11, fontWeight: '700', letterSpacing: 1, marginBottom: 8 },
 
   // Sugestões
   suggestionsSection: { marginTop: 20, marginBottom: 4 },
