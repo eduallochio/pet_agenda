@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
-import { FlatList, StyleSheet, Text, TouchableOpacity, View, Platform } from 'react-native';
+import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useGoBack } from '../../hooks/useGoBack';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { VaccineRecord } from '../../types/pet';
@@ -162,7 +162,7 @@ export default function VaccinationCardScreen() {
 			<Stack.Screen options={{ headerShown: false }} />
 
 			{/* Header */}
-			<View style={[styles.header, { backgroundColor: colors.background }]}>
+			<View style={[styles.header, { borderBottomColor: colors.border }]}>
 				<TouchableOpacity style={styles.headerBtn} onPress={goBack}>
 					<Ionicons name="arrow-back" size={24} color={colors.text.primary} />
 				</TouchableOpacity>
@@ -225,13 +225,11 @@ export default function VaccinationCardScreen() {
 const styles = StyleSheet.create({
 	container: { flex: 1 },
 	header: {
-		flexDirection: 'row',
-		alignItems: 'center',
-		paddingHorizontal: 8,
-		paddingVertical: 12,
+		flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+		paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1,
 	},
 	headerBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
-	headerTitle: { flex: 1, fontSize: 20, fontWeight: '700', marginLeft: 4 },
+	headerTitle: { fontSize: 20, fontWeight: 'bold' },
 	// Stats
 	statsRow: { flexDirection: 'row', gap: 10, paddingHorizontal: 16, paddingBottom: 12 },
 	statCard: {

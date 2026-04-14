@@ -379,10 +379,9 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     group: 'diversidade',
     check: ({ pets }) => {
       const species = pets.map(p => p.species.toLowerCase());
-      return (
-        (species.includes('cachorro') || species.includes('cão') || species.includes('cao')) &&
-        species.includes('gato')
-      );
+      const hasDog = species.some(s => ['cachorro', 'cão', 'cao', 'dog', 'perro'].includes(s));
+      const hasCat = species.some(s => ['gato', 'cat', 'gato'].includes(s));
+      return hasDog && hasCat;
     },
   },
   {
@@ -393,7 +392,14 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     color: '#29B6F6',
     group: 'diversidade',
     check: ({ pets }) => {
-      const exotic = ['réptil', 'reptil', 'peixe', 'pássaro', 'passaro', 'tartaruga', 'iguana'];
+      const exotic = [
+        // Português
+        'réptil', 'reptil', 'peixe', 'pássaro', 'passaro', 'tartaruga', 'iguana', 'cobra', 'lagarto',
+        // Inglês
+        'reptile', 'fish', 'bird', 'parrot', 'snake', 'lizard', 'turtle', 'gecko', 'hamster', 'rabbit',
+        // Espanhol
+        'reptil', 'pez', 'pájaro', 'pajaro', 'loro', 'serpiente', 'tortuga', 'conejo',
+      ];
       return pets.some(p => exotic.some(e => p.species.toLowerCase().includes(e)));
     },
   },
@@ -435,10 +441,13 @@ export async function checkAndUnlockAchievements(
     const existing: Achievement[] = achJSON ? JSON.parse(achJSON) : [];
     const unlockedIds = existing.map(a => a.id);
 
-    const weightRecords: WeightRecord[] = weightJSON ? JSON.parse(weightJSON) : [];
-    const streak: StreakData = streakJSON
-      ? JSON.parse(streakJSON)
-      : { currentStreak: 0, bestStreak: 0, lastOpenedDate: '', totalDays: 0 };
+    // Usa dados do chamador se fornecidos, senão lê do storage como fallback
+    const weightRecords: WeightRecord[] = data.weightRecords.length > 0
+      ? data.weightRecords
+      : (weightJSON ? JSON.parse(weightJSON) : []);
+    const streak: StreakData = data.streak.totalDays > 0 || data.streak.currentStreak > 0
+      ? data.streak
+      : (streakJSON ? JSON.parse(streakJSON) : { currentStreak: 0, bestStreak: 0, lastOpenedDate: '', totalDays: 0 });
 
     const fullData: CheckData = {
       ...data,

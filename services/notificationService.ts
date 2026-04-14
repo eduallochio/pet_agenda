@@ -1,6 +1,5 @@
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
-import { addToHistory } from './notificationHistory';
 
 // Configurar como as notificações devem ser exibidas quando o app está em foreground
 Notifications.setNotificationHandler({
@@ -163,7 +162,6 @@ export async function scheduleReminderNotification(
         trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: oneDayBefore },
       });
       notificationIds.push(id);
-      await addToHistory({ type: 'reminder', title, body, petId, reminderId }).catch(() => {});
     }
 
     // Notificação no dia (às 9h)
@@ -183,7 +181,6 @@ export async function scheduleReminderNotification(
         trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: onTheDay },
       });
       notificationIds.push(id);
-      await addToHistory({ type: 'reminder', title, body, petId, reminderId }).catch(() => {});
     }
 
     return notificationIds;
@@ -251,7 +248,6 @@ export async function scheduleVaccineNotification(
           trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: d },
         });
         notificationIds.push(id);
-        await addToHistory({ type: 'vaccine', title: cfg.title, body: cfg.body, vaccineId }).catch(() => {});
       }
     }
 
@@ -321,8 +317,6 @@ export async function scheduleBirthdayNotification(
         ...(Platform.OS === 'android' && { channelId: 'birthday' }),
       },
     });
-    await addToHistory({ type: 'birthday', title: birthdayTitle, body: birthdayBody, petId }).catch(() => {});
-
     return id;
   } catch (error) {
     if (__DEV__) console.error('Erro ao agendar notificação de aniversário:', error);
