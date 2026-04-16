@@ -700,6 +700,17 @@ export default {
     },
   },
 
+  // ── Conquistas Screen ─────────────────────────────────────────────────────
+  conquistas: {
+    title: 'Conquistas',
+    level: 'Nível {{level}} - {{title}}',
+    xpToNext: '{{xp}} XP para o próximo nível',
+    statAchievements: 'Conquistas',
+    statStreak: 'Dias seguidos',
+    statChallenges: 'Desafios',
+    allAchievements: 'Todas as Conquistas',
+  },
+
   // ── Achievements ──────────────────────────────────────────────────────────
   achievements: {
     groups: {
@@ -930,6 +941,8 @@ export default {
     history: 'Histórico',
     empty: 'Nenhum registro',
     emptyMsg: 'Registre como seu pet está se sentindo todos os dias.',
+    selectMood: 'Selecione o humor do seu pet antes de salvar.',
+    alreadySaved: 'Você já registrou o humor de hoje para este pet.',
     deleteTitle: 'Excluir Registro',
     deleteConfirm: 'Deseja excluir este registro?',
     moods: {

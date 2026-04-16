@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  Alert, TextInput,
+  TextInput,
 } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -12,6 +12,8 @@ import { Shadows } from '../../constants/Shadows';
 import { DiaryEntry } from '../../types/pet';
 import { useTranslation } from 'react-i18next';
 import { syncDiaryEntries } from '../../services/syncService';
+import NoticeModal from '../../components/NoticeModal';
+import ConfirmModal from '../../components/ConfirmModal';
 
 const MOOD_CONFIG: {
   key: DiaryEntry['mood'];
@@ -38,6 +40,8 @@ export default function DiaryScreen() {
   const [entries, setEntries] = useState<DiaryEntry[]>([]);
   const [selectedMood, setSelectedMood] = useState<DiaryEntry['mood'] | null>(null);
   const [notes, setNotes] = useState('');
+  const [notice, setNotice] = useState<{ title: string; message: string } | null>(null);
+  const [confirmEntry, setConfirmEntry] = useState<DiaryEntry | null>(null);
 
   const todayStr = formatDate(new Date());
 
@@ -57,12 +61,17 @@ export default function DiaryScreen() {
 
   const handleSave = async () => {
     if (!selectedMood) {
-      Alert.alert(t('common.attention'), t('diary.todayEntry'));
+      setNotice({ title: t('common.attention'), message: t('diary.selectMood') });
       return;
     }
     try {
       const json = await AsyncStorage.getItem('petDiary');
       const all: DiaryEntry[] = json ? JSON.parse(json) : [];
+      const duplicate = all.find(e => e.petId === petId && e.date === todayStr);
+      if (duplicate) {
+        setNotice({ title: t('common.attention'), message: t('diary.alreadySaved') });
+        return;
+      }
       const newEntry: DiaryEntry = {
         id: Date.now().toString(),
         petId: petId!,
@@ -77,26 +86,23 @@ export default function DiaryScreen() {
       setNotes('');
       load();
     } catch {
-      Alert.alert(t('common.error'), t('common.error'));
+      setNotice({ title: t('common.error'), message: t('common.error') });
     }
   };
 
   const handleDelete = (entry: DiaryEntry) => {
-    Alert.alert(t('diary.deleteTitle'), t('diary.deleteConfirm'), [
-      { text: t('common.cancel'), style: 'cancel' },
-      {
-        text: t('common.delete'),
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            const json = await AsyncStorage.getItem('petDiary');
-            const all: DiaryEntry[] = json ? JSON.parse(json) : [];
-            await syncDiaryEntries(all.filter(e => e.id !== entry.id));
-            load();
-          } catch { /* silent */ }
-        },
-      },
-    ]);
+    setConfirmEntry(entry);
+  };
+
+  const handleDeleteConfirmed = async () => {
+    if (!confirmEntry) return;
+    setConfirmEntry(null);
+    try {
+      const json = await AsyncStorage.getItem('petDiary');
+      const all: DiaryEntry[] = json ? JSON.parse(json) : [];
+      await syncDiaryEntries(all.filter(e => e.id !== confirmEntry.id));
+      load();
+    } catch { /* silent */ }
   };
 
   const getMoodConfig = (mood: DiaryEntry['mood']) =>
@@ -225,6 +231,25 @@ export default function DiaryScreen() {
           </View>
         )}
       </ScrollView>
+
+      <NoticeModal
+        visible={!!notice}
+        type="warning"
+        title={notice?.title ?? ''}
+        message={notice?.message ?? ''}
+        onConfirm={() => setNotice(null)}
+      />
+
+      <ConfirmModal
+        visible={!!confirmEntry}
+        type="danger"
+        title={t('diary.deleteTitle')}
+        message={t('diary.deleteConfirm')}
+        confirmLabel={t('common.delete')}
+        cancelLabel={t('common.cancel')}
+        onConfirm={handleDeleteConfirmed}
+        onCancel={() => setConfirmEntry(null)}
+      />
     </SafeAreaView>
   );
 }

@@ -9,6 +9,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../hooks/useTheme';
 import { useGoBack } from '../hooks/useGoBack';
+import { useTranslation } from 'react-i18next';
 import {
   ACHIEVEMENTS,
   getAchievementProgress,
@@ -39,9 +40,11 @@ function getLevel(xp: number): { level: number; title: string; xpInLevel: number
 export default function ConquistasScreen() {
   const goBack = useGoBack('/');
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [unlockedAchievements, setUnlockedAchievements] = useState<Achievement[]>([]);
   const [streak, setStreak] = useState(0);
+  const [completedChallenges, setCompletedChallenges] = useState(0);
   const [progressMap, setProgressMap] = useState<Record<string, AchievementProgress>>({});
 
   useFocusEffect(
@@ -49,13 +52,14 @@ export default function ConquistasScreen() {
       const load = async () => {
         setLoading(true);
         try {
-          const [achJSON, streakJSON, petsJSON, remJSON, vacJSON, weightJSON] = await Promise.all([
+          const [achJSON, streakJSON, petsJSON, remJSON, vacJSON, weightJSON, challengeHistoryJSON] = await Promise.all([
             AsyncStorage.getItem('achievements'),
             AsyncStorage.getItem('streakData'),
             AsyncStorage.getItem('pets'),
             AsyncStorage.getItem('reminders'),
             AsyncStorage.getItem('vaccinations'),
             AsyncStorage.getItem('weightRecords'),
+            AsyncStorage.getItem('challengeHistory'),
           ]);
 
           const unlocked: Achievement[] = achJSON ? JSON.parse(achJSON) : [];
@@ -63,6 +67,9 @@ export default function ConquistasScreen() {
 
           const streakData = streakJSON ? JSON.parse(streakJSON) : { currentStreak: 0 };
           setStreak(streakData.currentStreak ?? 0);
+
+          const challengeHistory: any[] = challengeHistoryJSON ? JSON.parse(challengeHistoryJSON) : [];
+          setCompletedChallenges(challengeHistory.length);
 
           const unlockedIds = unlocked.map((a: Achievement) => a.id);
           const progressData = {
@@ -116,7 +123,7 @@ export default function ConquistasScreen() {
         <TouchableOpacity style={styles.headerBtn} onPress={goBack}>
           <Ionicons name="arrow-back" size={24} color={colors.text.primary} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.text.primary }]}>Conquistas</Text>
+        <Text style={[styles.headerTitle, { color: colors.text.primary }]}>{t('conquistas.title')}</Text>
         <View style={styles.headerBtn} />
       </View>
 
@@ -128,17 +135,17 @@ export default function ConquistasScreen() {
             <MaterialCommunityIcons name="trophy" size={32} color="#FFB74D" />
           </View>
           <Text style={[styles.levelTitle, { color: colors.text.primary }]}>
-            Nível {levelInfo.level} - {levelInfo.title}
+            {t('conquistas.level', { level: levelInfo.level, title: levelInfo.title })}
           </Text>
           <Text style={[styles.xpText, { color: colors.text.secondary }]}>
-            {levelInfo.xpInLevel.toLocaleString('pt-BR')} / {levelInfo.xpToNext.toLocaleString('pt-BR')} XP
+            {levelInfo.xpInLevel.toLocaleString()} / {levelInfo.xpToNext.toLocaleString()} XP
           </Text>
           <View style={[styles.xpTrack, { backgroundColor: colors.border }]}>
             <View style={[styles.xpFill, { width: `${xpPct}%` as any }]} />
           </View>
           <View style={styles.xpRow}>
             <Text style={[styles.xpHint, { color: colors.text.light }]}>
-              {xpRemaining.toLocaleString('pt-BR')} XP para o próximo nível
+              {t('conquistas.xpToNext', { xp: xpRemaining.toLocaleString() })}
             </Text>
           </View>
         </View>
@@ -147,20 +154,20 @@ export default function ConquistasScreen() {
         <View style={styles.statsRow}>
           <View style={[styles.statCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <Text style={[styles.statValue, { color: Theme.primary }]}>{unlockedAchievements.length}</Text>
-            <Text style={[styles.statLabel, { color: colors.text.secondary }]}>Conquistas</Text>
+            <Text style={[styles.statLabel, { color: colors.text.secondary }]}>{t('conquistas.statAchievements')}</Text>
           </View>
           <View style={[styles.statCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <Text style={[styles.statValue, { color: '#FFB74D' }]}>{streak}</Text>
-            <Text style={[styles.statLabel, { color: colors.text.secondary }]}>Dias seguidos</Text>
+            <Text style={[styles.statLabel, { color: colors.text.secondary }]}>{t('conquistas.statStreak')}</Text>
           </View>
           <View style={[styles.statCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <Text style={[styles.statValue, { color: '#9C27B0' }]}>0</Text>
-            <Text style={[styles.statLabel, { color: colors.text.secondary }]}>Desafios</Text>
+            <Text style={[styles.statValue, { color: '#9C27B0' }]}>{completedChallenges}</Text>
+            <Text style={[styles.statLabel, { color: colors.text.secondary }]}>{t('conquistas.statChallenges')}</Text>
           </View>
         </View>
 
         {/* Todas as Conquistas */}
-        <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>Todas as Conquistas</Text>
+        <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>{t('conquistas.allAchievements')}</Text>
 
         {ACHIEVEMENTS.map((ach) => {
           const isUnlocked = unlockedIds.includes(ach.id);

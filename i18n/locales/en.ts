@@ -699,6 +699,17 @@ export default {
     },
   },
 
+  // ── Conquistas Screen ─────────────────────────────────────────────────────
+  conquistas: {
+    title: 'Achievements',
+    level: 'Level {{level}} - {{title}}',
+    xpToNext: '{{xp}} XP to next level',
+    statAchievements: 'Achievements',
+    statStreak: 'Day streak',
+    statChallenges: 'Challenges',
+    allAchievements: 'All Achievements',
+  },
+
   // ── Achievements ──────────────────────────────────────────────────────────
   achievements: {
     groups: {
@@ -929,6 +940,8 @@ export default {
     history: 'History',
     empty: 'No entries',
     emptyMsg: 'Record how your pet is feeling every day.',
+    selectMood: 'Please select your pet\'s mood before saving.',
+    alreadySaved: 'You already recorded today\'s mood for this pet.',
     deleteTitle: 'Delete Entry',
     deleteConfirm: 'Do you want to delete this entry?',
     moods: {
