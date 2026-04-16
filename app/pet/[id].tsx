@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, FlatList }
 import { useLocalSearchParams, Stack, useFocusEffect, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { syncReminders } from '../../services/syncService';
 import { autoCompleteChallenge } from '../../hooks/useChallenges';
 import { Ionicons } from '@expo/vector-icons';
 import { Pet, Reminder } from '../../types/pet';
@@ -73,9 +74,9 @@ export default function PetDetailScreen() {
 
 	const calcSize = (weight?: number): string => {
 		if (!weight) return '—';
-		if (weight <= 5) return 'Pequeno';
-		if (weight <= 20) return 'Médio';
-		return 'Grande';
+		if (weight <= 5) return t('petDetail.sizeSmall');
+		if (weight <= 20) return t('petDetail.sizeMedium');
+		return t('petDetail.sizeLarge');
 	};
 
 
@@ -85,21 +86,29 @@ export default function PetDetailScreen() {
 		const updated = all.map(r =>
 			r.id === reminderId ? { ...r, completed: true, completedAt: new Date().toISOString() } : r
 		);
-		await AsyncStorage.setItem('reminders', JSON.stringify(updated));
+		await syncReminders(updated);
 		setReminders(updated.filter(r => r.petId === id));
 	};
 
+	const parseDateSafe = (s: string): number => {
+		const p = s.split('/');
+		if (p.length === 3) {
+			const d = new Date(parseInt(p[2]), parseInt(p[1]) - 1, parseInt(p[0]));
+			return isNaN(d.getTime()) ? Infinity : d.getTime();
+		}
+		return Infinity;
+	};
+
 	const upcomingReminders = useMemo(() => {
+		const today = new Date();
+		today.setHours(0, 0, 0, 0);
 		return reminders
-			.filter(r => !r.completed)
-			.sort((a, b) => {
-				const parseDate = (s: string) => {
-					const p = s.split('/');
-					if (p.length === 3) return new Date(parseInt(p[2]), parseInt(p[1]) - 1, parseInt(p[0])).getTime();
-					return new Date(s).getTime();
-				};
-				return parseDate(a.date) - parseDate(b.date);
-			});
+			.filter(r => {
+				if (r.completed) return false;
+				const t = parseDateSafe(r.date);
+				return t !== Infinity && t >= today.getTime();
+			})
+			.sort((a, b) => parseDateSafe(a.date) - parseDateSafe(b.date));
 	}, [reminders]);
 
 	if (loading) {
