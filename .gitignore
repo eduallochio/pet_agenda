@@ -58,3 +58,5 @@ pencil
 
 # screenshots temporarios na raiz
 /*.png
+# Documentação interna
+info/

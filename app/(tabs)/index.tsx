@@ -70,10 +70,12 @@ function calcHealthScore(
   overdueVaccines: number,
   upcomingCount: number,
   hasVaccines: boolean,
+  todayReminders: number,
 ): { score: number; color: string; label: string } {
   let score = 100;
   score -= Math.min(overdueReminders, 2) * 20;
   score -= Math.min(overdueVaccines, 2) * 25;
+  score -= Math.min(todayReminders, 2) * 10;
   if (upcomingCount > 0) score = Math.min(100, score + 5);
   if (hasVaccines) score = Math.min(100, score + 5);
   score = Math.max(0, score);
@@ -456,21 +458,26 @@ export default function PetDashboard() {
   const getPetStats = (petId: string) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const parseDate = (s: string) => {
+    const in30Days = new Date(today);
+    in30Days.setDate(in30Days.getDate() + 30);
+    const parseDateSafe = (s: string): Date | null => {
       const p = s.split('/');
-      if (p.length === 3) return new Date(parseInt(p[2]), parseInt(p[1]) - 1, parseInt(p[0]));
-      return new Date(s);
+      if (p.length === 3) {
+        const d = new Date(parseInt(p[2]), parseInt(p[1]) - 1, parseInt(p[0]));
+        return isNaN(d.getTime()) ? null : d;
+      }
+      return null;
     };
     const petReminders = reminders.filter(r => r.petId === petId && !r.completed);
-    const overdueReminders = petReminders.filter(r => { const d = parseDate(r.date); d.setHours(0,0,0,0); return d < today; }).length;
-    const todayReminders = petReminders.filter(r => { const d = parseDate(r.date); d.setHours(0,0,0,0); return d.getTime() === today.getTime(); }).length;
-    const upcomingCount = petReminders.filter(r => { const d = parseDate(r.date); d.setHours(0,0,0,0); return d > today; }).length;
+    const overdueReminders = petReminders.filter(r => { const d = parseDateSafe(r.date); if (!d) return false; d.setHours(0,0,0,0); return d < today; }).length;
+    const todayReminders = petReminders.filter(r => { const d = parseDateSafe(r.date); if (!d) return false; d.setHours(0,0,0,0); return d.getTime() === today.getTime(); }).length;
+    const upcomingCount = petReminders.filter(r => { const d = parseDateSafe(r.date); if (!d) return false; d.setHours(0,0,0,0); return d > today && d <= in30Days; }).length;
     const overdueVaccines = vaccines.filter(v => {
       if (v.petId !== petId || !v.nextDueDate) return false;
-      const d = parseDate(v.nextDueDate); d.setHours(0,0,0,0); return d < today;
+      const d = parseDateSafe(v.nextDueDate); if (!d) return false; d.setHours(0,0,0,0); return d < today;
     }).length;
     const hasVaccines = vaccines.some(v => v.petId === petId);
-    const healthScore = calcHealthScore(overdueReminders, overdueVaccines, upcomingCount, hasVaccines);
+    const healthScore = calcHealthScore(overdueReminders, overdueVaccines, upcomingCount, hasVaccines, todayReminders);
     const pet = pets.find(p => p.id === petId);
     const birthdayCountdown = pet?.dob ? calcBirthdayCountdown(pet.dob) : null;
     return { overdueReminders, todayReminders, upcomingCount, overdueVaccines, healthScore, birthdayCountdown };
