@@ -121,7 +121,7 @@ export default function ProfileScreen() {
       await uploadToSupabase();
       Alert.alert(t('profile.settings.backupSuccess'), t('profile.settings.backupSuccessMsg'));
     } catch (e: any) {
-      Alert.alert(t('common.error'), e.message || 'Erro ao fazer backup.');
+      Alert.alert(t('common.error'), e.message || t('profile.settings.backupError'));
     } finally {
       setSyncLoading(false);
     }
@@ -146,7 +146,7 @@ export default function ProfileScreen() {
               await downloadFromSupabase();
               Alert.alert(t('profile.settings.restoreSuccess'), t('profile.settings.restoreSuccessMsg'));
             } catch (e: any) {
-              Alert.alert(t('common.error'), e.message || 'Erro ao restaurar dados.');
+              Alert.alert(t('common.error'), e.message || t('profile.settings.restoreError'));
             } finally {
               setSyncLoading(false);
             }
@@ -448,8 +448,8 @@ ${petsSection || '<p>Nenhum pet cadastrado.</p>'}
             t('profile.settings.exportChoose'),
             [
               { text: t('common.cancel'), style: 'cancel' },
-              { text: 'PDF', onPress: exportAsPDF },
-              { text: 'JSON (Backup)', onPress: exportAsJSON },
+              { text: t('profile.settings.exportPDF'), onPress: exportAsPDF },
+              { text: t('profile.settings.exportJSON'), onPress: exportAsJSON },
             ]
           ),
         },

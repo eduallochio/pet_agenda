@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  Alert, ScrollView, TextInput, Switch, Modal, Platform,
+  ScrollView, TextInput, Switch, Modal, Platform,
 } from 'react-native';
 import { Stack, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -14,6 +14,8 @@ import { Shadows } from '../../constants/Shadows';
 import { MedicationRecord } from '../../types/pet';
 import DatePickerInput from '../../components/DatePickerInput';
 import { useTranslation } from 'react-i18next';
+import NoticeModal from '../../components/NoticeModal';
+import ConfirmModal from '../../components/ConfirmModal';
 
 const MED_COLOR = '#E91E63';
 const STORAGE_KEY = 'petMedications';
@@ -54,6 +56,10 @@ export default function MedicationsScreen() {
   const [medications, setMedications] = useState<MedicationRecord[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
+  const [notice, setNotice] = useState<{ title: string; message: string } | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [confirmMarkDone, setConfirmMarkDone] = useState<string | null>(null);
+  const [actionTarget, setActionTarget] = useState<MedicationRecord | null>(null);
 
   useFocusEffect(
     useCallback(() => {
@@ -73,7 +79,7 @@ export default function MedicationsScreen() {
 
   const saveMedication = async () => {
     if (!form.name.trim() || !form.dosage.trim() || !form.frequency.trim() || !form.startDate) {
-      Alert.alert(t('common.attention'), t('medications.saveError'));
+      setNotice({ title: t('common.attention'), message: t('medications.saveError') });
       return;
     }
 
@@ -100,57 +106,36 @@ export default function MedicationsScreen() {
       setModalVisible(false);
       setForm(EMPTY_FORM);
     } catch {
-      Alert.alert(t('common.error'), t('medications.saveError'));
+      setNotice({ title: t('common.error'), message: t('medications.saveError') });
     }
   };
 
-  const markDone = async (id: string) => {
-    Alert.alert(
-      t('medications.markDone'),
-      undefined,
-      [
-        { text: t('common.cancel'), style: 'cancel' },
-        {
-          text: t('common.confirm'),
-          onPress: async () => {
-            try {
-              const json = await AsyncStorage.getItem(STORAGE_KEY);
-              const all: MedicationRecord[] = json ? JSON.parse(json) : [];
-              const updated = all.map(m => m.id === id ? { ...m, active: false } : m);
-              await syncMedications(updated);
-              setMedications(updated.filter(m => m.petId === petId));
-            } catch {
-              Alert.alert(t('common.error'), t('medications.saveError'));
-            }
-          },
-        },
-      ]
-    );
+  const markDoneConfirmed = async () => {
+    if (!confirmMarkDone) return;
+    setConfirmMarkDone(null);
+    try {
+      const json = await AsyncStorage.getItem(STORAGE_KEY);
+      const all: MedicationRecord[] = json ? JSON.parse(json) : [];
+      const updated = all.map(m => m.id === confirmMarkDone ? { ...m, active: false } : m);
+      await syncMedications(updated);
+      setMedications(updated.filter(m => m.petId === petId));
+    } catch {
+      setNotice({ title: t('common.error'), message: t('medications.saveError') });
+    }
   };
 
-  const deleteMedication = async (id: string) => {
-    Alert.alert(
-      t('medications.deleteTitle'),
-      t('medications.deleteConfirm'),
-      [
-        { text: t('common.cancel'), style: 'cancel' },
-        {
-          text: t('common.delete'),
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              const json = await AsyncStorage.getItem(STORAGE_KEY);
-              const all: MedicationRecord[] = json ? JSON.parse(json) : [];
-              const updated = all.filter(m => m.id !== id);
-              await syncMedications(updated);
-              setMedications(updated.filter(m => m.petId === petId));
-            } catch {
-              Alert.alert(t('common.error'), t('medications.saveError'));
-            }
-          },
-        },
-      ]
-    );
+  const deleteConfirmed = async () => {
+    if (!confirmDelete) return;
+    setConfirmDelete(null);
+    try {
+      const json = await AsyncStorage.getItem(STORAGE_KEY);
+      const all: MedicationRecord[] = json ? JSON.parse(json) : [];
+      const updated = all.filter(m => m.id !== confirmDelete);
+      await syncMedications(updated);
+      setMedications(updated.filter(m => m.petId === petId));
+    } catch {
+      setNotice({ title: t('common.error'), message: t('medications.saveError') });
+    }
   };
 
   const active = medications.filter(m => m.active);
@@ -159,17 +144,7 @@ export default function MedicationsScreen() {
   const MedCard = ({ item }: { item: MedicationRecord }) => (
     <TouchableOpacity
       style={[styles.card, { backgroundColor: colors.surface, ...Shadows.small }]}
-      onLongPress={() => {
-        Alert.alert(
-          item.name,
-          undefined,
-          [
-            item.active ? { text: t('medications.markDone'), onPress: () => markDone(item.id) } : null,
-            { text: t('medications.deleteTitle'), style: 'destructive', onPress: () => deleteMedication(item.id) },
-            { text: t('common.cancel'), style: 'cancel' },
-          ].filter(Boolean) as any
-        );
-      }}
+      onLongPress={() => setActionTarget(item)}
       activeOpacity={0.8}
     >
       <View style={styles.cardHeader}>
@@ -415,6 +390,65 @@ export default function MedicationsScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* Aviso / erro */}
+      <NoticeModal
+        visible={!!notice}
+        type="warning"
+        title={notice?.title ?? ''}
+        message={notice?.message ?? ''}
+        onConfirm={() => setNotice(null)}
+      />
+
+      {/* Confirmar conclusão */}
+      <ConfirmModal
+        visible={!!confirmMarkDone}
+        type="info"
+        title={t('medications.markDone')}
+        message={t('medications.markDoneConfirm')}
+        confirmLabel={t('common.confirm')}
+        cancelLabel={t('common.cancel')}
+        onConfirm={markDoneConfirmed}
+        onCancel={() => setConfirmMarkDone(null)}
+      />
+
+      {/* Confirmar exclusão */}
+      <ConfirmModal
+        visible={!!confirmDelete}
+        type="danger"
+        title={t('medications.deleteTitle')}
+        message={t('medications.deleteConfirm')}
+        confirmLabel={t('common.delete')}
+        cancelLabel={t('common.cancel')}
+        onConfirm={deleteConfirmed}
+        onCancel={() => setConfirmDelete(null)}
+      />
+
+      {/* Menu de ações ao pressionar card */}
+      <ConfirmModal
+        visible={!!actionTarget}
+        type="info"
+        title={actionTarget?.name ?? ''}
+        message={actionTarget?.active ? t('medications.actionPrompt') : t('medications.deleteTitle')}
+        confirmLabel={actionTarget?.active ? t('medications.markDone') : t('common.delete')}
+        cancelLabel={actionTarget?.active ? t('medications.deleteTitle') : t('common.cancel')}
+        onConfirm={() => {
+          if (actionTarget?.active) {
+            setConfirmMarkDone(actionTarget.id);
+          } else {
+            setConfirmDelete(actionTarget!.id);
+          }
+          setActionTarget(null);
+        }}
+        onCancel={() => {
+          if (actionTarget?.active) {
+            setConfirmDelete(actionTarget.id);
+            setActionTarget(null);
+          } else {
+            setActionTarget(null);
+          }
+        }}
+      />
     </SafeAreaView>
   );
 }
