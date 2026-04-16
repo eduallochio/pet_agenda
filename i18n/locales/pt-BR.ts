@@ -993,6 +993,7 @@ export default {
     stateLabel: 'Estado',
     cepLabel: 'CEP',
     birthDateLabel: 'Data de Nascimento',
+    birthDatePlaceholder: 'DD/MM/AAAA',
     expLabel: 'Experiência com Pets',
     exp: {
       beginner: 'Iniciante',

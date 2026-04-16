@@ -992,6 +992,7 @@ export default {
     stateLabel: 'State',
     cepLabel: 'ZIP Code',
     birthDateLabel: 'Date of Birth',
+    birthDatePlaceholder: 'DD/MM/YYYY',
     expLabel: 'Pet Experience',
     exp: {
       beginner: 'Beginner',

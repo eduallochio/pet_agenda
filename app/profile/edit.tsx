@@ -53,8 +53,10 @@ export default function EditProfileScreen() {
   const [experience, setExperience] = useState<UserProfile['experience']>(undefined);
   const [avatarUrl, setAvatarUrl]   = useState<string | undefined>(undefined);
   const [showSuccess, setShowSuccess] = useState(false);
-  const [nameError, setNameError]   = useState('');
-  const [phoneError, setPhoneError] = useState('');
+  const [nameError, setNameError]     = useState('');
+  const [phoneError, setPhoneError]   = useState('');
+  const [stateError, setStateError]   = useState('');
+  const [cepError, setCepError]       = useState('');
 
   const isBrazil = country?.code === 'BR';
 
@@ -151,10 +153,13 @@ export default function EditProfileScreen() {
   const handleCepChange = (text: string) => {
     const digits = text.replace(/\D/g, '').slice(0, 8);
     setCep(digits.length > 5 ? digits.slice(0, 5) + '-' + digits.slice(5) : digits);
+    if (cepError) setCepError('');
   };
 
-  const handleStateChange = (text: string) =>
+  const handleStateChange = (text: string) => {
     setState(text.replace(/[^a-zA-Z]/g, '').slice(0, 2).toUpperCase());
+    if (stateError) setStateError('');
+  };
 
   const handleBirthDateChange = (text: string) => {
     const digits = text.replace(/\D/g, '').slice(0, 8);
@@ -184,11 +189,14 @@ export default function EditProfileScreen() {
 
     if (isBrazil) {
       if (state && !/^[A-Za-z]{2}$/.test(state.trim())) {
-        Alert.alert(t('common.error'), t('editProfile.stateInvalid')); valid = false;
-      }
+        setStateError(t('editProfile.stateInvalid')); valid = false;
+      } else setStateError('');
       if (cep && !/^\d{5}-\d{3}$/.test(cep.trim())) {
-        Alert.alert(t('common.error'), t('editProfile.cepInvalid')); valid = false;
-      }
+        setCepError(t('editProfile.cepInvalid')); valid = false;
+      } else setCepError('');
+    } else {
+      setStateError('');
+      setCepError('');
     }
 
     if (!valid) return;
@@ -329,6 +337,7 @@ export default function EditProfileScreen() {
                     />
                   </InputRow>
                 </FieldGroup>
+                {!!cepError && <Text style={styles.errorText}>{cepError}</Text>}
               </View>
               <View style={{ width: 90 }}>
                 <FieldGroup colors={colors} label={t('editProfile.stateLabel')}>
@@ -344,6 +353,7 @@ export default function EditProfileScreen() {
                     />
                   </InputRow>
                 </FieldGroup>
+                {!!stateError && <Text style={styles.errorText}>{stateError}</Text>}
               </View>
             </View>
           </>
@@ -423,7 +433,7 @@ export default function EditProfileScreen() {
             <RNTextInput
               value={birthDate}
               onChangeText={handleBirthDateChange}
-              placeholder="DD/MM/AAAA"
+              placeholder={t('editProfile.birthDatePlaceholder')}
               placeholderTextColor={colors.text.light}
               style={[styles.textInput, { color: colors.text.primary }]}
               keyboardType="numeric"
