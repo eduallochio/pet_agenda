@@ -4,26 +4,6 @@ apply plugin: "com.facebook.react"
 
 def projectRoot = rootDir.getAbsoluteFile().getParentFile().getAbsolutePath()
 
-// Versão automática baseada em git
-def getGitCommitCount = { ->
-    try {
-        def result = ["git", "rev-list", "--count", "HEAD"].execute(null, rootDir).text.trim()
-        return result.isInteger() ? result.toInteger() : 1
-    } catch (e) {
-        return 1
-    }
-}
-
-def getVersionNameFromAppJson = { ->
-    try {
-        def text = new File(projectRoot, "app.json").text
-        def matcher = text =~ /"version"\s*:\s*"([^"]+)"/
-        return matcher.find() ? matcher.group(1) : "1.0.0"
-    } catch (e) {
-        return "1.0.0"
-    }
-}
-
 /**
  * This is the configuration block to customize your React Native Android app.
  * By default you don't need to apply any configuration, just uncomment the lines you need.
@@ -86,7 +66,7 @@ react {
 /**
  * Set this to true to Run Proguard on Release builds to minify the Java bytecode.
  */
-def enableProguardInReleaseBuilds = (findProperty('android.enableProguardInReleaseBuilds') ?: true).toBoolean()
+def enableProguardInReleaseBuilds = (findProperty('android.enableProguardInReleaseBuilds') ?: false).toBoolean()
 
 /**
  * The preferred build flavor of JavaScriptCore (JSC)
@@ -112,8 +92,8 @@ android {
         applicationId 'io.zupet.app'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode getGitCommitCount()
-        versionName getVersionNameFromAppJson()
+        versionCode 6
+        versionName "1.9.0"
     }
     signingConfigs {
         debug {
@@ -122,20 +102,16 @@ android {
             keyAlias 'androiddebugkey'
             keyPassword 'android'
         }
-        release {
-            storeFile file(ZUPET_UPLOAD_STORE_FILE)
-            storePassword ZUPET_UPLOAD_STORE_PASSWORD
-            keyAlias ZUPET_UPLOAD_KEY_ALIAS
-            keyPassword ZUPET_UPLOAD_KEY_PASSWORD
-        }
     }
     buildTypes {
         debug {
             signingConfig signingConfigs.debug
         }
         release {
-            signingConfig signingConfigs.release
-            shrinkResources (findProperty('android.enableShrinkResourcesInReleaseBuilds')?.toBoolean() ?: true)
+            // Caution! In production, you need to generate your own keystore file.
+            // see https://reactnative.dev/docs/signed-apk-android.
+            signingConfig signingConfigs.debug
+            shrinkResources (findProperty('android.enableShrinkResourcesInReleaseBuilds')?.toBoolean() ?: false)
             minifyEnabled enableProguardInReleaseBuilds
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
             crunchPngs (findProperty('android.enablePngCrunchInReleaseBuilds')?.toBoolean() ?: true)
@@ -146,7 +122,6 @@ android {
             useLegacyPackaging (findProperty('expo.useLegacyPackaging')?.toBoolean() ?: false)
         }
     }
-
     androidResources {
         ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:!CVS:!thumbs.db:!picasa.ini:!*~'
     }
@@ -169,14 +144,6 @@ android {
         options.each {
             android.packagingOptions[prop] += it
         }
-    }
-}
-
-configurations.all {
-    resolutionStrategy {
-        // Força versão do play-services-ads compatível com Kotlin 2.0.0 (Expo 53)
-        force 'com.google.android.gms:play-services-ads:23.6.0'
-        force 'com.google.android.gms:play-services-ads-lite:23.6.0'
     }
 }
 
@@ -206,22 +173,5 @@ dependencies {
         implementation("com.facebook.react:hermes-android")
     } else {
         implementation jscFlavor
-    }
-}
-
-// Renomeia o APK de release para zupet-{versionName}-release.apk
-tasks.whenTaskAdded { task ->
-    if (task.name == "assembleRelease") {
-        task.doLast {
-            def apkDir = file("${buildDir}/outputs/apk/release")
-            def versionName = android.defaultConfig.versionName
-            apkDir.listFiles().each { f ->
-                if (f.name.endsWith(".apk") && !f.name.startsWith("zupet-")) {
-                    def newName = "zupet-${versionName}-release.apk"
-                    f.renameTo(new File(apkDir, newName))
-                    println "APK renomeado para: ${newName}"
-                }
-            }
-        }
     }
 }
