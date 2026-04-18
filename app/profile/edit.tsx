@@ -17,6 +17,8 @@ import AnimatedButton from '../../components/animations/AnimatedButton';
 import SuccessAnimation from '../../components/animations/SuccessAnimation';
 import { useTranslation } from 'react-i18next';
 import { syncUserProfile } from '../../services/syncService';
+import { uploadImage, deleteImage, isRemoteUrl } from '../../services/storageService';
+import { supabase } from '../../services/supabase';
 import CountryPicker, { Country, ALL_COUNTRIES } from '../../components/CountryPicker';
 
 type MCIName = keyof typeof MaterialCommunityIcons.glyphMap;
@@ -118,7 +120,15 @@ export default function EditProfileScreen() {
       const result = useCamera
         ? await ImagePicker.launchCameraAsync({ allowsEditing: true, aspect: [1, 1], quality: 0.7 })
         : await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsEditing: true, aspect: [1, 1], quality: 0.7 });
-      if (!result.canceled && result.assets[0]) setAvatarUrl(result.assets[0].uri);
+      if (!result.canceled && result.assets[0]) {
+        const localUri = result.assets[0].uri;
+        setAvatarUrl(localUri); // mostra imediato
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const remoteUrl = await uploadImage(localUri, 'avatars', `${user.id}/avatar`);
+          setAvatarUrl(remoteUrl);
+        }
+      }
     } catch {
       Alert.alert(t('common.error'), t('editProfile.imageError'));
     }
@@ -128,7 +138,10 @@ export default function EditProfileScreen() {
     Alert.alert(t('editProfile.avatarOptions'), t('editProfile.avatarOptionsMsg'), [
       { text: t('editProfile.camera'),  onPress: () => setTimeout(() => pickAvatar(true), 300) },
       { text: t('editProfile.gallery'), onPress: () => setTimeout(() => pickAvatar(false), 300) },
-      ...(avatarUrl ? [{ text: t('editProfile.removePhoto'), style: 'destructive' as const, onPress: () => setAvatarUrl(undefined) }] : []),
+      ...(avatarUrl ? [{ text: t('editProfile.removePhoto'), style: 'destructive' as const, onPress: () => {
+        if (isRemoteUrl(avatarUrl)) deleteImage(avatarUrl, 'avatars');
+        setAvatarUrl(undefined);
+      }}] : []),
       { text: t('common.cancel'), style: 'cancel' },
     ]);
   };

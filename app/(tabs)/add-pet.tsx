@@ -25,6 +25,8 @@ import { checkAndUnlockAchievements } from '../../hooks/useAchievements';
 import { autoCompleteChallenge } from '../../hooks/useChallenges';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../hooks/useTheme';
+import { uploadImage, deleteImage, isRemoteUrl } from '../../services/storageService';
+import { supabase } from '../../services/supabase';
 
 type MCIName = keyof typeof MaterialCommunityIcons.glyphMap;
 
@@ -62,6 +64,7 @@ export default function AddPetScreen() {
   const [castrated, setCastrated] = useState<boolean | null>(null);
   const [microchip, setMicrochip] = useState('');
   const [photoUri, setPhotoUri] = useState<string | null>(null);
+  const tempPetId = React.useRef(`tmp_${Date.now()}`).current;
   const [showSuccess, setShowSuccess]             = useState(false);
   const [unlockedAchievementId, setUnlockedAchievementId] = useState<string | null>(null);
   const [showSupportModal, setShowSupportModal]   = useState(false);
@@ -109,7 +112,13 @@ export default function AddPetScreen() {
         : await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsEditing: true, aspect: [1, 1], quality: 0.7 });
 
       if (!result.canceled && result.assets[0]) {
-        setPhotoUri(result.assets[0].uri);
+        const localUri = result.assets[0].uri;
+        setPhotoUri(localUri);
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const remoteUrl = await uploadImage(localUri, 'pets', `${user.id}/${tempPetId}`);
+          setPhotoUri(remoteUrl);
+        }
       }
     } catch {
       showNotice('error', t('common.error'), t('addPet.imageError'));
@@ -120,7 +129,11 @@ export default function AddPetScreen() {
     Alert.alert(t('addPet.addPhotoTitle'), t('addPet.photoOptions'), [
       { text: t('addPet.camera'),  onPress: () => setTimeout(() => pickImage(true), 300) },
       { text: t('addPet.gallery'), onPress: () => setTimeout(() => pickImage(false), 300) },
-      { text: t('common.cancel'),  style: 'cancel' },
+      ...(photoUri ? [{ text: t('addPet.removePhoto'), style: 'destructive' as const, onPress: () => {
+        if (isRemoteUrl(photoUri)) deleteImage(photoUri, 'pets');
+        setPhotoUri(null);
+      }}] : []),
+      { text: t('common.cancel'),  style: 'cancel' as const },
     ]);
   };
 

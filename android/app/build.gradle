@@ -92,8 +92,11 @@ android {
         applicationId 'io.zupet.app'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 6
-        versionName "1.9.0"
+        versionCode 7
+        versionName "1.10.0"
+        multiDexEnabled true
+        multiDexKeepProguard file('multidex-config.pro')
+        multiDexKeepFile file('multidex-keep.txt')
     }
     signingConfigs {
         debug {
@@ -124,6 +127,30 @@ android {
     }
     androidResources {
         ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:!CVS:!thumbs.db:!picasa.ini:!*~'
+    }
+
+    applicationVariants.all { variant ->
+        variant.outputs.all { output ->
+            def appName = "zupet"
+            def versionName = variant.versionName
+            def buildType = variant.buildType.name
+            outputFileName = "${appName}-${versionName}-${buildType}.apk"
+        }
+    }
+
+}
+
+// Rename AAB output
+afterEvaluate {
+    tasks.named("bundleRelease").configure {
+        doLast {
+            def aabDir = new File("${buildDir}/outputs/bundle/release")
+            def aabFile = new File(aabDir, "app-release.aab")
+            if (aabFile.exists()) {
+                def versionName = android.defaultConfig.versionName
+                aabFile.renameTo(new File(aabDir, "zupet-${versionName}-release.aab"))
+            }
+        }
     }
 }
 
@@ -174,4 +201,9 @@ dependencies {
     } else {
         implementation jscFlavor
     }
+
+    implementation("androidx.multidex:multidex:2.0.1")
+    implementation("androidx.core:core-splashscreen:1.2.0-alpha02")
+    implementation project(':expo')
+
 }

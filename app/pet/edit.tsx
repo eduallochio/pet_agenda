@@ -21,6 +21,8 @@ import { useFormValidation } from '../../hooks/useFormValidation';
 import { useTheme } from '../../hooks/useTheme';
 import { useTranslation } from 'react-i18next';
 import { createWebShadow } from '../../constants/WebShadows';
+import { uploadImage, deleteImage, isRemoteUrl } from '../../services/storageService';
+import { supabase } from '../../services/supabase';
 
 type MCIName = keyof typeof MaterialCommunityIcons.glyphMap;
 
@@ -120,7 +122,13 @@ export default function EditPetScreen() {
         : await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsEditing: true, aspect: [1, 1], quality: 0.7 });
 
       if (!result.canceled && result.assets[0]) {
-        setPhotoUri(result.assets[0].uri);
+        const localUri = result.assets[0].uri;
+        setPhotoUri(localUri);
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const remoteUrl = await uploadImage(localUri, 'pets', `${user.id}/${id}`);
+          setPhotoUri(remoteUrl);
+        }
       }
     } catch {
       Alert.alert(t('common.error'), t('addPet.imageError'));
@@ -131,7 +139,10 @@ export default function EditPetScreen() {
     Alert.alert(t('addPet.changePhoto'), t('addPet.photoOptions'), [
       { text: t('addPet.camera'), onPress: () => setTimeout(() => pickImage(true), 300) },
       { text: t('addPet.gallery'), onPress: () => setTimeout(() => pickImage(false), 300) },
-      { text: t('addPet.removePhoto'), onPress: () => setPhotoUri(null), style: 'destructive' },
+      { text: t('addPet.removePhoto'), style: 'destructive', onPress: () => {
+        if (photoUri && isRemoteUrl(photoUri)) deleteImage(photoUri, 'pets');
+        setPhotoUri(null);
+      }},
       { text: t('common.cancel'), style: 'cancel' },
     ]);
   };

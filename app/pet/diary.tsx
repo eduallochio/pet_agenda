@@ -47,7 +47,7 @@ export default function DiaryScreen() {
 
   const load = useCallback(async () => {
     try {
-      const json = await AsyncStorage.getItem('petDiary');
+      const json = await AsyncStorage.getItem('diaryEntries');
       const all: DiaryEntry[] = json ? JSON.parse(json) : [];
       setEntries(
         all
@@ -65,7 +65,7 @@ export default function DiaryScreen() {
       return;
     }
     try {
-      const json = await AsyncStorage.getItem('petDiary');
+      const json = await AsyncStorage.getItem('diaryEntries');
       const all: DiaryEntry[] = json ? JSON.parse(json) : [];
       const duplicate = all.find(e => e.petId === petId && e.date === todayStr);
       if (duplicate) {
@@ -98,7 +98,7 @@ export default function DiaryScreen() {
     if (!confirmEntry) return;
     setConfirmEntry(null);
     try {
-      const json = await AsyncStorage.getItem('petDiary');
+      const json = await AsyncStorage.getItem('diaryEntries');
       const all: DiaryEntry[] = json ? JSON.parse(json) : [];
       await syncDiaryEntries(all.filter(e => e.id !== confirmEntry.id));
       load();
