@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Text, StyleSheet, Alert, View, TouchableOpacity,
   ScrollView, Platform, Image, TextInput,
@@ -23,6 +23,8 @@ import { useTranslation } from 'react-i18next';
 import { createWebShadow } from '../../constants/WebShadows';
 import { uploadImage, deleteImage, isRemoteUrl } from '../../services/storageService';
 import { supabase } from '../../services/supabase';
+import { BottomSheetModal } from '@gorhom/bottom-sheet';
+import ImagePickerSheet from '../../components/ImagePickerSheet';
 
 type MCIName = keyof typeof MaterialCommunityIcons.glyphMap;
 
@@ -55,6 +57,7 @@ export default function EditPetScreen() {
   const [castrated, setCastrated] = useState<boolean | null>(null);
   const [microchip, setMicrochip] = useState('');
   const [photoUri, setPhotoUri] = useState<string | null>(null);
+  const imageSheetRef = useRef<BottomSheetModal>(null);
   const [foodAllergies, setFoodAllergies] = useState<string[]>([]);
   const [medAllergies, setMedAllergies] = useState<string[]>([]);
   const [restrictions, setRestrictions] = useState('');
@@ -135,16 +138,11 @@ export default function EditPetScreen() {
     }
   };
 
-  const showImagePickerOptions = () => {
-    Alert.alert(t('addPet.changePhoto'), t('addPet.photoOptions'), [
-      { text: t('addPet.camera'), onPress: () => setTimeout(() => pickImage(true), 300) },
-      { text: t('addPet.gallery'), onPress: () => setTimeout(() => pickImage(false), 300) },
-      { text: t('addPet.removePhoto'), style: 'destructive', onPress: () => {
-        if (photoUri && isRemoteUrl(photoUri)) deleteImage(photoUri, 'pets');
-        setPhotoUri(null);
-      }},
-      { text: t('common.cancel'), style: 'cancel' },
-    ]);
+  const showImagePickerOptions = () => imageSheetRef.current?.present();
+
+  const handleRemovePhoto = () => {
+    if (photoUri && isRemoteUrl(photoUri)) deleteImage(photoUri, 'pets');
+    setPhotoUri(null);
   };
 
   const handleUpdatePet = async () => {
@@ -484,6 +482,13 @@ export default function EditPetScreen() {
       <SuccessAnimation
         visible={showSuccess}
         onAnimationEnd={() => { setShowSuccess(false); try { goBack(); } catch (e) { if (__DEV__) console.error('nav error:', e); } }}
+      />
+      <ImagePickerSheet
+        ref={imageSheetRef}
+        hasPhoto={!!photoUri}
+        onCamera={() => pickImage(true)}
+        onGallery={() => pickImage(false)}
+        onRemove={handleRemovePhoto}
       />
     </SafeAreaView>
   );

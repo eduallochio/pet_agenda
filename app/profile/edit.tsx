@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, Alert, Image,
   ScrollView, TextInput as RNTextInput,
@@ -19,6 +19,8 @@ import { useTranslation } from 'react-i18next';
 import { syncUserProfile } from '../../services/syncService';
 import { uploadImage, deleteImage, isRemoteUrl } from '../../services/storageService';
 import { supabase } from '../../services/supabase';
+import { BottomSheetModal } from '@gorhom/bottom-sheet';
+import ImagePickerSheet from '../../components/ImagePickerSheet';
 import CountryPicker, { Country, ALL_COUNTRIES } from '../../components/CountryPicker';
 
 type MCIName = keyof typeof MaterialCommunityIcons.glyphMap;
@@ -37,6 +39,7 @@ export default function EditProfileScreen() {
   const goBack  = useGoBack('/(tabs)');
   const { colors } = useTheme();
   const { t }   = useTranslation();
+  const imageSheetRef = useRef<BottomSheetModal>(null);
 
   const [name, setName]             = useState('');
   const [bio, setBio]               = useState('');
@@ -134,16 +137,11 @@ export default function EditProfileScreen() {
     }
   };
 
-  const showAvatarOptions = () => {
-    Alert.alert(t('editProfile.avatarOptions'), t('editProfile.avatarOptionsMsg'), [
-      { text: t('editProfile.camera'),  onPress: () => setTimeout(() => pickAvatar(true), 300) },
-      { text: t('editProfile.gallery'), onPress: () => setTimeout(() => pickAvatar(false), 300) },
-      ...(avatarUrl ? [{ text: t('editProfile.removePhoto'), style: 'destructive' as const, onPress: () => {
-        if (isRemoteUrl(avatarUrl)) deleteImage(avatarUrl, 'avatars');
-        setAvatarUrl(undefined);
-      }}] : []),
-      { text: t('common.cancel'), style: 'cancel' },
-    ]);
+  const showAvatarOptions = () => imageSheetRef.current?.present();
+
+  const handleRemoveAvatar = () => {
+    if (avatarUrl && isRemoteUrl(avatarUrl)) deleteImage(avatarUrl, 'avatars');
+    setAvatarUrl(undefined);
   };
 
   // ── Formatadores ──────────────────────────────────────────────────────────────
@@ -531,6 +529,13 @@ export default function EditProfileScreen() {
 
       </ScrollView>
       <SuccessAnimation visible={showSuccess} onAnimationEnd={() => setShowSuccess(false)} />
+      <ImagePickerSheet
+        ref={imageSheetRef}
+        hasPhoto={!!avatarUrl}
+        onCamera={() => pickAvatar(true)}
+        onGallery={() => pickAvatar(false)}
+        onRemove={handleRemoveAvatar}
+      />
     </SafeAreaView>
   );
 }

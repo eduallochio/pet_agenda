@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import {
   Text, TouchableOpacity, StyleSheet, Alert, View, Image,
   Platform, ScrollView, TextInput,
@@ -27,6 +27,8 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../hooks/useTheme';
 import { uploadImage, deleteImage, isRemoteUrl } from '../../services/storageService';
 import { supabase } from '../../services/supabase';
+import { BottomSheetModal } from '@gorhom/bottom-sheet';
+import ImagePickerSheet from '../../components/ImagePickerSheet';
 
 type MCIName = keyof typeof MaterialCommunityIcons.glyphMap;
 
@@ -65,6 +67,7 @@ export default function AddPetScreen() {
   const [microchip, setMicrochip] = useState('');
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const tempPetId = React.useRef(`tmp_${Date.now()}`).current;
+  const imageSheetRef = useRef<BottomSheetModal>(null);
   const [showSuccess, setShowSuccess]             = useState(false);
   const [unlockedAchievementId, setUnlockedAchievementId] = useState<string | null>(null);
   const [showSupportModal, setShowSupportModal]   = useState(false);
@@ -125,16 +128,11 @@ export default function AddPetScreen() {
     }
   };
 
-  const showImagePickerOptions = () => {
-    Alert.alert(t('addPet.addPhotoTitle'), t('addPet.photoOptions'), [
-      { text: t('addPet.camera'),  onPress: () => setTimeout(() => pickImage(true), 300) },
-      { text: t('addPet.gallery'), onPress: () => setTimeout(() => pickImage(false), 300) },
-      ...(photoUri ? [{ text: t('addPet.removePhoto'), style: 'destructive' as const, onPress: () => {
-        if (isRemoteUrl(photoUri)) deleteImage(photoUri, 'pets');
-        setPhotoUri(null);
-      }}] : []),
-      { text: t('common.cancel'),  style: 'cancel' as const },
-    ]);
+  const showImagePickerOptions = () => imageSheetRef.current?.present();
+
+  const handleRemovePhoto = () => {
+    if (photoUri && isRemoteUrl(photoUri)) deleteImage(photoUri, 'pets');
+    setPhotoUri(null);
   };
 
   // Lógica central de salvar o pet (chamada após validação e anúncio)
@@ -515,6 +513,13 @@ export default function AddPetScreen() {
         title={notice?.title ?? ''}
         message={notice?.message ?? ''}
         onConfirm={() => setNotice(null)}
+      />
+      <ImagePickerSheet
+        ref={imageSheetRef}
+        hasPhoto={!!photoUri}
+        onCamera={() => pickImage(true)}
+        onGallery={() => pickImage(false)}
+        onRemove={handleRemovePhoto}
       />
     </SafeAreaView>
   );
