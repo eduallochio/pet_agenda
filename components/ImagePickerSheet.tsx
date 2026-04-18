@@ -15,7 +15,7 @@ interface ImagePickerSheetProps {
 
 const ImagePickerSheet = forwardRef<BottomSheetModal, ImagePickerSheetProps>(
   ({ hasPhoto, onCamera, onGallery, onRemove }, ref) => {
-    const { colors, isDarkMode } = useTheme();
+    const { colors } = useTheme();
     const { t } = useTranslation();
 
     const renderBackdrop = useCallback(
@@ -34,7 +34,9 @@ const ImagePickerSheet = forwardRef<BottomSheetModal, ImagePickerSheetProps>(
     return (
       <BottomSheetModal
         ref={ref}
-        snapPoints={[hasPhoto ? 260 : 200]}
+        snapPoints={[hasPhoto ? '280' : '220']}
+        enableDynamicSizing={false}
+        index={0}
         enablePanDownToClose
         backdropComponent={renderBackdrop}
         backgroundStyle={{ backgroundColor: colors.surface }}

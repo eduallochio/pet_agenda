@@ -4,7 +4,15 @@ import {
   InterstitialAd,
   AdEventType,
   TestIds,
+  MobileAds,
 } from "react-native-google-mobile-ads";
+
+// Dispositivos de teste registrados
+const TEST_DEVICE_IDS = ['006D04A786C681BF821A741D95A4E978'];
+
+MobileAds()
+  .setRequestConfiguration({ testDeviceIdentifiers: TEST_DEVICE_IDS })
+  .catch(() => {});
 
 const REWARDED_ID = __DEV__
   ? TestIds.REWARDED
@@ -52,6 +60,8 @@ export function showRewardedAd(): Promise<boolean> {
           requestNonPersonalizedAdsOnly: false,
         });
 
+    const wasPreloaded = preloadedRewardedReady;
+
     // Reseta o pré-carregado para recarregar na próxima
     preloadedRewarded = null;
     preloadedRewardedReady = false;
@@ -88,7 +98,10 @@ export function showRewardedAd(): Promise<boolean> {
       done(false);
     });
 
-    if (!preloadedRewardedReady) {
+    if (wasPreloaded) {
+      // Ad já carregado — exibe diretamente
+      ad.show();
+    } else {
       ad.load();
     }
   });

@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  FlatList, Modal, Image, Platform, Alert, useWindowDimensions,
+  FlatList, Modal, Image, Platform, useWindowDimensions,
 } from 'react-native';
 import { Shadows } from '../../constants/Shadows';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -20,6 +20,8 @@ import { useTranslation } from 'react-i18next';
 import { changeLanguage, getInitialLanguage, SupportedLanguage } from '../../i18n';
 import { ACHIEVEMENTS, checkAndUnlockAchievements } from '../../hooks/useAchievements';
 import AchievementUnlockModal from '../../components/AchievementUnlockModal';
+import NoticeModal from '../../components/NoticeModal';
+import ConfirmModal from '../../components/ConfirmModal';
 import {
   CHALLENGES, getCurrentChallenge, loadChallengeState, completeChallenge, autoCompleteDataChallenge,
 } from '../../hooks/useChallenges';
@@ -75,6 +77,10 @@ export default function ProfileScreen() {
   const { status: syncStatus, lastSyncedAt } = useNetworkSync();
   const { t } = useTranslation();
 
+  const [notice, setNotice] = useState<{ type: 'info'|'warning'|'error'|'success'; title: string; message: string } | null>(null);
+  const [confirm, setConfirm] = useState<{ type?: 'danger'|'warning'|'info'; title: string; message: string; confirmLabel?: string; onConfirm: () => void } | null>(null);
+  const [exportConfirmStep, setExportConfirmStep] = useState<'privacy'|'choose'|null>(null);
+
   useEffect(() => {
     getInitialLanguage().then(setCurrentLang);
   }, []);
@@ -119,9 +125,9 @@ export default function ProfileScreen() {
     setSyncLoading(true);
     try {
       await uploadToSupabase();
-      Alert.alert(t('profile.settings.backupSuccess'), t('profile.settings.backupSuccessMsg'));
+      setNotice({ type: 'success', title: t('profile.settings.backupSuccess'), message: t('profile.settings.backupSuccessMsg') });
     } catch (e: any) {
-      Alert.alert(t('common.error'), e.message || t('profile.settings.backupError'));
+      setNotice({ type: 'error', title: t('common.error'), message: e.message || t('profile.settings.backupError') });
     } finally {
       setSyncLoading(false);
     }
@@ -132,42 +138,36 @@ export default function ProfileScreen() {
       router.push('/auth/login');
       return;
     }
-    Alert.alert(
-      t('profile.settings.restoreTitle'),
-      t('profile.settings.restoreMsg'),
-      [
-        { text: t('common.cancel'), style: 'cancel' },
-        {
-          text: t('profile.settings.restoreBtn'),
-          style: 'destructive',
-          onPress: async () => {
-            setSyncLoading(true);
-            try {
-              await downloadFromSupabase();
-              Alert.alert(t('profile.settings.restoreSuccess'), t('profile.settings.restoreSuccessMsg'));
-            } catch (e: any) {
-              Alert.alert(t('common.error'), e.message || t('profile.settings.restoreError'));
-            } finally {
-              setSyncLoading(false);
-            }
-          },
-        },
-      ]
-    );
+    setConfirm({
+      type: 'warning',
+      title: t('profile.settings.restoreTitle'),
+      message: t('profile.settings.restoreMsg'),
+      confirmLabel: t('profile.settings.restoreBtn'),
+      onConfirm: async () => {
+        setSyncLoading(true);
+        try {
+          await downloadFromSupabase();
+          setNotice({ type: 'success', title: t('profile.settings.restoreSuccess'), message: t('profile.settings.restoreSuccessMsg') });
+        } catch (e: any) {
+          setNotice({ type: 'error', title: t('common.error'), message: e.message || t('profile.settings.restoreError') });
+        } finally {
+          setSyncLoading(false);
+        }
+      },
+    });
   };
 
   const handleLogout = async () => {
-    Alert.alert(t('profile.settings.logoutTitle'), t('profile.settings.logoutMsg'), [
-      { text: t('common.cancel'), style: 'cancel' },
-      {
-        text: t('profile.settings.logoutBtn'),
-        style: 'destructive',
-        onPress: async () => {
-          await supabase.auth.signOut();
-          setAuthUser(null);
-        },
+    setConfirm({
+      type: 'danger',
+      title: t('profile.settings.logoutTitle'),
+      message: t('profile.settings.logoutMsg'),
+      confirmLabel: t('profile.settings.logoutBtn'),
+      onConfirm: async () => {
+        await supabase.auth.signOut();
+        setAuthUser(null);
       },
-    ]);
+    });
   };
 
   const handleChangeLanguage = (lang: SupportedLanguage) => {
@@ -397,7 +397,7 @@ ${petsSection || '<p>Nenhum pet cadastrado.</p>'}
         });
       }
     } catch {
-      Alert.alert(t('common.error'), t('profile.settings.exportError'));
+      setNotice({ type: 'error', title: t('common.error'), message: t('profile.settings.exportError') });
     }
   };
 
@@ -408,81 +408,46 @@ ${petsSection || '<p>Nenhum pet cadastrado.</p>'}
       const json = JSON.stringify(exportObj, null, 2);
       await Share.share({ message: json, title: 'Zupet — Backup' });
     } catch {
-      Alert.alert(t('common.error'), t('profile.settings.exportError'));
+      setNotice({ type: 'error', title: t('common.error'), message: t('profile.settings.exportError') });
     }
   };
 
   const handleExportData = async () => {
     if (Platform.OS === 'web') {
-      Alert.alert(t('common.attention'), t('profile.settings.exportWebUnsupported'));
+      setNotice({ type: 'warning', title: t('common.attention'), message: t('profile.settings.exportWebUnsupported') });
       return;
     }
     const biometricAvailable = await isBiometricAvailable();
     if (biometricAvailable) {
       const authed = await requestBiometricAuth(t('profile.settings.exportBiometricPrompt'));
       if (!authed) return;
-    } else {
-      // Sem biometria: pede confirmação explícita antes de exportar dados sensíveis
-      const confirmed = await new Promise<boolean>(resolve =>
-        Alert.alert(
-          t('profile.settings.exportPrivacyTitle'),
-          t('profile.settings.exportPrivacyMsg'),
-          [
-            { text: t('common.cancel'), style: 'cancel', onPress: () => resolve(false) },
-            { text: t('common.confirm'), onPress: () => resolve(true) },
-          ]
-        )
-      );
-      if (!confirmed) return;
     }
-    // Aviso de privacidade antes de exportar
-    Alert.alert(
-      t('profile.settings.exportPrivacyTitle'),
-      t('profile.settings.exportPrivacyMsg'),
-      [
-        { text: t('common.cancel'), style: 'cancel' },
-        {
-          text: t('profile.settings.exportContinue'),
-          onPress: () => Alert.alert(
-            t('profile.settings.exportData'),
-            t('profile.settings.exportChoose'),
-            [
-              { text: t('common.cancel'), style: 'cancel' },
-              { text: t('profile.settings.exportPDF'), onPress: exportAsPDF },
-              { text: t('profile.settings.exportJSON'), onPress: exportAsJSON },
-            ]
-          ),
-        },
-      ]
-    );
+    setExportConfirmStep('privacy');
   };
 
   const handleClearData = () => {
-    Alert.alert(
-      t('profile.settings.clearDataTitle'),
-      t('profile.settings.clearDataMsg'),
-      [
-        { text: t('common.cancel'), style: 'cancel' },
-        {
-          text: t('common.delete'), style: 'destructive', onPress: async () => {
-            try {
-              await AsyncStorage.multiRemove([
-                'pets', 'reminders', 'vaccinations', 'userProfile',
-                'weightRecords', 'streakData', 'achievements', 'feedingRecords',
-                'medications', 'diaryEntries', 'petDocuments', 'petPhotos',
-              ]);
-              setPets([]);
-              setReminders([]);
-              setVaccines([]);
-              setProfile(null);
-              setUnlockedAchievements([]);
-            } catch {
-              Alert.alert(t('common.error'), t('profile.settings.clearDataError'));
-            }
-          },
-        },
-      ]
-    );
+    setConfirm({
+      type: 'danger',
+      title: t('profile.settings.clearDataTitle'),
+      message: t('profile.settings.clearDataMsg'),
+      confirmLabel: t('common.delete'),
+      onConfirm: async () => {
+        try {
+          await AsyncStorage.multiRemove([
+            'pets', 'reminders', 'vaccinations', 'userProfile',
+            'weightRecords', 'streakData', 'achievements', 'feedingRecords',
+            'medications', 'diaryEntries', 'petDocuments', 'petPhotos',
+          ]);
+          setPets([]);
+          setReminders([]);
+          setVaccines([]);
+          setProfile(null);
+          setUnlockedAchievements([]);
+        } catch {
+          setNotice({ type: 'error', title: t('common.error'), message: t('profile.settings.clearDataError') });
+        }
+      },
+    });
   };
 
   // ── Conquistas ────────────────────────────────────────────────────────────
@@ -928,7 +893,7 @@ ${petsSection || '<p>Nenhum pet cadastrado.</p>'}
               <Text style={[styles.modalSectionLabel, { color: colors.text.secondary, marginTop: 20 }]}>{t('profile.settings.notifications')}</Text>
               <TouchableOpacity
                 style={[styles.modalItem, { backgroundColor: colors.background }]}
-                onPress={() => { setSettingsVisible(false); Alert.alert(t('profile.settings.notifications'), t('profile.settings.manageNotifications')); }}
+                onPress={() => { setSettingsVisible(false); setNotice({ type: 'info', title: t('profile.settings.notifications'), message: t('profile.settings.manageNotifications') }); }}
               >
                 <View style={[styles.modalItemIcon, { backgroundColor: '#FF950018' }]}>
                   <Ionicons name="notifications-outline" size={20} color="#FF9500" />
@@ -1098,6 +1063,45 @@ ${petsSection || '<p>Nenhum pet cadastrado.</p>'}
       <AchievementUnlockModal
         achievementId={unlockedAchievementId}
         onClose={() => setUnlockedAchievementId(null)}
+      />
+
+      <NoticeModal
+        visible={!!notice}
+        type={notice?.type ?? 'info'}
+        title={notice?.title ?? ''}
+        message={notice?.message ?? ''}
+        onConfirm={() => setNotice(null)}
+      />
+
+      <ConfirmModal
+        visible={!!confirm}
+        type={confirm?.type ?? 'danger'}
+        title={confirm?.title ?? ''}
+        message={confirm?.message ?? ''}
+        confirmLabel={confirm?.confirmLabel}
+        onConfirm={() => { const fn = confirm?.onConfirm; setConfirm(null); fn?.(); }}
+        onCancel={() => setConfirm(null)}
+      />
+
+      <ConfirmModal
+        visible={exportConfirmStep === 'privacy'}
+        type="info"
+        title={t('profile.settings.exportPrivacyTitle')}
+        message={t('profile.settings.exportPrivacyMsg')}
+        confirmLabel={t('profile.settings.exportContinue')}
+        onConfirm={() => setExportConfirmStep('choose')}
+        onCancel={() => setExportConfirmStep(null)}
+      />
+
+      <ConfirmModal
+        visible={exportConfirmStep === 'choose'}
+        type="info"
+        title={t('profile.settings.exportData')}
+        message={t('profile.settings.exportChoose')}
+        confirmLabel={t('profile.settings.exportPDF')}
+        cancelLabel={t('profile.settings.exportJSON')}
+        onConfirm={() => { setExportConfirmStep(null); exportAsPDF(); }}
+        onCancel={() => { setExportConfirmStep(null); exportAsJSON(); }}
       />
     </SafeAreaView>
     </View>

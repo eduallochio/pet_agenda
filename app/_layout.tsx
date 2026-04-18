@@ -45,11 +45,13 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | 
 
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { ThemeProvider } from '../contexts/ThemeContext';
+import { useTheme } from '../hooks/useTheme';
 import { initI18n } from '../i18n';
 import { migrateToSecureStore } from '../services/secureStorage';
 import * as Linking from 'expo-linking';
 import { supabase } from '../services/supabase';
 import { requestAdsConsent } from '../services/adsConsentService';
+import MobileAds from 'react-native-google-mobile-ads';
 
 // Suprimir warnings conhecidos do React Native Web em desenvolvimento
 if (__DEV__ && Platform.OS === 'web') {
@@ -83,6 +85,11 @@ if (__DEV__ && Platform.OS === 'web') {
   };
 }
 
+function ThemedStatusBar() {
+  const { isDarkMode } = useTheme();
+  return <StatusBar style={isDarkMode ? 'light' : 'dark'} />;
+}
+
 export default function RootLayout() {
   const colorScheme = useColorScheme();
   const [loaded] = useFonts({
@@ -94,6 +101,7 @@ export default function RootLayout() {
     initI18n().then(setI18nInstance);
     migrateToSecureStore().catch(() => {});
     if (Platform.OS !== 'web') {
+      (MobileAds() as any).initialize().catch(() => {});
       requestAdsConsent();
     }
   }, []);
@@ -231,7 +239,7 @@ export default function RootLayout() {
               <Stack.Screen name="conquistas" />
               <Stack.Screen name="+not-found" options={{ headerShown: true }} />
             </Stack>
-            <StatusBar style="auto" />
+            <ThemedStatusBar />
           </BottomSheetModalProvider>
         </NavigationThemeProvider>
       </ThemeProvider>
