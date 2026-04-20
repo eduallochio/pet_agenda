@@ -450,6 +450,15 @@ ${petsSection || '<p>Nenhum pet cadastrado.</p>'}
     });
   };
 
+  const handleInvite = async () => {
+    try {
+      await Share.share({
+        message: t('profile.inviteMessage'),
+        url: 'https://play.google.com/store/apps/details?id=io.zupet.app',
+      });
+    } catch {}
+  };
+
   // ── Conquistas ────────────────────────────────────────────────────────────
   const unlockedIds = unlockedAchievements.map(a => a.id);
   const unlockedCount = unlockedAchievements.length;
@@ -517,10 +526,10 @@ ${petsSection || '<p>Nenhum pet cadastrado.</p>'}
         {/* ── Estatísticas ── */}
         <View style={styles.miniStatsRow}>
           {[
-            { value: pets.length, label: 'Pets', color: '#40E0D0' },
-            { value: reminders.length, label: 'Lembretes', color: '#FF9800' },
-            { value: vaccines.length, label: 'Vacinas', color: '#4CAF50' },
-            { value: unlockedCount, label: 'Conquistas', color: '#9C27B0' },
+            { value: pets.length, label: t('profile.myPets'), color: '#40E0D0' },
+            { value: reminders.length, label: t('petDetail.reminders'), color: '#FF9800' },
+            { value: vaccines.length, label: t('petDetail.vaccines'), color: '#4CAF50' },
+            { value: unlockedCount, label: t('profile.achievements'), color: '#9C27B0' },
           ].map(stat => (
             <View key={stat.label} style={[styles.miniStatCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
               <Text style={[styles.miniStatValue, { color: stat.color }]}>{stat.value}</Text>
@@ -545,7 +554,7 @@ ${petsSection || '<p>Nenhum pet cadastrado.</p>'}
               <Ionicons name="globe-outline" size={16} color="#FF9800" />
             </View>
             <Text style={[styles.settingLabel, { color: colors.text.primary }]}>{t('settings.language', { defaultValue: 'Idioma' })}</Text>
-            <Text style={[styles.settingValue, { color: colors.text.secondary }]}>Português</Text>
+            <Text style={[styles.settingValue, { color: colors.text.secondary }]}>{currentLang === 'pt-BR' ? 'Português' : currentLang === 'en' ? 'English' : 'Español'}</Text>
             <Ionicons name="chevron-forward" size={16} color={colors.text.light} />
           </TouchableOpacity>
           <View style={[styles.settingDivider, { backgroundColor: colors.border }]} />
@@ -554,6 +563,14 @@ ${petsSection || '<p>Nenhum pet cadastrado.</p>'}
               <Ionicons name="download-outline" size={16} color="#4CAF50" />
             </View>
             <Text style={[styles.settingLabel, { color: colors.text.primary }]}>{t('profile.exportData', { defaultValue: 'Exportar Dados' })}</Text>
+            <Ionicons name="chevron-forward" size={16} color={colors.text.light} />
+          </TouchableOpacity>
+          <View style={[styles.settingDivider, { backgroundColor: colors.border }]} />
+          <TouchableOpacity style={styles.settingRow} onPress={handleInvite}>
+            <View style={[styles.settingIcon, { backgroundColor: '#FCE4EC' }]}>
+              <Ionicons name="share-social-outline" size={16} color="#E91E63" />
+            </View>
+            <Text style={[styles.settingLabel, { color: colors.text.primary }]}>{t('profile.inviteFriends')}</Text>
             <Ionicons name="chevron-forward" size={16} color={colors.text.light} />
           </TouchableOpacity>
         </View>

@@ -169,32 +169,32 @@ export default function PetDetailScreen() {
 	const quickActions = [
 		{
 			icon: 'ribbon-outline' as keyof typeof Ionicons.glyphMap,
-			label: 'Passaporte',
+			label: t('petDetail.passport'),
 			onPress: () => router.push({ pathname: '/pet/passport', params: { petId: pet.id } } as any),
 		},
 		{
 			icon: 'medkit-outline' as keyof typeof Ionicons.glyphMap,
-			label: 'Vacinas',
+			label: t('petDetail.vaccines'),
 			onPress: () => router.push({ pathname: '/vaccines/[petId]', params: { petId: pet.id } }),
 		},
 		{
 			icon: 'trophy-outline' as keyof typeof Ionicons.glyphMap,
-			label: 'Conquistas',
+			label: t('petDetail.achievements'),
 			onPress: () => router.push('/conquistas' as any),
 		},
 		{
 			icon: 'time-outline' as keyof typeof Ionicons.glyphMap,
-			label: 'Histórico',
+			label: t('petDetail.history'),
 			onPress: () => router.push({ pathname: '/pet/diary', params: { petId: pet.id } } as any),
 		},
 	];
 
 	const infoRows = [
 		pet.dob
-			? { icon: 'calendar-outline' as keyof typeof Ionicons.glyphMap, label: 'Nascimento', value: pet.dob }
+			? { icon: 'calendar-outline' as keyof typeof Ionicons.glyphMap, label: t('petDetail.birthdate'), value: pet.dob }
 			: null,
 		pet.castrated !== undefined
-			? { icon: 'cut-outline' as keyof typeof Ionicons.glyphMap, label: 'Castrado', value: pet.castrated ? 'Sim' : 'Não' }
+			? { icon: 'cut-outline' as keyof typeof Ionicons.glyphMap, label: t('petDetail.castrated'), value: pet.castrated ? t('petDetail.yes') : t('petDetail.no') }
 			: null,
 		pet.microchip
 			? { icon: 'barcode-outline' as keyof typeof Ionicons.glyphMap, label: 'Microchip', value: pet.microchip }
@@ -212,7 +212,7 @@ export default function PetDetailScreen() {
 				<Text style={[styles.petName, { color: colors.text.primary }]}>{pet.name}</Text>
 
 				<Text style={[styles.petSubtitle, { color: colors.text.secondary }]}>
-					{[pet.breed, pet.gender].filter(Boolean).join(' • ')}
+					{[pet.breed, pet.gender === 'Macho' ? t('petDetail.male') : pet.gender === 'Fêmea' ? t('petDetail.female') : pet.gender].filter(Boolean).join(' • ')}
 				</Text>
 
 				{/* Stats row */}
@@ -221,21 +221,21 @@ export default function PetDetailScreen() {
 						<Text style={[styles.statValue, { color: colors.text.primary }]}>
 							{pet.dob ? calcAge(pet.dob) : '—'}
 						</Text>
-						<Text style={[styles.statLabel, { color: colors.text.secondary }]}>Idade</Text>
+						<Text style={[styles.statLabel, { color: colors.text.secondary }]}>{t('petDetail.age')}</Text>
 					</View>
 					<View style={[styles.statDivider, { backgroundColor: colors.border }]} />
 					<View style={styles.statItem}>
 						<Text style={[styles.statValue, { color: colors.text.primary }]}>
 							{pet.weight ? `${pet.weight} kg` : '—'}
 						</Text>
-						<Text style={[styles.statLabel, { color: colors.text.secondary }]}>Peso</Text>
+						<Text style={[styles.statLabel, { color: colors.text.secondary }]}>{t('petDetail.weight')}</Text>
 					</View>
 					<View style={[styles.statDivider, { backgroundColor: colors.border }]} />
 					<View style={styles.statItem}>
 						<Text style={[styles.statValue, { color: colors.text.primary }]}>
 							{calcSize(pet.weight)}
 						</Text>
-						<Text style={[styles.statLabel, { color: colors.text.secondary }]}>Porte</Text>
+						<Text style={[styles.statLabel, { color: colors.text.secondary }]}>{t('petDetail.size')}</Text>
 					</View>
 				</View>
 			</View>
@@ -262,7 +262,7 @@ export default function PetDetailScreen() {
 
 			{/* Ações Rápidas */}
 			<View style={styles.sectionBlock}>
-				<Text style={[styles.sectionTitle, { color: colors.text.primary }]}>Ações Rápidas</Text>
+				<Text style={[styles.sectionTitle, { color: colors.text.primary }]}>{t('petDetail.quickActions')}</Text>
 				<View style={[styles.quickActionsCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
 					{quickActions.map((action, index) => (
 						<TouchableOpacity
@@ -291,7 +291,7 @@ export default function PetDetailScreen() {
 			{/* Próximos Eventos */}
 			<View style={styles.sectionBlock}>
 				<View style={styles.sectionHeaderRow}>
-					<Text style={[styles.sectionTitle, { color: colors.text.primary }]}>Próximos Eventos</Text>
+					<Text style={[styles.sectionTitle, { color: colors.text.primary }]}>{t('petDetail.upcomingEvents')}</Text>
 					<TouchableOpacity
 						onPress={() => router.push({ pathname: '/reminder/new', params: { petId: pet.id } })}
 					>
@@ -324,7 +324,7 @@ export default function PetDetailScreen() {
 				<TouchableOpacity style={styles.headerBtn} onPress={goBack}>
 					<Ionicons name="arrow-back" size={24} color={colors.text.primary} />
 				</TouchableOpacity>
-				<Text style={[styles.headerTitle, { color: colors.text.primary }]}>Perfil do Pet</Text>
+				<Text style={[styles.headerTitle, { color: colors.text.primary }]}>{t('petDetail.title')}</Text>
 				<TouchableOpacity
 					style={styles.headerBtn}
 					onPress={() => router.push({ pathname: '/pet/edit', params: { id: pet.id } })}

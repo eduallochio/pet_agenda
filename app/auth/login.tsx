@@ -409,9 +409,15 @@ export default function LoginScreen() {
             {/* Info privacidade */}
             <Text style={[styles.privacyText, { color: colors.text.secondary }]}>
               {t('auth.privacyText')}{' '}
-              <Text style={{ color: Theme.primary }}>{t('auth.termsLink')}</Text>
+              <Text
+                style={{ color: Theme.primary }}
+                onPress={() => WebBrowser.openBrowserAsync('https://zupet.io/termos')}
+              >{t('auth.termsLink')}</Text>
               {' '}{t('auth.privacyAnd')}{' '}
-              <Text style={{ color: Theme.primary }}>{t('auth.privacyLink')}</Text>.
+              <Text
+                style={{ color: Theme.primary }}
+                onPress={() => WebBrowser.openBrowserAsync('https://zupet.io/privacidade')}
+              >{t('auth.privacyLink')}</Text>.
             </Text>
           </View>
         </ScrollView>

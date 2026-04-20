@@ -22,19 +22,20 @@ type MCIName = keyof typeof MaterialCommunityIcons.glyphMap;
 
 const XP_PER_ACHIEVEMENT = 100;
 
-function getLevel(xp: number): { level: number; title: string; xpInLevel: number; xpToNext: number } {
-  const thresholds = [0, 500, 1000, 2000, 3500, 5000, 7000, 9500, 12500, 16000];
-  const titles = [
-    'Iniciante', 'Curioso', 'Aprendiz', 'Cuidador', 'Dedicado',
-    'Pet Lover', 'Expert', 'Mestre', 'Lenda', 'Pet Master',
-  ];
+const LEVEL_THRESHOLDS = [0, 500, 1000, 2000, 3500, 5000, 7000, 9500, 12500, 16000];
+const LEVEL_KEYS = [
+  'beginner', 'curious', 'apprentice', 'caretaker', 'dedicated',
+  'petLover', 'expert', 'master', 'legend', 'petMaster',
+];
+
+function getLevel(xp: number): { level: number; titleKey: string; xpInLevel: number; xpToNext: number } {
   let level = 0;
-  for (let i = thresholds.length - 1; i >= 0; i--) {
-    if (xp >= thresholds[i]) { level = i; break; }
+  for (let i = LEVEL_THRESHOLDS.length - 1; i >= 0; i--) {
+    if (xp >= LEVEL_THRESHOLDS[i]) { level = i; break; }
   }
-  const xpInLevel = xp - thresholds[level];
-  const xpToNext = level < thresholds.length - 1 ? thresholds[level + 1] - thresholds[level] : 1;
-  return { level: level + 1, title: titles[level], xpInLevel, xpToNext };
+  const xpInLevel = xp - LEVEL_THRESHOLDS[level];
+  const xpToNext = level < LEVEL_THRESHOLDS.length - 1 ? LEVEL_THRESHOLDS[level + 1] - LEVEL_THRESHOLDS[level] : 1;
+  return { level: level + 1, titleKey: LEVEL_KEYS[level], xpInLevel, xpToNext };
 }
 
 export default function ConquistasScreen() {
@@ -46,6 +47,7 @@ export default function ConquistasScreen() {
   const [streak, setStreak] = useState(0);
   const [completedChallenges, setCompletedChallenges] = useState(0);
   const [progressMap, setProgressMap] = useState<Record<string, AchievementProgress>>({});
+  const [filter, setFilter] = useState<'all' | 'unlocked' | 'locked'>('all');
 
   useFocusEffect(
     useCallback(() => {
@@ -135,7 +137,7 @@ export default function ConquistasScreen() {
             <MaterialCommunityIcons name="trophy" size={32} color="#FFB74D" />
           </View>
           <Text style={[styles.levelTitle, { color: colors.text.primary }]}>
-            {t('conquistas.level', { level: levelInfo.level, title: levelInfo.title })}
+            {t('conquistas.level', { level: levelInfo.level, title: t(`conquistas.levels.${levelInfo.titleKey}`) })}
           </Text>
           <Text style={[styles.xpText, { color: colors.text.secondary }]}>
             {levelInfo.xpInLevel.toLocaleString()} / {levelInfo.xpToNext.toLocaleString()} XP
@@ -166,10 +168,27 @@ export default function ConquistasScreen() {
           </View>
         </View>
 
-        {/* Todas as Conquistas */}
-        <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>{t('conquistas.allAchievements')}</Text>
+        {/* Filter tabs */}
+        <View style={[styles.filterRow, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          {(['all', 'unlocked', 'locked'] as const).map((f) => (
+            <TouchableOpacity
+              key={f}
+              style={[styles.filterTab, filter === f && { backgroundColor: Theme.primary }]}
+              onPress={() => setFilter(f)}
+            >
+              <Text style={[styles.filterTabText, { color: filter === f ? '#fff' : colors.text.secondary }]}>
+                {t(`conquistas.filter.${f}`)}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
 
-        {ACHIEVEMENTS.map((ach) => {
+        {ACHIEVEMENTS.filter((ach) => {
+          const isUnlocked = unlockedIds.includes(ach.id);
+          if (filter === 'unlocked') return isUnlocked;
+          if (filter === 'locked') return !isUnlocked;
+          return true;
+        }).map((ach) => {
           const isUnlocked = unlockedIds.includes(ach.id);
           const prog = progressMap[ach.id];
 
@@ -195,9 +214,9 @@ export default function ConquistasScreen() {
 
               <View style={styles.achInfo}>
                 <Text style={[styles.achTitle, { color: isUnlocked ? colors.text.primary : colors.text.secondary }]}>
-                  {ach.title}
+                  {t(`achievements.items.${ach.id}.title`)}
                 </Text>
-                <Text style={[styles.achDesc, { color: colors.text.light }]}>{ach.description}</Text>
+                <Text style={[styles.achDesc, { color: colors.text.light }]}>{t(`achievements.items.${ach.id}.desc`)}</Text>
               </View>
 
               {isUnlocked ? (
@@ -264,6 +283,21 @@ const styles = StyleSheet.create({
   },
   statValue: { fontSize: 22, fontWeight: '700' },
   statLabel: { fontSize: 11 },
+
+  // Filter
+  filterRow: {
+    flexDirection: 'row',
+    borderRadius: 12,
+    borderWidth: 1,
+    overflow: 'hidden',
+    marginBottom: 16,
+  },
+  filterTab: {
+    flex: 1,
+    paddingVertical: 8,
+    alignItems: 'center',
+  },
+  filterTabText: { fontSize: 13, fontWeight: '600' },
 
   // Section title
   sectionTitle: { fontSize: 16, fontWeight: '600', marginBottom: 12 },

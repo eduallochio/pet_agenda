@@ -2,7 +2,7 @@
   "expo": {
     "name": "zupet",
     "slug": "pet_agenda",
-    "version": "1.13.0",
+    "version": "1.14.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "zupet",
@@ -21,7 +21,7 @@
     },
     "android": {
       "package": "io.zupet.app",
-      "versionCode": 10,
+      "versionCode": 158,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
