@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 import { supabase } from './supabase';
 import { secureSet, secureGet } from './secureStorage';
 import {
@@ -98,6 +99,7 @@ const toSupabaseProfile = (uid: string, p: UserProfile) => ({
   birth_date:   p.birthDate ?? null,
   experience:   p.experience ?? null,
   platform:     Platform.OS,
+  app_version:  Constants.expoConfig?.version ?? null,
   updated_at:   new Date().toISOString(),
 });
 
