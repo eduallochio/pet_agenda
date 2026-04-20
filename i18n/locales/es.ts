@@ -797,6 +797,16 @@ export default {
     },
   },
 
+  // ── Account Sheet ─────────────────────────────────────────────────────────
+  account: {
+    myProfile: 'Mi Perfil',
+    logout: 'Cerrar Sesión',
+    login: 'Iniciar Sesión',
+    signup: 'Crear Cuenta',
+    guestTitle: 'No has iniciado sesión',
+    guestSubtitle: 'Inicia sesión para sincronizar tus datos entre dispositivos.',
+  },
+
   // ── Theme ─────────────────────────────────────────────────────────────────
   theme: {
     title: 'Tema de la App',

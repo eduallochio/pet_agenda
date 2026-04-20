@@ -798,6 +798,16 @@ export default {
     },
   },
 
+  // ── Account Sheet ─────────────────────────────────────────────────────────
+  account: {
+    myProfile: 'Meu Perfil',
+    logout: 'Sair',
+    login: 'Entrar',
+    signup: 'Criar conta',
+    guestTitle: 'Você não está logado',
+    guestSubtitle: 'Entre para sincronizar seus dados entre dispositivos.',
+  },
+
   // ── Theme ─────────────────────────────────────────────────────────────────
   theme: {
     title: 'Tema do Aplicativo',

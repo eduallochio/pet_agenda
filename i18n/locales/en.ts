@@ -797,6 +797,16 @@ export default {
     },
   },
 
+  // ── Account Sheet ─────────────────────────────────────────────────────────
+  account: {
+    myProfile: 'My Profile',
+    logout: 'Log Out',
+    login: 'Log In',
+    signup: 'Create Account',
+    guestTitle: 'You are not logged in',
+    guestSubtitle: 'Sign in to sync your data across devices.',
+  },
+
   // ── Theme ─────────────────────────────────────────────────────────────────
   theme: {
     title: 'App Theme',

@@ -4,7 +4,7 @@ import { secureGet } from '../../services/secureStorage';
 import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useState, useMemo, useRef } from 'react';
 import {
-  FlatList, Platform,
+  FlatList, Image, Platform,
   StyleSheet, Text, TextInput, TouchableOpacity, View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -30,6 +30,8 @@ import { AppBottomSheetModal } from '../../components/AppBottomSheet';
 import { useTheme } from '../../hooks/useTheme';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
+import AccountSheet, { AccountSheetUser } from '../../components/AccountSheet';
+import { supabase } from '../../services/supabase';
 
 // Calcula idade a partir de DD/MM/YYYY — retorna número de meses e anos para uso com t()
 function calcAgeRaw(dob: string): { type: 'newborn' | 'months' | 'years'; count: number } | null {
@@ -336,7 +338,9 @@ export default function PetDashboard() {
   const [reminders, setReminders] = useState<Reminder[]>([]);
   const [vaccines, setVaccines] = useState<VaccineRecord[]>([]);
   const [userName, setUserName] = useState<string>('');
+  const [accountUser, setAccountUser] = useState<AccountSheetUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const accountSheetRef = useRef<any>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSpecies, setSelectedSpecies] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState<'name' | 'species' | 'events'>('name');
@@ -401,6 +405,17 @@ export default function PetDashboard() {
       if (profileJSON) {
         const profile = JSON.parse(profileJSON);
         setUserName(profile?.name || '');
+      }
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const profile = profileJSON ? JSON.parse(profileJSON) : null;
+        setAccountUser({
+          name: profile?.name || user.user_metadata?.name || user.email || '',
+          email: user.email,
+          photoUri: profile?.photoUri || undefined,
+        });
+      } else {
+        setAccountUser(null);
       }
     } catch (e) {
       if (__DEV__) console.error('Erro ao carregar dados', e);
@@ -724,6 +739,24 @@ export default function PetDashboard() {
           >
             <Ionicons name="notifications-outline" size={24} color={colors.text.primary} />
           </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.avatarBtn}
+            onPress={() => accountSheetRef.current?.present()}
+          >
+            {accountUser?.photoUri ? (
+              <Image source={{ uri: accountUser.photoUri }} style={styles.avatarImg} />
+            ) : accountUser ? (
+              <View style={[styles.avatarCircle, { backgroundColor: Theme.primary + '33' }]}>
+                <Text style={[styles.avatarInitials, { color: Theme.primary }]}>
+                  {accountUser.name.split(' ').map((n: string) => n[0]).filter(Boolean).slice(0, 2).join('').toUpperCase()}
+                </Text>
+              </View>
+            ) : (
+              <View style={[styles.avatarCircle, { backgroundColor: colors.border }]}>
+                <Ionicons name="person-outline" size={18} color={colors.text.secondary} />
+              </View>
+            )}
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -902,6 +935,15 @@ export default function PetDashboard() {
           </TouchableOpacity>
         )}
       </AppBottomSheetModal>
+
+      <AccountSheet
+        ref={accountSheetRef}
+        user={accountUser}
+        onLogout={() => {
+          setAccountUser(null);
+          setUserName('');
+        }}
+      />
     </SafeAreaView>
   );
 }
@@ -924,10 +966,13 @@ const styles = StyleSheet.create({
   greetingText: { fontSize: 22, fontWeight: '700' },
   greetingSubtitle: { fontSize: 14, marginTop: 2 },
   bellBtn: { padding: 4 },
+  avatarBtn: { padding: 2 },
   avatarCircle: {
-    width: 40, height: 40, borderRadius: 20,
+    width: 36, height: 36, borderRadius: 18,
     justifyContent: 'center', alignItems: 'center',
   },
+  avatarImg: { width: 36, height: 36, borderRadius: 18 },
+  avatarInitials: { fontSize: 14, fontWeight: '700' },
 
   // Summary Stats Card
   summaryCard: {
