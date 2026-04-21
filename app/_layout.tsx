@@ -51,7 +51,6 @@ import { migrateToSecureStore } from '../services/secureStorage';
 import * as Linking from 'expo-linking';
 import { supabase } from '../services/supabase';
 import { requestAdsConsent } from '../services/adsConsentService';
-import MobileAds from 'react-native-google-mobile-ads';
 
 // Suprimir warnings conhecidos do React Native Web em desenvolvimento
 if (__DEV__ && Platform.OS === 'web') {
@@ -101,7 +100,10 @@ export default function RootLayout() {
     initI18n().then(setI18nInstance);
     migrateToSecureStore().catch(() => {});
     if (Platform.OS !== 'web') {
-      (MobileAds() as any).initialize().catch(() => {});
+      import('react-native-google-mobile-ads').then(m => {
+        const MobileAds = m.default;
+        if (typeof MobileAds === 'function') (MobileAds() as any).initialize().catch(() => {});
+      }).catch(() => {});
       requestAdsConsent();
     }
   }, []);
@@ -227,6 +229,7 @@ export default function RootLayout() {
               <Stack.Screen name="calendar" />
               <Stack.Screen name="monthly-report" />
               <Stack.Screen name="breed-info" />
+              <Stack.Screen name="breed-explorer" />
               <Stack.Screen name="pet/weight" />
               <Stack.Screen name="pet/diary" />
               <Stack.Screen name="pet/documents" />

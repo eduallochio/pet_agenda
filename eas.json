@@ -14,7 +14,9 @@
       },
       "env": {
         "EXPO_PUBLIC_SUPABASE_URL": "https://sfisqseybvxfqeawsony.supabase.co",
-        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmaXNxc2V5YnZ4ZnFlYXdzb255Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ1NTI1OTEsImV4cCI6MjA5MDEyODU5MX0.LXryFIaYOgKveeg8NwvgkC6Di7q3LqyiT6lhiTuGSVY"
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmaXNxc2V5YnZ4ZnFlYXdzb255Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ1NTI1OTEsImV4cCI6MjA5MDEyODU5MX0.LXryFIaYOgKveeg8NwvgkC6Di7q3LqyiT6lhiTuGSVY",
+        "EXPO_PUBLIC_DOG_API_KEY": "live_XiK3Igmm26ngluAIoGWTSPk8X67tWWkDNZ0OlYmQasgelGKBjP28fYrk7lbp7m1h",
+        "EXPO_PUBLIC_CAT_API_KEY": "live_fi5JDFJVpl6pjK4wn1UPBQBacpsqmXSkuvRwnfkxvxo391oP95cRliPpGoWG0Qxu"
       }
     },
     "production": {

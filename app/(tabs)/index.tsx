@@ -32,6 +32,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import AccountSheet, { AccountSheetUser } from '../../components/AccountSheet';
 import { supabase } from '../../services/supabase';
+import AccountNudgeBanner from '../../components/AccountNudgeBanner';
+import AccountNudgeModal from '../../components/AccountNudgeModal';
 
 // Calcula idade a partir de DD/MM/YYYY — retorna número de meses e anos para uso com t()
 function calcAgeRaw(dob: string): { type: 'newborn' | 'months' | 'years'; count: number } | null {
@@ -112,6 +114,7 @@ function SwipePetCard({
 }) {
   const { colors } = useTheme();
   const { t } = useTranslation();
+  const router = useRouter();
   const translateX = useSharedValue(0);
   const deleteOpacity = useSharedValue(0);
 
@@ -238,9 +241,15 @@ function SwipePetCard({
               </View>
 
               {/* Espécie · Raça + Idade em linha */}
-              <Text style={[styles.petMeta, { color: colors.text.secondary }]} numberOfLines={1}>
-                {[pet.species, pet.breed].filter(Boolean).join(' · ')}{age ? ` · ${age}` : ''}
-              </Text>
+              <TouchableOpacity
+                onPress={() => pet.breed ? router.push({ pathname: '/breed-info', params: { breed: pet.breed, species: pet.species ?? '' } }) : undefined}
+                disabled={!pet.breed}
+                activeOpacity={pet.breed ? 0.6 : 1}
+              >
+                <Text style={[styles.petMeta, { color: colors.text.secondary }]} numberOfLines={1}>
+                  {[pet.species, pet.breed].filter(Boolean).join(' · ')}{age ? ` · ${age}` : ''}
+                </Text>
+              </TouchableOpacity>
 
               {/* Badges de alerta com ícones */}
               {(overdueReminders > 0 || todayReminders > 0 || overdueVaccines > 0 || upcomingCount > 0 ||
@@ -347,6 +356,8 @@ export default function PetDashboard() {
   const [fabOpen, setFabOpen] = useState(false);
   const fabRotation = useSharedValue(0);
   const miniFabScale = useSharedValue(0);
+  const [showAccountBanner, setShowAccountBanner] = useState(false);
+  const [showAccountModal, setShowAccountModal] = useState(false);
 
   // Ref do bottom sheet de filtros
   const filterSheetRef = useRef<BottomSheetModal>(null);
@@ -414,8 +425,14 @@ export default function PetDashboard() {
           email: user.email,
           photoUri: profile?.photoUri || undefined,
         });
+        setShowAccountBanner(false);
       } else {
         setAccountUser(null);
+        // Mostra banner se tem pets e nunca dispensou
+        const dismissed = await AsyncStorage.getItem('accountNudgeDismissed');
+        if (loadedPets.length > 0 && !dismissed) {
+          setShowAccountBanner(true);
+        }
       }
     } catch (e) {
       if (__DEV__) console.error('Erro ao carregar dados', e);
@@ -616,6 +633,26 @@ export default function PetDashboard() {
           <Text style={[styles.statLabel, { color: colors.text.secondary }]}>{t('home.consultations', { defaultValue: 'Consultas' })}</Text>
         </View>
       </View>
+
+      {/* Banner conta */}
+      {showAccountBanner && (
+        <AccountNudgeBanner
+          onCreateAccount={() => {
+            setShowAccountBanner(false);
+            AsyncStorage.setItem('accountNudgeDismissed', '1');
+            router.push({ pathname: '/auth/login', params: { mode: 'signup' } } as any);
+          }}
+          onLogin={() => {
+            setShowAccountBanner(false);
+            AsyncStorage.setItem('accountNudgeDismissed', '1');
+            router.push('/auth/login' as any);
+          }}
+          onDismiss={() => {
+            setShowAccountBanner(false);
+            AsyncStorage.setItem('accountNudgeDismissed', '1');
+          }}
+        />
+      )}
 
       {/* Banner Serviços Próximos */}
       <TouchableOpacity
@@ -824,6 +861,19 @@ export default function PetDashboard() {
         visible={farewell !== null}
         petName={farewell?.name ?? ''}
         onClose={() => setFarewell(null)}
+      />
+
+      <AccountNudgeModal
+        visible={showAccountModal}
+        onCreateAccount={() => {
+          setShowAccountModal(false);
+          setTimeout(() => router.push({ pathname: '/auth/login', params: { mode: 'signup' } } as any), 300);
+        }}
+        onLogin={() => {
+          setShowAccountModal(false);
+          setTimeout(() => router.push('/auth/login' as any), 300);
+        }}
+        onDismiss={() => setShowAccountModal(false)}
       />
 
       {/* FAB Expandível */}

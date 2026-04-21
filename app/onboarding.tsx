@@ -9,6 +9,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../hooks/useTheme';
 import { useTranslation } from 'react-i18next';
+import AccountNudgeModal from '../components/AccountNudgeModal';
 
 const { width } = Dimensions.get('window');
 
@@ -26,6 +27,7 @@ export default function OnboardingScreen() {
   const { colors } = useTheme();
   const { t } = useTranslation();
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [showAccountModal, setShowAccountModal] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
   const fadeAnim = useRef(new Animated.Value(1)).current;
 
@@ -52,9 +54,22 @@ export default function OnboardingScreen() {
     }
   };
 
+  const goToApp = () => router.replace('/(tabs)/add-pet');
+
   const handleFinish = async () => {
     await AsyncStorage.setItem('onboardingDone', '1');
-    router.replace('/(tabs)/add-pet');
+    // Verifica se já tem conta — se não tiver, mostra o nudge
+    try {
+      const { supabase } = await import('../services/supabase');
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        goToApp();
+      } else {
+        setShowAccountModal(true);
+      }
+    } catch {
+      goToApp();
+    }
   };
 
   const slide = SLIDES[currentIndex];
@@ -117,6 +132,21 @@ export default function OnboardingScreen() {
       <Text style={[styles.stepText, { color: colors.text.light }]}>
         {t('onboarding.stepOf', { current: currentIndex + 1, total: SLIDES.length })}
       </Text>
+
+      <AccountNudgeModal
+        visible={showAccountModal}
+        onCreateAccount={() => {
+          setShowAccountModal(false);
+          goToApp();
+          setTimeout(() => router.push({ pathname: '/auth/login', params: { mode: 'signup' } } as any), 300);
+        }}
+        onLogin={() => {
+          setShowAccountModal(false);
+          goToApp();
+          setTimeout(() => router.push('/auth/login' as any), 300);
+        }}
+        onDismiss={() => { setShowAccountModal(false); goToApp(); }}
+      />
     </SafeAreaView>
   );
 }

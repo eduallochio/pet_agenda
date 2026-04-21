@@ -211,9 +211,15 @@ export default function PetDetailScreen() {
 
 				<Text style={[styles.petName, { color: colors.text.primary }]}>{pet.name}</Text>
 
-				<Text style={[styles.petSubtitle, { color: colors.text.secondary }]}>
-					{[pet.breed, pet.gender === 'Macho' ? t('petDetail.male') : pet.gender === 'Fêmea' ? t('petDetail.female') : pet.gender].filter(Boolean).join(' • ')}
-				</Text>
+				<TouchableOpacity
+					onPress={() => pet.breed ? router.push({ pathname: '/breed-info', params: { breed: pet.breed, species: pet.species ?? '' } }) : undefined}
+					disabled={!pet.breed}
+					activeOpacity={pet.breed ? 0.6 : 1}
+				>
+					<Text style={[styles.petSubtitle, { color: colors.text.secondary }]}>
+						{[pet.breed, pet.gender === 'Macho' ? t('petDetail.male') : pet.gender === 'Fêmea' ? t('petDetail.female') : pet.gender].filter(Boolean).join(' • ')}
+					</Text>
+				</TouchableOpacity>
 
 				{/* Stats row */}
 				<View style={[styles.statsRow, { borderTopColor: colors.border }]}>

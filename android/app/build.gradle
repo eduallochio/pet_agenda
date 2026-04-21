@@ -94,9 +94,6 @@ android {
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 159
         versionName "1.14.0"
-        multiDexEnabled true
-        multiDexKeepProguard file('multidex-config.pro')
-        multiDexKeepFile file('multidex-keep.txt')
     }
     signingConfigs {
         debug {
@@ -114,9 +111,11 @@ android {
     }
     buildTypes {
         debug {
-            signingConfig signingConfigs.debug
+            signingConfig signingConfigs.release
         }
         release {
+            // Caution! In production, you need to generate your own keystore file.
+            // see https://reactnative.dev/docs/signed-apk-android.
             signingConfig signingConfigs.release
             shrinkResources (findProperty('android.enableShrinkResourcesInReleaseBuilds')?.toBoolean() ?: false)
             minifyEnabled enableProguardInReleaseBuilds
@@ -131,30 +130,6 @@ android {
     }
     androidResources {
         ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:!CVS:!thumbs.db:!picasa.ini:!*~'
-    }
-
-    applicationVariants.all { variant ->
-        variant.outputs.all { output ->
-            def appName = "zupet"
-            def versionName = variant.versionName
-            def buildType = variant.buildType.name
-            outputFileName = "${appName}-${versionName}-${buildType}.apk"
-        }
-    }
-
-}
-
-// Rename AAB output
-afterEvaluate {
-    tasks.named("bundleRelease").configure {
-        doLast {
-            def aabDir = new File("${buildDir}/outputs/bundle/release")
-            def aabFile = new File(aabDir, "app-release.aab")
-            if (aabFile.exists()) {
-                def versionName = android.defaultConfig.versionName
-                aabFile.renameTo(new File(aabDir, "zupet-${versionName}-release.aab"))
-            }
-        }
     }
 }
 
@@ -205,9 +180,4 @@ dependencies {
     } else {
         implementation jscFlavor
     }
-
-    implementation("androidx.multidex:multidex:2.0.1")
-    implementation("androidx.core:core-splashscreen:1.2.0-alpha02")
-    implementation project(':expo')
-
 }

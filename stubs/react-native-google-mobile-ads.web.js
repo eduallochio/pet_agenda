@@ -6,4 +6,7 @@ export const InterstitialAd = { createForAdRequest: () => ({ load: () => {}, sho
 export const RewardedAd = { createForAdRequest: () => ({ load: () => {}, show: () => {}, addAdEventListener: () => () => {} }) };
 export const AdEventType = {};
 export const RewardedAdEventType = {};
-export default {};
+function MobileAds() {
+  return { initialize: () => Promise.resolve() };
+}
+export default MobileAds;
