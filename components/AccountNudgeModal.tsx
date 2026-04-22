@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../hooks/useTheme';
 import { Theme } from '../constants/Colors';
 import { Shadows } from '../constants/Shadows';
+import { useTranslation } from 'react-i18next';
 
 type Props = {
   visible: boolean;
@@ -16,6 +17,7 @@ type Props = {
 
 export default function AccountNudgeModal({ visible, onCreateAccount, onLogin, onDismiss }: Props) {
   const { colors } = useTheme();
+  const { t } = useTranslation();
 
   return (
     <Modal
@@ -35,21 +37,20 @@ export default function AccountNudgeModal({ visible, onCreateAccount, onLogin, o
 
           {/* Título */}
           <Text style={[styles.title, { color: colors.text.primary }]}>
-            Seus dados estão seguros aqui
+            {t('accountNudge.modalTitle')}
           </Text>
 
           {/* Subtítulo */}
           <Text style={[styles.subtitle, { color: colors.text.secondary }]}>
-            Mas se trocar de celular ou desinstalar o app, pode perder tudo.{'\n'}
-            Crie uma conta gratuita e faça backup automático dos seus pets. 🐾
+            {t('accountNudge.modalSubtitle')}
           </Text>
 
           {/* Benefícios */}
           <View style={styles.benefitsRow}>
             {[
-              { icon: 'sync-outline', text: 'Sync automático' },
-              { icon: 'shield-checkmark-outline', text: 'Backup seguro' },
-              { icon: 'phone-portrait-outline', text: 'Acesse em qualquer celular' },
+              { icon: 'sync-outline', text: t('accountNudge.syncAuto') },
+              { icon: 'shield-checkmark-outline', text: t('accountNudge.secureBackup') },
+              { icon: 'phone-portrait-outline', text: t('accountNudge.anyDevice') },
             ].map(b => (
               <View key={b.text} style={styles.benefit}>
                 <Ionicons name={b.icon as any} size={20} color={Theme.primary} />
@@ -65,7 +66,7 @@ export default function AccountNudgeModal({ visible, onCreateAccount, onLogin, o
             activeOpacity={0.85}
           >
             <Ionicons name="person-add-outline" size={18} color="#fff" />
-            <Text style={styles.btnPrimaryText}>Criar conta grátis</Text>
+            <Text style={styles.btnPrimaryText}>{t('accountNudge.createAccountFree')}</Text>
           </TouchableOpacity>
 
           {/* Botão login */}
@@ -75,14 +76,14 @@ export default function AccountNudgeModal({ visible, onCreateAccount, onLogin, o
             activeOpacity={0.85}
           >
             <Text style={[styles.btnSecondaryText, { color: Theme.primary }]}>
-              Já tenho uma conta — Entrar
+              {t('accountNudge.loginBtn')}
             </Text>
           </TouchableOpacity>
 
           {/* Fechar */}
           <TouchableOpacity onPress={onDismiss} activeOpacity={0.7} style={styles.dismissBtn}>
             <Text style={[styles.dismissText, { color: colors.text.secondary }]}>
-              Agora não, continuar sem conta
+              {t('accountNudge.dismiss')}
             </Text>
           </TouchableOpacity>
         </View>

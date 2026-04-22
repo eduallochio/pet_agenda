@@ -1009,6 +1009,55 @@ export default {
     characteristics: 'Characteristics',
     care: 'Essential Care',
     curiosityTitle: 'Did you know?',
+    loading: 'Searching for information...',
+    gallery: 'Photo Gallery',
+    externalLinks: 'Learn More',
+    exploreBtnLabel: 'Explore other breeds',
+    ratings: {
+      energy: 'Energy',
+      friendliness: 'Friendliness',
+      grooming: 'Grooming',
+      trainability: 'Trainability',
+      health: 'Overall Health',
+      adaptability: 'Adaptability',
+      barking: 'Barking tendency',
+    },
+  },
+
+  // ── Breed Explorer ─────────────────────────────────────────────────────────
+  breedExplorer: {
+    headerTitle: 'Explore Breeds',
+    searchDog: 'Search dog...',
+    searchCat: 'Search cat...',
+    loading: 'Loading breeds...',
+    empty: 'No breeds found',
+    found_one: '{{count}} breed found',
+    found_other: '{{count}} breeds found',
+    dogs: 'Dogs',
+    cats: 'Cats',
+    sizes: {
+      all: 'All',
+      small: 'Small',
+      medium: 'Medium',
+      large: 'Large',
+      giant: 'Giant',
+    },
+  },
+
+  // ── Account Nudge ──────────────────────────────────────────────────────────
+  accountNudge: {
+    bannerTitle: 'Keep your pets safe 🐾',
+    bannerSubtitle: 'Create a free account and never lose your data.',
+    createAccount: 'Create account',
+    alreadyHaveAccount: 'I already have an account',
+    modalTitle: 'Your data is safe here',
+    modalSubtitle: 'But if you switch phones or uninstall the app, you could lose everything.\nCreate a free account and automatically back up your pets. 🐾',
+    syncAuto: 'Auto sync',
+    secureBackup: 'Secure backup',
+    anyDevice: 'Access on any device',
+    createAccountFree: 'Create free account',
+    loginBtn: 'I already have an account — Sign in',
+    dismiss: 'Not now, continue without account',
   },
 
   // ── Edit Profile ───────────────────────────────────────────────────────────

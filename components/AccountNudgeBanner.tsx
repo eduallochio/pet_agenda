@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../hooks/useTheme';
 import { Theme } from '../constants/Colors';
 import { Shadows } from '../constants/Shadows';
+import { useTranslation } from 'react-i18next';
 
 type Props = {
   onCreateAccount: () => void;
@@ -15,6 +16,7 @@ type Props = {
 
 export default function AccountNudgeBanner({ onCreateAccount, onLogin, onDismiss }: Props) {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const slideAnim = useRef(new Animated.Value(-120)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
 
@@ -56,10 +58,10 @@ export default function AccountNudgeBanner({ onCreateAccount, onLogin, onDismiss
 
         <View style={styles.textWrap}>
           <Text style={[styles.title, { color: colors.text.primary }]}>
-            Garanta o backup dos seus pets 🐾
+            {t('accountNudge.bannerTitle')}
           </Text>
           <Text style={[styles.subtitle, { color: colors.text.secondary }]}>
-            Crie uma conta grátis e nunca perca seus dados.
+            {t('accountNudge.bannerSubtitle')}
           </Text>
 
           {/* Ações */}
@@ -69,11 +71,11 @@ export default function AccountNudgeBanner({ onCreateAccount, onLogin, onDismiss
               onPress={onCreateAccount}
               activeOpacity={0.85}
             >
-              <Text style={styles.btnCreateText}>Criar conta</Text>
+              <Text style={styles.btnCreateText}>{t('accountNudge.createAccount')}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity onPress={onLogin} activeOpacity={0.7} style={styles.btnLogin}>
-              <Text style={[styles.btnLoginText, { color: Theme.primary }]}>Já tenho conta</Text>
+              <Text style={[styles.btnLoginText, { color: Theme.primary }]}>{t('accountNudge.alreadyHaveAccount')}</Text>
             </TouchableOpacity>
           </View>
         </View>

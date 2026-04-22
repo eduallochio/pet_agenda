@@ -32,14 +32,14 @@ const SIZE_COLOR: Record<string, string> = {
   Gigante: '#9C27B0',
 };
 
-const RATING_LABELS: { key: keyof BreedRatings; label: string; icon: string }[] = [
-  { key: 'energy',           label: 'Energia',              icon: 'flash-outline' },
-  { key: 'affection',        label: 'Afeto',                icon: 'heart-outline' },
-  { key: 'intelligence',     label: 'Inteligência',         icon: 'bulb-outline' },
-  { key: 'grooming',         label: 'Cuidados com pelo',    icon: 'cut-outline' },
-  { key: 'health',           label: 'Saúde geral',          icon: 'medical-outline' },
-  { key: 'childFriendly',    label: 'Com crianças',         icon: 'happy-outline' },
-  { key: 'strangerFriendly', label: 'Com estranhos',        icon: 'people-outline' },
+const RATING_KEYS: { key: keyof BreedRatings; tKey: string; icon: string }[] = [
+  { key: 'energy',           tKey: 'breedInfo.ratings.energy',        icon: 'flash-outline' },
+  { key: 'affection',        tKey: 'breedInfo.ratings.friendliness',  icon: 'heart-outline' },
+  { key: 'intelligence',     tKey: 'breedInfo.ratings.trainability',  icon: 'bulb-outline' },
+  { key: 'grooming',         tKey: 'breedInfo.ratings.grooming',      icon: 'cut-outline' },
+  { key: 'health',           tKey: 'breedInfo.ratings.health',        icon: 'medical-outline' },
+  { key: 'childFriendly',    tKey: 'breedInfo.ratings.adaptability',  icon: 'happy-outline' },
+  { key: 'strangerFriendly', tKey: 'breedInfo.ratings.barking',       icon: 'people-outline' },
 ];
 
 function RatingBar({ value, color }: { value: number; color: string }) {
@@ -93,7 +93,7 @@ export default function BreedInfoScreen() {
         <View style={styles.centered}>
           <ActivityIndicator size="large" color={Theme.primary} />
           <Text style={[styles.loadingText, { color: colors.text.secondary }]}>
-            Buscando informações...
+            {t('breedInfo.loading', { defaultValue: 'Buscando informações...' })}
           </Text>
         </View>
       </SafeAreaView>
@@ -168,7 +168,7 @@ export default function BreedInfoScreen() {
           <View style={styles.gallerySection}>
             <View style={styles.gallerySectionHeader}>
               <Ionicons name="images-outline" size={18} color={Theme.primary} />
-              <Text style={[styles.gallerySectionTitle, { color: colors.text.primary }]}>Galeria de fotos</Text>
+              <Text style={[styles.gallerySectionTitle, { color: colors.text.primary }]}>{t('breedInfo.gallery')}</Text>
             </View>
             <FlatList
               data={galleryPhotos}
@@ -191,11 +191,11 @@ export default function BreedInfoScreen() {
 
         {/* Ratings */}
         {info.ratings && (
-          <SectionCard title="Características" icon="stats-chart-outline" colors={colors}>
-            {RATING_LABELS.map(({ key, label, icon }) => (
+          <SectionCard title={t('breedInfo.characteristics')} icon="stats-chart-outline" colors={colors}>
+            {RATING_KEYS.map(({ key, tKey, icon }) => (
               <View key={key} style={styles.ratingRow}>
                 <Ionicons name={icon as any} size={16} color={Theme.primary} style={styles.ratingIcon} />
-                <Text style={[styles.ratingLabel, { color: colors.text.primary }]}>{label}</Text>
+                <Text style={[styles.ratingLabel, { color: colors.text.primary }]}>{t(tKey)}</Text>
                 <RatingBar value={info.ratings![key]} color={Theme.primary} />
               </View>
             ))}
@@ -249,7 +249,7 @@ export default function BreedInfoScreen() {
 
         {/* Links externos */}
         {(info.wikipediaUrl || info.cfaUrl || info.vetstreetUrl) && (
-          <SectionCard title="Saiba mais" icon="link-outline" colors={colors}>
+          <SectionCard title={t('breedInfo.externalLinks')} icon="link-outline" colors={colors}>
             {info.wikipediaUrl && (
               <TouchableOpacity style={styles.linkRow} onPress={() => Linking.openURL(info.wikipediaUrl!)}>
                 <Ionicons name="globe-outline" size={20} color="#555" />
@@ -281,7 +281,7 @@ export default function BreedInfoScreen() {
           activeOpacity={0.8}
         >
           <Ionicons name="grid-outline" size={20} color={Theme.primary} />
-          <Text style={[styles.explorerBtnText, { color: Theme.primary }]}>Explorar outras raças de {info.species === 'Cachorro' ? 'cães' : 'gatos'}</Text>
+          <Text style={[styles.explorerBtnText, { color: Theme.primary }]}>{t('breedInfo.exploreBtnLabel')}</Text>
           <Ionicons name="chevron-forward" size={18} color={Theme.primary} />
         </TouchableOpacity>
 

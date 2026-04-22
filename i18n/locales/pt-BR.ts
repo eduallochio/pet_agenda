@@ -1010,6 +1010,55 @@ export default {
     characteristics: 'Características',
     care: 'Cuidados Essenciais',
     curiosityTitle: 'Você sabia?',
+    loading: 'Buscando informações...',
+    gallery: 'Galeria de Fotos',
+    externalLinks: 'Saiba Mais',
+    exploreBtnLabel: 'Explorar outras raças',
+    ratings: {
+      energy: 'Energia',
+      friendliness: 'Sociabilidade',
+      grooming: 'Tosa / Higiene',
+      trainability: 'Treinabilidade',
+      health: 'Saúde Geral',
+      adaptability: 'Adaptabilidade',
+      barking: 'Tendência a latir',
+    },
+  },
+
+  // ── Breed Explorer ─────────────────────────────────────────────────────────
+  breedExplorer: {
+    headerTitle: 'Explorar Raças',
+    searchDog: 'Buscar cão...',
+    searchCat: 'Buscar gato...',
+    loading: 'Carregando raças...',
+    empty: 'Nenhuma raça encontrada',
+    found_one: '{{count}} raça encontrada',
+    found_other: '{{count}} raças encontradas',
+    dogs: 'Cachorros',
+    cats: 'Gatos',
+    sizes: {
+      all: 'Todos',
+      small: 'Pequeno',
+      medium: 'Médio',
+      large: 'Grande',
+      giant: 'Gigante',
+    },
+  },
+
+  // ── Account Nudge ──────────────────────────────────────────────────────────
+  accountNudge: {
+    bannerTitle: 'Garanta o backup dos seus pets 🐾',
+    bannerSubtitle: 'Crie uma conta grátis e nunca perca seus dados.',
+    createAccount: 'Criar conta',
+    alreadyHaveAccount: 'Já tenho conta',
+    modalTitle: 'Seus dados estão seguros aqui',
+    modalSubtitle: 'Mas se trocar de celular ou desinstalar o app, pode perder tudo.\nCrie uma conta gratuita e faça backup automático dos seus pets. 🐾',
+    syncAuto: 'Sync automático',
+    secureBackup: 'Backup seguro',
+    anyDevice: 'Acesse em qualquer celular',
+    createAccountFree: 'Criar conta grátis',
+    loginBtn: 'Já tenho uma conta — Entrar',
+    dismiss: 'Agora não, continuar sem conta',
   },
 
   // ── Edit Profile ───────────────────────────────────────────────────────────

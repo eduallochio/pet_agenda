@@ -10,6 +10,7 @@ import { useTheme } from '../hooks/useTheme';
 import { Theme } from '../constants/Colors';
 import { Shadows } from '../constants/Shadows';
 import { fetchAllBreeds, BreedApiData } from '../services/breedApiService';
+import { useTranslation } from 'react-i18next';
 
 type Species = 'Cachorro' | 'Gato';
 type SizeFilter = 'Todos' | 'Pequeno' | 'Médio' | 'Grande' | 'Gigante';
@@ -24,6 +25,7 @@ const SIZE_COLOR: Record<string, string> = {
 export default function BreedExplorerScreen() {
   const router = useRouter();
   const { colors, isDarkMode } = useTheme();
+  const { t } = useTranslation();
 
   const [species, setSpecies] = useState<Species>('Cachorro');
   const [breeds, setBreeds] = useState<BreedApiData[]>([]);
@@ -62,7 +64,7 @@ export default function BreedExplorerScreen() {
         <TouchableOpacity style={styles.headerBtn} onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={24} color={colors.text.primary} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.text.primary }]}>Explorar Raças</Text>
+        <Text style={[styles.headerTitle, { color: colors.text.primary }]}>{t('breedExplorer.headerTitle')}</Text>
         <View style={styles.headerBtn} />
       </View>
 
@@ -76,7 +78,7 @@ export default function BreedExplorerScreen() {
           >
             <Text style={styles.speciesEmoji}>{s === 'Cachorro' ? '🐕' : '🐱'}</Text>
             <Text style={[styles.speciesLabel, { color: species === s ? '#fff' : colors.text.secondary }]}>
-              {s}s
+              {s === 'Cachorro' ? t('breedExplorer.dogs') : t('breedExplorer.cats')}
             </Text>
           </TouchableOpacity>
         ))}
@@ -87,7 +89,7 @@ export default function BreedExplorerScreen() {
         <Ionicons name="search-outline" size={18} color={colors.text.secondary} />
         <TextInput
           style={[styles.searchInput, { color: colors.text.primary }]}
-          placeholder={`Buscar ${species === 'Cachorro' ? 'cão' : 'gato'}...`}
+          placeholder={species === 'Cachorro' ? t('breedExplorer.searchDog') : t('breedExplorer.searchCat')}
           placeholderTextColor={colors.text.secondary}
           value={query}
           onChangeText={setQuery}
@@ -105,6 +107,13 @@ export default function BreedExplorerScreen() {
         {(['Todos', 'Pequeno', 'Médio', 'Grande', 'Gigante'] as SizeFilter[]).map(size => {
           const active = sizeFilter === size;
           const color = size === 'Todos' ? Theme.primary : (SIZE_COLOR[size] ?? Theme.primary);
+          const sizeLabel: Record<SizeFilter, string> = {
+            Todos: t('breedExplorer.sizes.all'),
+            Pequeno: t('breedExplorer.sizes.small'),
+            Médio: t('breedExplorer.sizes.medium'),
+            Grande: t('breedExplorer.sizes.large'),
+            Gigante: t('breedExplorer.sizes.giant'),
+          };
           return (
             <TouchableOpacity
               key={size}
@@ -115,7 +124,7 @@ export default function BreedExplorerScreen() {
               ]}
               onPress={() => setSizeFilter(size)}
             >
-              <Text style={[styles.filterChipText, { color: active ? '#fff' : color }]}>{size}</Text>
+              <Text style={[styles.filterChipText, { color: active ? '#fff' : color }]}>{sizeLabel[size]}</Text>
             </TouchableOpacity>
           );
         })}
@@ -124,7 +133,7 @@ export default function BreedExplorerScreen() {
       {/* Contador */}
       {!loading && (
         <Text style={[styles.countText, { color: colors.text.secondary }]}>
-          {filtered.length} {filtered.length === 1 ? 'raça encontrada' : 'raças encontradas'}
+          {t(filtered.length === 1 ? 'breedExplorer.found_one' : 'breedExplorer.found_other', { count: filtered.length })}
         </Text>
       )}
 
@@ -133,7 +142,7 @@ export default function BreedExplorerScreen() {
         <View style={styles.centered}>
           <ActivityIndicator size="large" color={Theme.primary} />
           <Text style={[styles.loadingText, { color: colors.text.secondary }]}>
-            Carregando raças...
+            {t('breedExplorer.loading')}
           </Text>
         </View>
       ) : (
@@ -148,7 +157,7 @@ export default function BreedExplorerScreen() {
             <View style={styles.centered}>
               <Ionicons name="search-outline" size={48} color={colors.text.secondary} />
               <Text style={[styles.emptyText, { color: colors.text.secondary }]}>
-                Nenhuma raça encontrada
+                {t('breedExplorer.empty')}
               </Text>
             </View>
           }
